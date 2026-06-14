@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Red Wedding Ground Layout Handover</title>
+  <style>
+    :root {
+      --red-950: #300507;
+      --red-900: #52080c;
+      --red-800: #760d13;
+      --red-700: #9c151c;
+      --red-500: #c92a2f;
+      --gold: #c8a24a;
+      --gold-soft: #f3df9d;
+      --ivory: #fff9ed;
+      --cream: #f6edd9;
+      --ink: #201916;
+      --muted: #6d5d58;
+      --green: #586b43;
+      --blue: #2e5a68;
+      --line: rgba(48, 5, 7, 0.17);
+      --shadow: 0 22px 60px rgba(48, 5, 7, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(200, 162, 74, 0.2), transparent 28rem),
+        linear-gradient(135deg, #fffaf1 0%, #f5ead6 48%, #fbf6ec 100%);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    .page {
+      width: min(1500px, calc(100vw - 40px));
+      margin: 24px auto 40px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      padding: 26px 30px;
+      background: linear-gradient(135deg, rgba(48, 5, 7, 0.98), rgba(118, 13, 19, 0.96));
+      color: var(--ivory);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, transparent 0 58%, rgba(200, 162, 74, 0.22) 58% 59%, transparent 59%),
+        repeating-linear-gradient(90deg, transparent 0 34px, rgba(255, 249, 237, 0.035) 34px 36px);
+      pointer-events: none;
+    }
+
+    .title-block,
+    .meta-block {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      margin: 0 0 9px;
+      color: var(--gold-soft);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 54px);
+      line-height: 1.02;
+      font-weight: 880;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      max-width: 820px;
+      color: rgba(255, 249, 237, 0.86);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .meta-block {
+      display: grid;
+      gap: 8px;
+      min-width: 280px;
+      color: rgba(255, 249, 237, 0.9);
+      font-size: 13px;
+    }
+
+    .meta-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 249, 237, 0.2);
+    }
+
+    .meta-line strong {
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(680px, 1fr) 410px;
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .sheet,
+    .side-panel,
+    .wide-panel {
+      background: rgba(255, 249, 237, 0.92);
+      border: 1px solid rgba(48, 5, 7, 0.12);
+      border-radius: 8px;
+      box-shadow: 0 16px 44px rgba(48, 5, 7, 0.1);
+    }
+
+    .sheet {
+      padding: 18px;
+    }
+
+    .diagram-wrap {
+      background:
+        linear-gradient(rgba(255,255,255,0.48), rgba(255,255,255,0.48)),
+        repeating-linear-gradient(0deg, rgba(48, 5, 7, 0.045) 0 1px, transparent 1px 24px),
+        repeating-linear-gradient(90deg, rgba(48, 5, 7, 0.045) 0 1px, transparent 1px 24px),
+        #fdf7e9;
+      border: 1px solid rgba(48, 5, 7, 0.13);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-height: 940px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      min-height: 38px;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid rgba(48, 5, 7, 0.1);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.52);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 730;
+    }
+
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      flex: 0 0 18px;
+      border: 1px solid rgba(48, 5, 7, 0.16);
+    }
+
+    .side-panel {
+      padding: 20px;
+      display: grid;
+      gap: 17px;
+    }
+
+    .section-title {
+      margin: 0 0 9px;
+      color: var(--red-900);
+      font-size: 15px;
+      line-height: 1.25;
+      font-weight: 880;
+      text-transform: uppercase;
+    }
+
+    .plain {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.52;
+    }
+
+    .flow-list,
+    .note-list,
+    .vendor-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-list li,
+    .note-list li,
+    .vendor-list li {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 9px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .index {
+      height: 24px;
+      min-width: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--red-800);
+      color: var(--ivory);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .check {
+      height: 24px;
+      min-width: 24px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 999px;
+      background: rgba(88, 107, 67, 0.16);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .warning {
+      background: rgba(200, 162, 74, 0.16);
+      border-left: 4px solid var(--gold);
+      border-radius: 6px;
+      padding: 12px 13px;
+    }
+
+    .warning strong {
+      color: var(--red-900);
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .wide-panel {
+      margin-top: 22px;
+      padding: 22px;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .spec {
+      border: 1px solid rgba(48, 5, 7, 0.1);
+      border-radius: 7px;
+      padding: 13px;
+      background: rgba(255,255,255,0.56);
+    }
+
+    .spec strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--red-900);
+      font-size: 13px;
+    }
+
+    .spec span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 7px;
+      font-size: 13px;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      text-align: left;
+      padding: 10px 11px;
+      border-bottom: 1px solid rgba(48, 5, 7, 0.1);
+      vertical-align: top;
+    }
+
+    .mini-table th {
+      color: var(--red-900);
+      background: rgba(118, 13, 19, 0.08);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .mini-table td {
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.46);
+    }
+
+    .reference-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .reference-card {
+      overflow: hidden;
+      border: 1px solid rgba(48, 5, 7, 0.12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.56);
+    }
+
+    .reference-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+    }
+
+    .reference-card div {
+      padding: 12px;
+    }
+
+    .reference-card strong {
+      display: block;
+      color: var(--red-900);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .reference-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .svg-label {
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-weight: 850;
+      letter-spacing: 0;
+      fill: #fff9ed;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .svg-sub {
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-weight: 720;
+      letter-spacing: 0;
+      fill: rgba(255, 249, 237, 0.86);
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .svg-dark {
+      fill: #2f201b;
+    }
+
+    .svg-muted {
+      fill: #6d5d58;
+    }
+
+    .small {
+      font-size: 2.8px;
+    }
+
+    .tiny {
+      font-size: 2.3px;
+    }
+
+    .medium {
+      font-size: 3.8px;
+    }
+
+    .large {
+      font-size: 5.2px;
+    }
+
+    .zone-red {
+      fill: url(#redZone);
+      stroke: rgba(48, 5, 7, 0.35);
+      stroke-width: 0.6;
+    }
+
+    .zone-cream {
+      fill: rgba(255, 249, 237, 0.86);
+      stroke: rgba(48, 5, 7, 0.2);
+      stroke-width: 0.55;
+    }
+
+    .zone-gold {
+      fill: rgba(200, 162, 74, 0.28);
+      stroke: rgba(122, 89, 24, 0.42);
+      stroke-width: 0.55;
+    }
+
+    .zone-green {
+      fill: rgba(88, 107, 67, 0.16);
+      stroke: rgba(88, 107, 67, 0.38);
+      stroke-width: 0.55;
+    }
+
+    .zone-blue {
+      fill: rgba(46, 90, 104, 0.16);
+      stroke: rgba(46, 90, 104, 0.44);
+      stroke-width: 0.55;
+    }
+
+    .clear-zone {
+      fill: rgba(255, 255, 255, 0.32);
+      stroke: rgba(46, 90, 104, 0.7);
+      stroke-width: 0.65;
+      stroke-dasharray: 2.2 1.8;
+    }
+
+    .outer-lane {
+      fill: none;
+      stroke: rgba(46, 90, 104, 0.52);
+      stroke-width: 2.8;
+      stroke-dasharray: 4 2.4;
+    }
+
+    .service-lane {
+      fill: rgba(46, 90, 104, 0.08);
+      stroke: rgba(46, 90, 104, 0.52);
+      stroke-width: 0.55;
+      stroke-dasharray: 2 2;
+    }
+
+    .guest-flow {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 1.35;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.82;
+    }
+
+    .service-flow {
+      fill: none;
+      stroke: var(--blue);
+      stroke-width: 1.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 2.5 2;
+    }
+
+    .counter {
+      fill: #fff9ed;
+      stroke: #760d13;
+      stroke-width: 0.55;
+    }
+
+    .chair {
+      fill: #fff7e5;
+      stroke: rgba(48, 5, 7, 0.22);
+      stroke-width: 0.25;
+    }
+
+    .chair-vip {
+      fill: #f6d76f;
+      stroke: rgba(48, 5, 7, 0.24);
+      stroke-width: 0.3;
+    }
+
+    .rose {
+      fill: #a81720;
+      opacity: 0.86;
+    }
+
+    @media (max-width: 1120px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .spec-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100vw - 20px, 760px);
+        margin-top: 10px;
+      }
+
+      header {
+        grid-template-columns: 1fr;
+        padding: 22px;
+      }
+
+      .meta-block {
+        min-width: 0;
+      }
+
+      .side-panel,
+      .spec-grid,
+      .two-col,
+      .legend,
+      .reference-grid {
+        grid-template-columns: 1fr;
+      }
+
+      svg {
+        min-height: 760px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .page {
+        width: 100%;
+        margin: 0;
+      }
+
+      header,
+      .sheet,
+      .side-panel,
+      .wide-panel {
+        box-shadow: none;
+      }
+
+      .grid {
+        grid-template-columns: 1.45fr 0.85fr;
+      }
+
+      svg {
+        min-height: 820px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div class="title-block">
+        <p class="eyebrow">Vendor handover draft v1</p>
+        <h1>Red Themed Wedding Ground Layout</h1>
+        <p class="subtitle">A pure Bengali wedding flow for 550 guests, using a center island Chadnatala, clear ritual movement, separate bride and groom seating, entry-side appetizer adda with music, right-top traditional row-service dining, and a hidden kitchen/service pocket.</p>
+      </div>
+      <div class="meta-block" aria-label="Layout assumptions">
+        <div class="meta-line"><span>Venue shape</span><strong>Rectangular open ground</strong></div>
+        <div class="meta-line"><span>Guest count</span><strong>550 guests</strong></div>
+        <div class="meta-line"><span>Dining</span><strong>Traditional row/table service</strong></div>
+        <div class="meta-line"><span>Ground size</span><strong>70% football-ground area; not to scale</strong></div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <div class="sheet">
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 210 330" role="img" aria-label="Top down wedding ground layout">
+            <defs>
+              <linearGradient id="redZone" x1="0%" x2="100%" y1="0%" y2="100%">
+                <stop offset="0%" stop-color="#52080c" />
+                <stop offset="100%" stop-color="#9c151c" />
+              </linearGradient>
+              <linearGradient id="mandapGrad" x1="0%" x2="100%" y1="0%" y2="100%">
+                <stop offset="0%" stop-color="#8f1118" />
+                <stop offset="55%" stop-color="#c92a2f" />
+                <stop offset="100%" stop-color="#f0c85d" />
+              </linearGradient>
+              <pattern id="grass" width="7" height="7" patternUnits="userSpaceOnUse">
+                <rect width="7" height="7" fill="#e9eddb" />
+                <path d="M0 7 L7 0" stroke="rgba(88,107,67,0.12)" stroke-width="0.6" />
+              </pattern>
+              <marker id="arrowGold" viewBox="0 0 10 10" refX="8.2" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#c8a24a" />
+              </marker>
+              <marker id="arrowBlue" viewBox="0 0 10 10" refX="8.2" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#2e5a68" />
+              </marker>
+              <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#300507" flood-opacity="0.24" />
+              </filter>
+            </defs>
+
+            <rect x="2" y="2" width="206" height="326" rx="5" fill="url(#grass)" stroke="#300507" stroke-width="1.4" />
+            <rect x="10" y="10" width="190" height="310" rx="3" class="service-lane" />
+            <rect x="17" y="17" width="176" height="296" rx="2" class="outer-lane" />
+            <text x="105" y="14" class="svg-label small svg-dark">Open perimeter circulation lane. Keep clear for guests, elders, wheelchairs, and vendor movement.</text>
+
+            <!-- Right-top Bengali row-service dining with hidden kitchen -->
+            <rect x="122" y="20" width="70" height="96" rx="2.5" class="zone-cream" />
+            <rect x="128" y="25" width="58" height="13" rx="1.4" class="zone-red" />
+            <text x="157" y="30" class="svg-label tiny">SCREENED KITCHEN</text>
+            <text x="157" y="35" class="svg-sub tiny">hidden service only</text>
+            <rect x="128" y="43" width="58" height="10" rx="1.4" class="zone-blue" />
+            <text x="157" y="48.2" class="svg-label tiny svg-dark">SERVICE PASSAGE</text>
+            <text x="157" y="60" class="svg-label tiny svg-dark">BENGALI ROW-SERVICE DINING</text>
+            <text x="157" y="65.5" class="svg-sub tiny svg-muted">long table rows, no buffet queue</text>
+            <rect x="130" y="72" width="54" height="5.5" rx="1" class="zone-gold" />
+            <rect x="130" y="81" width="54" height="5.5" rx="1" class="zone-gold" />
+            <rect x="130" y="90" width="54" height="5.5" rx="1" class="zone-gold" />
+            <text x="157" y="74.9" class="svg-label tiny svg-dark">ROW 1</text>
+            <text x="157" y="83.9" class="svg-label tiny svg-dark">ROW 2</text>
+            <text x="157" y="92.9" class="svg-label tiny svg-dark">ROW 3</text>
+            <rect x="145" y="102" width="40" height="7" rx="1.2" class="zone-blue" />
+            <text x="165" y="105.7" class="svg-label tiny svg-dark">HANDWASH / EXIT</text>
+
+            <!-- Top-left support space -->
+            <rect x="18" y="20" width="90" height="48" rx="2.5" class="zone-green" />
+            <text x="63" y="29" class="svg-label small svg-dark">OPEN FAMILY ADDA</text>
+            <text x="63" y="35" class="svg-sub tiny svg-muted">elder pause, family greeting, no kitchen view</text>
+            <rect x="29" y="45" width="18" height="12" rx="6" class="zone-cream" />
+            <rect x="55" y="45" width="18" height="12" rx="6" class="zone-cream" />
+            <rect x="81" y="45" width="18" height="12" rx="6" class="zone-cream" />
+            <text x="38" y="51.1" class="svg-label tiny svg-dark">SIT</text>
+            <text x="64" y="51.1" class="svg-label tiny svg-dark">ADDA</text>
+            <text x="90" y="51.1" class="svg-label tiny svg-dark">PHOTO</text>
+
+            <!-- Open lounge and dining approach buffer -->
+            <rect x="18" y="76" width="92" height="45" rx="2.5" class="zone-green" />
+            <text x="64" y="85" class="svg-label medium svg-dark">OPEN LOUNGE</text>
+            <text x="64" y="90.5" class="svg-sub tiny svg-muted">standing, greeting, photo pause</text>
+            <rect x="34" y="98" width="18" height="12" rx="6" class="zone-cream" />
+            <rect x="62" y="98" width="18" height="12" rx="6" class="zone-cream" />
+            <rect x="90" y="98" width="18" height="12" rx="6" class="zone-cream" />
+            <text x="43" y="104" class="svg-label tiny svg-dark">ADDA</text>
+            <text x="71" y="104" class="svg-label tiny svg-dark">FLOW</text>
+            <text x="99" y="104" class="svg-label tiny svg-dark">PHOTO</text>
+
+            <rect x="122" y="118" width="70" height="8" rx="1.5" class="zone-blue" />
+            <text x="157" y="122.1" class="svg-label tiny svg-dark">DINING ENTRY FROM RIGHT LANE ONLY</text>
+
+            <!-- Ceremony zone -->
+            <rect x="18" y="129" width="174" height="105" rx="2.5" fill="rgba(255,249,237,0.52)" stroke="rgba(48,5,7,0.18)" stroke-width="0.65" />
+            <text x="105" y="126" class="svg-label small svg-dark">BENGALI CEREMONY FIELD: clear ritual view toward Chadnatala</text>
+
+            <!-- Seating blocks -->
+            <rect x="25" y="144" width="49" height="58" rx="2" class="zone-cream" />
+            <rect x="136" y="144" width="49" height="58" rx="2" class="zone-cream" />
+            <rect x="63" y="207" width="34" height="18" rx="2" class="zone-gold" />
+            <rect x="113" y="207" width="34" height="18" rx="2" class="zone-gold" />
+            <rect x="77" y="129" width="56" height="18" rx="2" class="zone-cream" />
+
+            <text x="49.5" y="150" class="svg-label tiny svg-dark">BRIDE SIDE / FAMILY SEATING</text>
+            <text x="49.5" y="155" class="svg-sub tiny svg-muted">flexible rows</text>
+            <text x="160.5" y="150" class="svg-label tiny svg-dark">GROOM SIDE FLEX SEATING</text>
+            <text x="160.5" y="155" class="svg-sub tiny svg-muted">optional Bor Jatri seating</text>
+            <text x="80" y="216" class="svg-label tiny svg-dark">VIP FAMILY</text>
+            <text x="130" y="216" class="svg-label tiny svg-dark">VIP FAMILY</text>
+            <text x="105" y="138.5" class="svg-label tiny svg-dark">FAMILY / REAR VIEW SEATING</text>
+
+            <!-- Chair dots -->
+            <g>
+              <script type="application/ecmascript"><![CDATA[]]></script>
+              <g id="leftChairs">
+                <circle cx="32" cy="162" r="1.15" class="chair" /><circle cx="38" cy="162" r="1.15" class="chair" /><circle cx="44" cy="162" r="1.15" class="chair" /><circle cx="50" cy="162" r="1.15" class="chair" /><circle cx="56" cy="162" r="1.15" class="chair" /><circle cx="62" cy="162" r="1.15" class="chair" />
+                <circle cx="32" cy="169" r="1.15" class="chair" /><circle cx="38" cy="169" r="1.15" class="chair" /><circle cx="44" cy="169" r="1.15" class="chair" /><circle cx="50" cy="169" r="1.15" class="chair" /><circle cx="56" cy="169" r="1.15" class="chair" /><circle cx="62" cy="169" r="1.15" class="chair" />
+                <circle cx="32" cy="176" r="1.15" class="chair" /><circle cx="38" cy="176" r="1.15" class="chair" /><circle cx="44" cy="176" r="1.15" class="chair" /><circle cx="50" cy="176" r="1.15" class="chair" /><circle cx="56" cy="176" r="1.15" class="chair" /><circle cx="62" cy="176" r="1.15" class="chair" />
+                <circle cx="32" cy="183" r="1.15" class="chair" /><circle cx="38" cy="183" r="1.15" class="chair" /><circle cx="44" cy="183" r="1.15" class="chair" /><circle cx="50" cy="183" r="1.15" class="chair" /><circle cx="56" cy="183" r="1.15" class="chair" /><circle cx="62" cy="183" r="1.15" class="chair" />
+                <circle cx="32" cy="190" r="1.15" class="chair" /><circle cx="38" cy="190" r="1.15" class="chair" /><circle cx="44" cy="190" r="1.15" class="chair" /><circle cx="50" cy="190" r="1.15" class="chair" /><circle cx="56" cy="190" r="1.15" class="chair" /><circle cx="62" cy="190" r="1.15" class="chair" />
+              </g>
+              <g id="rightChairs">
+                <circle cx="148" cy="162" r="1.15" class="chair" /><circle cx="154" cy="162" r="1.15" class="chair" /><circle cx="160" cy="162" r="1.15" class="chair" /><circle cx="166" cy="162" r="1.15" class="chair" /><circle cx="172" cy="162" r="1.15" class="chair" /><circle cx="178" cy="162" r="1.15" class="chair" />
+                <circle cx="148" cy="169" r="1.15" class="chair" /><circle cx="154" cy="169" r="1.15" class="chair" /><circle cx="160" cy="169" r="1.15" class="chair" /><circle cx="166" cy="169" r="1.15" class="chair" /><circle cx="172" cy="169" r="1.15" class="chair" /><circle cx="178" cy="169" r="1.15" class="chair" />
+                <circle cx="148" cy="176" r="1.15" class="chair" /><circle cx="154" cy="176" r="1.15" class="chair" /><circle cx="160" cy="176" r="1.15" class="chair" /><circle cx="166" cy="176" r="1.15" class="chair" /><circle cx="172" cy="176" r="1.15" class="chair" /><circle cx="178" cy="176" r="1.15" class="chair" />
+                <circle cx="148" cy="183" r="1.15" class="chair" /><circle cx="154" cy="183" r="1.15" class="chair" /><circle cx="160" cy="183" r="1.15" class="chair" /><circle cx="166" cy="183" r="1.15" class="chair" /><circle cx="172" cy="183" r="1.15" class="chair" /><circle cx="178" cy="183" r="1.15" class="chair" />
+                <circle cx="148" cy="190" r="1.15" class="chair" /><circle cx="154" cy="190" r="1.15" class="chair" /><circle cx="160" cy="190" r="1.15" class="chair" /><circle cx="166" cy="190" r="1.15" class="chair" /><circle cx="172" cy="190" r="1.15" class="chair" /><circle cx="178" cy="190" r="1.15" class="chair" />
+              </g>
+              <g id="rearChairs">
+                <circle cx="84" cy="141" r="1" class="chair" /><circle cx="91" cy="141" r="1" class="chair" /><circle cx="98" cy="141" r="1" class="chair" /><circle cx="105" cy="141" r="1" class="chair" /><circle cx="112" cy="141" r="1" class="chair" /><circle cx="119" cy="141" r="1" class="chair" /><circle cx="126" cy="141" r="1" class="chair" />
+              </g>
+              <circle cx="70" cy="216" r="1.2" class="chair-vip" /><circle cx="76" cy="216" r="1.2" class="chair-vip" /><circle cx="82" cy="216" r="1.2" class="chair-vip" /><circle cx="88" cy="216" r="1.2" class="chair-vip" />
+              <circle cx="121" cy="216" r="1.2" class="chair-vip" /><circle cx="127" cy="216" r="1.2" class="chair-vip" /><circle cx="133" cy="216" r="1.2" class="chair-vip" /><circle cx="139" cy="216" r="1.2" class="chair-vip" />
+            </g>
+
+            <!-- Mandap and clear halo -->
+            <rect x="75" y="147" width="60" height="60" rx="30" class="clear-zone" />
+            <text x="105" y="154" class="svg-sub tiny svg-muted">clear ritual halo for Saat Paak, priests, family, photo</text>
+            <rect x="89" y="161" width="32" height="32" rx="3" fill="url(#mandapGrad)" stroke="#300507" stroke-width="0.8" filter="url(#softShadow)" />
+            <rect x="93" y="165" width="24" height="24" rx="12" fill="rgba(255,249,237,0.16)" stroke="rgba(255,249,237,0.72)" stroke-width="0.5" />
+            <text x="105" y="172" class="svg-label medium">RAISED</text>
+            <text x="105" y="178.2" class="svg-label medium">CHADNATALA</text>
+            <text x="105" y="185.2" class="svg-sub tiny">Bengali mandap</text>
+
+            <!-- Separate bride and groom seating -->
+            <rect x="22" y="126" width="42" height="15" rx="2" class="zone-red" />
+            <text x="43" y="133.4" class="svg-label tiny">BRIDE SEATING</text>
+            <text x="43" y="138" class="svg-sub tiny">pre-Saat Paak hold</text>
+            <rect x="146" y="126" width="42" height="15" rx="2" class="zone-red" />
+            <text x="167" y="133.4" class="svg-label tiny">GROOM SEATING</text>
+            <text x="167" y="138" class="svg-sub tiny">Boron side hold</text>
+
+            <!-- Red aisle and entry -->
+            <rect x="96" y="193" width="18" height="93" rx="2" class="zone-red" />
+            <text x="105" y="236" class="svg-label small">RED DRAPED AISLE</text>
+            <text x="105" y="242" class="svg-sub tiny">clear Boron + bride arrival axis</text>
+            <g>
+              <rect x="87" y="203" width="4" height="10" rx="2" class="zone-red" />
+              <rect x="119" y="203" width="4" height="10" rx="2" class="zone-red" />
+              <rect x="87" y="224" width="4" height="10" rx="2" class="zone-red" />
+              <rect x="119" y="224" width="4" height="10" rx="2" class="zone-red" />
+              <rect x="87" y="245" width="4" height="10" rx="2" class="zone-red" />
+              <rect x="119" y="245" width="4" height="10" rx="2" class="zone-red" />
+              <circle cx="89" cy="218" r="1.1" class="rose" />
+              <circle cx="121" cy="218" r="1.1" class="rose" />
+              <circle cx="89" cy="239" r="1.1" class="rose" />
+              <circle cx="121" cy="239" r="1.1" class="rose" />
+            </g>
+
+            <rect x="48" y="286" width="114" height="24" rx="2.5" class="zone-gold" />
+            <text x="105" y="296" class="svg-label small svg-dark">BOR JATRI BORON + PHOTO PLAZA</text>
+            <text x="105" y="302" class="svg-sub tiny svg-muted">welcome ritual at sides, center clear</text>
+            <rect x="77" y="312" width="56" height="13" rx="2" class="zone-red" />
+            <text x="105" y="318.6" class="svg-label small">ENTRY GATE</text>
+
+            <!-- Arrival-side appetizer and music adda -->
+            <rect x="18" y="238" width="72" height="34" rx="2.5" class="zone-green" />
+            <text x="54" y="244" class="svg-label tiny svg-dark">APPETIZER + MUSIC ADDA</text>
+            <rect x="23" y="249" width="22" height="7" rx="1.2" class="counter" />
+            <rect x="49" y="249" width="22" height="7" rx="1.2" class="counter" />
+            <rect x="24" y="260" width="28" height="7" rx="1.2" class="zone-blue" />
+            <rect x="57" y="260" width="28" height="7" rx="1.2" class="counter" />
+            <text x="34" y="252.8" class="svg-label tiny svg-dark">CHAAT</text>
+            <text x="60" y="252.8" class="svg-label tiny svg-dark">TIKKA</text>
+            <text x="38" y="263.8" class="svg-label tiny svg-dark">MUSIC</text>
+            <text x="71" y="263.8" class="svg-label tiny svg-dark">MOCKTAIL</text>
+
+            <rect x="120" y="238" width="72" height="34" rx="2.5" class="zone-green" />
+            <text x="156" y="244" class="svg-label tiny svg-dark">APPETIZER COUNTER COURT</text>
+            <rect x="125" y="249" width="24" height="7" rx="1.2" class="counter" />
+            <rect x="155" y="249" width="30" height="7" rx="1.2" class="counter" />
+            <rect x="133" y="260" width="44" height="7" rx="1.2" class="counter" />
+            <text x="137" y="252.8" class="svg-label tiny svg-dark">DESSERT</text>
+            <text x="170" y="252.8" class="svg-label tiny svg-dark">FRY / LIVE</text>
+            <text x="155" y="263.8" class="svg-label tiny svg-dark">STAND + ENJOY</text>
+
+            <!-- Guest flow arrows -->
+            <path d="M105 312 C105 296,105 288,105 274 L105 196" class="guest-flow" marker-end="url(#arrowGold)" />
+            <path d="M92 306 C61 304,34 292,34 260 L34 124 C34 105,48 96,68 94" class="guest-flow" marker-end="url(#arrowGold)" />
+            <path d="M118 306 C149 304,176 292,176 260 L176 128 C176 116,170 110,157 109" class="guest-flow" marker-end="url(#arrowGold)" />
+            <path d="M157 98 C157 91,157 87,157 83" class="guest-flow" marker-end="url(#arrowGold)" />
+            <path d="M68 94 C60 80,58 70,42 57" class="guest-flow" marker-end="url(#arrowGold)" />
+
+            <!-- Service route -->
+            <path d="M13 314 L13 22 L28 22" class="service-flow" marker-end="url(#arrowBlue)" />
+            <path d="M197 314 L197 22 L181 22" class="service-flow" marker-end="url(#arrowBlue)" />
+            <text x="25" y="269" class="svg-label tiny svg-dark" transform="rotate(-90 25 269)">service lane</text>
+            <text x="185" y="269" class="svg-label tiny svg-dark" transform="rotate(90 185 269)">service lane</text>
+          </svg>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="swatch" style="background:#9c151c"></span> Red ceremonial decor</div>
+          <div class="legend-item"><span class="swatch" style="background:#f6edd9"></span> Guest seating zones</div>
+          <div class="legend-item"><span class="swatch" style="background:#d9c16e"></span> Food and lounge zones</div>
+          <div class="legend-item"><span class="swatch" style="background:#dce8e8"></span> Clear circulation lanes</div>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <section>
+          <h2 class="section-title">Planning Principle</h2>
+          <p class="plain">Use the central aisle for Boron, bride arrival, and ceremony visibility. Dining shifts to the right-top corner as traditional Bengali row/table service, with kitchen hidden behind it and no buffet line crossing the ground.</p>
+        </section>
+
+        <section>
+          <h2 class="section-title">Bengali Ritual Cues</h2>
+          <ul class="note-list">
+            <li><span class="check">1</span><span>Chadnatala is the emotional center; keep it visible from guest seating and photo routes.</span></li>
+            <li><span class="check">2</span><span>Saat Paak and Subho Drishti need a clean circular ritual zone around the groom and mandap.</span></li>
+            <li><span class="check">3</span><span>Boron and Bor Jatri arrival should feel ceremonial at entry, not mixed with dining queues.</span></li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="section-title">Guest Flow</h2>
+          <ol class="flow-list">
+            <li><span class="index">1</span><span>Guests enter through one red gate into the Bor Jatri Boron and photo plaza.</span></li>
+            <li><span class="index">2</span><span>Appetizer courts sit near arrival, so guests can enjoy snacks without moving into the ritual field.</span></li>
+            <li><span class="index">3</span><span>The central aisle stays open for Boron, bride arrival, and family/photography movement.</span></li>
+            <li><span class="index">4</span><span>Dining is accessed from the right-side loop and kept in the right-top corner for row-service batches.</span></li>
+          </ol>
+        </section>
+
+        <section>
+          <h2 class="section-title">No-Block Rules</h2>
+          <ul class="note-list">
+            <li><span class="check">A</span><span>Keep the red aisle free of chairs, counters, camera tripods, and decor props.</span></li>
+            <li><span class="check">B</span><span>Keep a clear ritual halo around the Chadnatala for Saat Paak, priests, family, and photographers.</span></li>
+            <li><span class="check">C</span><span>Do not place tall decor between the Chadnatala and guest seating. Tall items stay on aisle sides or perimeter.</span></li>
+            <li><span class="check">D</span><span>Dining entry, exit, handwash, and service movement must stay inside the right-top corner system.</span></li>
+          </ul>
+        </section>
+
+        <section class="warning">
+          <strong>Key vendor instruction</strong>
+          <p class="plain">This should feel like a Bengali wedding exhibition: Boron and Chadnatala stay emotionally central, food is easy to find, and every guest can move without crossing the ritual space.</p>
+        </section>
+      </aside>
+    </section>
+
+    <section class="wide-panel">
+      <h2 class="section-title">Zone Specs For Vendor</h2>
+      <div class="spec-grid">
+        <div class="spec"><strong>Chadnatala / Raised Mandap</strong><span>Central raised Bengali ceremony zone. Keep a clear ritual halo for Saat Paak, Sampradan, Sindoor Daan, priests, family, and photographers.</span></div>
+        <div class="spec"><strong>Ceremony Seating</strong><span>Flexible left, right, rear, and VIP family blocks. Keep rows broken by aisles and preserve open views to the Chadnatala.</span></div>
+        <div class="spec"><strong>Bride + Groom Seating</strong><span>Two separate end zones beside the ceremony field: bride seating for Saat Paak hold and groom seating near Boron-side movement.</span></div>
+        <div class="spec"><strong>Music Setup</strong><span>Small music setup inside the appetizer adda, aimed toward standing guests and softened during rituals.</span></div>
+        <div class="spec"><strong>Appetizers</strong><span>Arrival-side counter courts with red drapes, warm lights, and standing room. Music sits with this experience, not far behind.</span></div>
+        <div class="spec"><strong>Bengali Dining Court</strong><span>Right-top traditional row/table service with hidden kitchen, service passage, handwash, and controlled exit.</span></div>
+        <div class="spec"><strong>Perimeter Loop</strong><span>Open lane around the layout for guest overflow, elders, wheelchairs, service staff, and emergency movement.</span></div>
+        <div class="spec"><strong>Boron + Photo Plaza</strong><span>Welcome ritual and photo wall stay near entry-side edges. The center remains open for the red aisle and Bor Jatri arrival.</span></div>
+      </div>
+
+      <div class="two-col">
+        <section>
+          <h2 class="section-title">Capacity Logic</h2>
+          <table class="mini-table">
+            <thead>
+              <tr><th>Area</th><th>Target Capacity</th><th>Why</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Ceremony seating</td><td>Flexible blocks</td><td>Vendor should tune row depth on site while keeping the mandap visible and the side lanes open.</td></tr>
+              <tr><td>VIP seating</td><td>Defined front blocks</td><td>Close family gets priority without blocking the aisle or mandap.</td></tr>
+              <tr><td>Dining batch</td><td>Vendor-defined</td><td>Batch size should be set after actual row-table count, table length, and service staffing are confirmed.</td></tr>
+              <tr><td>Appetizer courts</td><td>Two side courts</td><td>Guests can stand, listen to music, and enjoy counters while the center aisle stays ceremonial and clear.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 class="section-title">Decorator Notes</h2>
+          <ul class="vendor-list">
+            <li><span class="check">1</span><span>Use red as the ceremony thread, balanced with Bengali white, gold light, shola/topor-inspired accents, and warm chandeliers.</span></li>
+            <li><span class="check">2</span><span>Use floral borders to define zones instead of solid barriers. Guests should see the next experience from where they stand.</span></li>
+            <li><span class="check">3</span><span>Keep bride and groom seating separate, balanced on opposite ends, and visually related through matching red-gold styling.</span></li>
+            <li><span class="check">4</span><span>Dining should look intentional in the right-top corner: screened kitchen, row service, clear handwash/exit, and no service movement through rituals.</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <h2 class="section-title" style="margin-top: 22px;">Reference Direction</h2>
+      <div class="reference-grid">
+        <article class="reference-card">
+          <img src="wedding-layout-assets/red-draped-aisle.png" alt="Red draped aisle reference with warm bulbs" />
+          <div>
+            <strong>Red Draped Aisle</strong>
+            <span>Use a tunnel-like red fabric ceiling, warm exposed bulbs, red carpet, and clean walking path.</span>
+          </div>
+        </article>
+        <article class="reference-card">
+          <img src="wedding-layout-assets/red-floral-entry-gate.png" alt="Red floral entry gate reference" />
+          <div>
+            <strong>Entry Gate View</strong>
+            <span>Heavy red floral frame, petal floor, and direct sightline from gate into the aisle and Chadnatala.</span>
+          </div>
+        </article>
+        <article class="reference-card">
+          <img src="wedding-layout-assets/appetizer-counter-decor.png" alt="Red draped appetizer counter decor reference" />
+          <div>
+            <strong>Appetizer Counter Decor</strong>
+            <span>Red drapes, fairy lights, chandeliers, and dressed counters with room to stand and enjoy music.</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

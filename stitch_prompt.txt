@@ -1,0 +1,133 @@
+Design a high-fidelity UI/UX concept for an app called BiyeFlow.
+
+BiyeFlow is a family-first wedding supervision control room for Indian/Bengali weddings. It is not a generic checklist app, not an invitation maker, and not a vendor marketplace. Its purpose is to help a family organise, supervise, and hand over wedding planning details without chaos.
+
+The emotional goal: when a user opens the app, they should feel calm, organised, and in control. The UI should feel like a premium wedding operations dashboard, not an admin panel or spreadsheet.
+
+Primary users:
+- Bride, groom, parents, siblings, or close family members
+- Non-technical users who are planning a wedding while managing daily life
+- Families coordinating vendors, guests, menus, rooms, budget, reminders, decor, and handovers
+
+Core product promise:
+Turn scattered wedding planning into one connected supervision experience.
+
+Design style:
+- Premium, calm, polished, modern Indian wedding aesthetic
+- Bengali wedding first, but scalable to other events later
+- Use warm ivory, deep maroon/rose, gold, muted green, soft blue, saffron, and white accents
+- Avoid clutter, loud gradients, excessive decoration, and heavy admin-table feeling
+- Use clean cards, organized panels, status chips, counters, tabs, segmented controls, toggles, and compact data rows
+- Mobile-friendly, but design desktop/tablet first as a serious planning workspace
+- The app should feel organised like a control room, not scattered like multiple notebooks
+
+Important UX principles:
+- Control Room is the home screen and product spine
+- Every module should feed useful signals back into the Control Room
+- Show summaries first, details second
+- Avoid giant tables by default
+- Use queues, filters, search, collapsible rows, cards, and progressive disclosure
+- Every screen should answer:
+  1. What is done?
+  2. What is pending?
+  3. What needs attention?
+  4. What can affect cost, guest experience, or execution?
+- Make outputs easy to copy for WhatsApp or hand over to vendors
+
+Required main navigation:
+1. Control Room
+2. Checklist
+3. Guests & Stay
+4. Invitation Tracker
+5. Menu / Caterer
+6. Vendors & Budget
+7. Theme & Decor
+8. Room Planner
+9. Handover Packs
+
+Design the following screens:
+
+1. Control Room
+A calm dashboard with:
+- Wedding name, city, date, countdown
+- Pending tasks
+- Open vendors
+- Budget balance
+- Catering estimate
+- Staying guests
+- Invitation progress
+- Menu locked count
+- Next reminder
+- Risk/attention cards
+- Upcoming actions by function day
+- Wedding Pulse reminder queue
+
+2. Guests & Stay
+A guest operations screen:
+- Excel import area
+- Guest count by event: Sangeet, Marriage, Borjatri, Reception
+- Search and filters
+- Guest/family rows with headcount, event-wise counts, stay need, invite status
+- Stay summary: people needing stay, estimated rooms
+- Avoid spreadsheet chaos. Use expandable guest rows.
+
+3. Invitation Tracker
+A queue-based invitation screen:
+- Need to Send
+- Sent
+- Awaiting RSVP
+- Follow-up Needed
+- Coming
+- Not Coming
+- Need Accommodation
+- Manual Confirmation
+Include copy/share WhatsApp actions, but keep sending manual and human-first.
+
+4. Menu / Caterer Board
+A practical caterer supervision screen:
+- Day tabs: Sangeet, Marriage, Reception
+- Food timings: Breakfast, Lunch, Evening Snacks, Dinner
+- Menu list, caterer count, rate per plate, estimate, status
+- Count sent status
+- Warnings if guest count changes after count sent
+- Button to generate Caterer Handover
+
+5. Vendors & Budget
+A vendor supervision screen:
+- Vendor cards by category: Decor, Caterer, Photography, Makeup, Venue, Shopping
+- Estimate, advance, balance, status, owner, next follow-up
+- Deal Readiness score, but frame it as “Have we checked the right things before booking?”
+- Missing questions and risks, not fake AI claims
+- Budget summary by category
+
+6. Theme & Decor
+A decorator brief screen:
+- Theme name, palette, mood, must-have, avoid, vendor notes
+- Reference photo board
+- Guided layout brief, not a blank canvas
+- Zones like entry, mandap, seating, food, stage, music, photo booth, guest flow
+- Button to generate Decorator Handover
+
+7. Room Planner
+A stay and room allocation screen:
+- Stay guest queue
+- Room cards with capacity
+- Drag/drop style allocation concept
+- Room pressure alerts
+- Guest clusters: elders, close family, friends, bride side, groom side
+- Button to generate Room Allocation Handover
+
+8. Handover Packs
+A screen showing generated vendor-ready outputs:
+- Caterer Handover
+- Decorator Handover
+- Room Handover
+- Photography Handover
+- Event Day Run Sheet
+Each pack should have Preview, Copy for WhatsApp, Print, and Export later.
+
+Design tone:
+The UI should feel like a calm, premium, organised wedding command center. It should not look like a landing page. The first screen should be the actual working dashboard. Keep information dense but breathable, with clear hierarchy, good spacing, and no scattered elements.
+
+Output:
+Create a cohesive UI system with key screens, reusable components, responsive layout direction, and a polished visual style suitable for a real product prototype.

@@ -1,6 +1,6 @@
-# BiyeFlow Handoff
+﻿# BiyeFlow Handoff
 
-Last updated: 2026-06-01
+Last updated: 2026-06-26
 
 This document is a checkpoint for continuing BiyeFlow development on another machine or with another coding agent.
 
@@ -116,6 +116,603 @@ USP direction:
 - Friend buzz as an optional emotional layer, separate from supervision
 - WhatsApp and calls remain human-first, but BiyeFlow prepares and stores the context
 - Local-first, low-cost, simple enough for non-tech family members
+
+
+## Strategic Business Update - 2026-06-26
+
+This update captures the latest product/business conclusions from the BiyeFlow strategy discussion.
+
+### Core Strategic Shift
+
+BiyeFlow should not compete directly as a vendor or venue discovery marketplace. WedMeGood, WeddingWire India, WeddingBazaar, and similar platforms already occupy that space with vendor listings, inspiration, photos, reviews, and lead generation.
+
+BiyeFlow should instead own the family-side operating layer:
+
+```text
+Wedding Digital Twin + Fair Cost Intelligence + Family Control Room + Vendor-Ready Handover
+```
+
+The product should help families see, understand, compare, and supervise the wedding before they commit money or lose control in scattered WhatsApp/call/Excel workflows.
+
+### Updated Product Promise
+
+```text
+Before you book, see the wedding.
+Before you pay, know the fair range.
+Before the event, hand over everything clearly.
+```
+
+Recommended public positioning:
+
+```text
+BiyeFlow - Fair Wedding Control Room
+Plan clearly. Compare fairly. Avoid overpaying.
+```
+
+For Bengal launch, `BiyeFlow` has emotional familiarity. For PAN India scale, always pair the brand with a clear descriptor such as `Fair Wedding Control Room`, `Wedding Digital Twin`, or `Wedding Operating System`.
+
+### Services To Offer
+
+The current service map should be:
+
+1. Wedding Control Room
+   - One dashboard for family tasks, risks, decisions, budget, vendors, registry, guests, and handovers.
+
+2. Guest, RSVP, Stay, and Transport Hub
+   - Guest count, event-wise attendance, family grouping, room allocation, pickup/drop, and stay pressure.
+
+3. Menu and Caterer Board
+   - Day-wise menu, food timing, snacks/live counters, plate count, rate estimate, and caterer handover.
+
+4. Vendor Deal Room, Not Vendor Discovery
+   - Families add vendors they already found from friends, family, venue, Google, Instagram, or other apps.
+   - BiyeFlow helps compare quotes, ask the right questions, track advances, remember commitments, and generate handovers.
+
+5. Budget and Fair Cost Intelligence
+   - City-wise expected ranges, quote comparison, hidden cost warnings, and budget leak detection.
+   - This is a trust-building wedge because families search for cost clarity before they trust a platform.
+
+6. Theme, Decor, Layout, and 3D Event View
+   - Pinterest/reference intake, moodboard, floor plan, stage/entry/dining layout, decorator brief, and eventually full 3D event visualization.
+   - 3D visualization can become a strong B2B demo tool for event managers and decorators because it helps families approve the concept before booking.
+
+7. Marriage Registry and Legal Hub
+   - State-wise official portal guidance, document checklist, witness checklist, timeline, appointment reminders, certificate guidance, and fake-agent red flags.
+   - The app should guide users to official government flows first, then optionally connect verified legal/document partners later.
+
+8. Shopping, Gifts, and Ritual Items
+   - Gold, clothes, gifts, invitation gifts, return gifts, puja items, trousseau, and family shopping tracker.
+
+9. WhatsApp-Ready Communication
+   - Clean copy outputs for vendors, caterers, decorators, family updates, RSVP follow-ups, and handover summaries.
+   - Manual WhatsApp should remain free in v1; automation can be a paid add-on later.
+
+10. Post-Wedding Hub
+   - Marriage certificate follow-up, name/document update checklist, vendor reviews, real cost archive, anniversary reminders, and reuse for sibling/friend weddings.
+
+### Why Users Will Come For Free
+
+Families are unlikely to pay upfront for generic wedding planning software. The free product must therefore solve high-anxiety searches immediately:
+
+- Wedding cost calculator
+- Wedding budget calculator India
+- Wedding cost in Durgapur
+- Caterer per plate rate
+- Wedding decorator cost
+- Bridal makeup package price
+- Photographer package comparison
+- Marriage registration documents
+- Marriage certificate online guide
+- Guest list template
+- Room allocation template
+- Bengali wedding checklist
+- Reception stage decoration ideas
+- Vendor quotation comparison
+- Decor brief generator
+
+The acquisition hook should be free tools, not a paid app wall:
+
+```text
+Find the fair cost of your wedding before vendors quote you.
+```
+
+### Trust And Noble-Cause Positioning
+
+The product should not sound anti-vendor. It should support fair families and honest vendors.
+
+Recommended mission:
+
+```text
+Fair wedding planning for Indian families and honest vendors.
+```
+
+Trust rules:
+
+- No hidden paid ranking.
+- No vendor/venue discovery as the core surface.
+- Families can add any outside vendor manually.
+- Sponsored/partner services must be clearly marked.
+- Cost ranges must be educational, not manipulative.
+- Vendor comparison must work even if no vendor pays BiyeFlow.
+- The app must preserve family trust before monetization pressure.
+
+### Revenue Model Conclusion
+
+Revenue should not depend only on vendors. If vendor revenue dominates too early, the product risks becoming vendor-controlled and losing family trust.
+
+Use a mixed model:
+
+1. Family Free Layer
+   - Free control room, guest/stay planner, budget tracker, legal guide, basic vendor comparison, decor brief, and WhatsApp handovers.
+
+2. Family Premium Pack
+   - One-time or event-pass upgrades for advanced 3D visualization, premium exports, WhatsApp automation, advanced budget reports, family command center, or concierge review.
+
+3. Event Manager / Decorator 3D Proposal Revenue
+   - Event managers and decorators pay to create polished 3D proposals, venue-specific digital twins, revision views, and client approval packs.
+   - This is stronger than generic vendor listing because it helps close deals.
+
+4. Venue Digital Twin SaaS
+   - Banquet halls pay for reusable digital venue models, layout variants, capacity maps, decor packages, and event handover previews.
+
+5. Planner Pro
+   - Professional planners pay for multi-client workspaces, client portals, approval flows, team assignments, and printable handover packs.
+
+6. Partner Revenue
+   - Hotels, transport, legal/document assistance, printing, gifts, insurance, honeymoon, payment gateway, and finance partners.
+
+7. City Cost Intelligence
+   - Anonymous, privacy-safe market reports for vendors, venues, planners, and brands after enough local data exists.
+
+### Why Vendors Or Event Managers Would Use BiyeFlow
+
+Vendors will not join unless BiyeFlow increases profit or reduces effort. The vendor-side value is:
+
+- Quote-ready families instead of vague enquiries.
+- Structured requirement briefs with date, guest count, venue, references, budget range, and scope.
+- Faster proposal creation.
+- Better conversion through 3D visualization and clear approval packs.
+- Lower revision confusion.
+- Cleaner final handover before event day.
+- Reputation for transparent, fair execution.
+
+Vendor pitch:
+
+```text
+We do not sell random leads. We help serious families approve and execute faster.
+```
+
+### 3D Event Visualization Wedge
+
+This is now one of the strongest differentiators.
+
+Current market behavior:
+
+- Families save Pinterest/Instagram references.
+- Venues often have poor or incomplete photos.
+- Decorators quote verbally or with reused photos.
+- Families struggle to imagine whether the stage, entry, lighting, dining, and counters will look cohesive.
+- Event managers need better demos to confirm deals.
+
+BiyeFlow opportunity:
+
+```text
+Turn family references + venue details + guest count + budget range into a visual wedding concept and handover.
+```
+
+3D modules can evolve in layers:
+
+1. Guided 2D layout planner.
+2. Decorator brief canvas with reference boards.
+3. Semi-3D visual mockups for stage, entry, dining, counters, and lighting mood.
+4. Venue-specific reusable 3D digital twins.
+5. Event manager proposal mode with client approval and quote bands.
+
+Benchmark tools/resources to study:
+
+- Prismm / Allseated style 3D event visualization.
+- Cvent Social Tables style event diagramming.
+- magicplan style scan-to-floor-plan workflow.
+- RoomSketcher / Planner 5D style consumer-friendly space visualization.
+- Pinterest wedding trend behavior for decor inspiration demand.
+
+### Desktop Vs Mobile Conclusion
+
+BiyeFlow should be desktop-powerful but mobile-dependent.
+
+Desktop should handle:
+
+- Control room review
+- Excel import/export
+- Budget planning
+- Vendor comparison
+- Decor layout and 3D views
+- Handover generation
+
+Mobile should handle:
+
+- Quick updates
+- RSVP
+- Reminders
+- Vendor/family WhatsApp sharing
+- Approval taps
+- Photo/reference capture
+- Guest-side interactions
+
+The product cannot be desktop-only because Indian users are increasingly mobile-first, but the heavy planning experience should not be weakened for mobile constraints.
+
+### Local Market Study Plan
+
+Start with Durgapur before scaling to West Bengal and then PAN India.
+
+Research sample:
+
+- 30 recently married families.
+- 30 currently planning families.
+- 20 banquet halls/venues.
+- 20 decorators/event managers.
+- 20 caterers.
+- 10 photographers/videographers.
+- 10 makeup artists.
+- 10 legal/document agents or registry-aware professionals.
+
+Questions for families:
+
+- Where did you feel vendors were unclear?
+- Did you know fair price ranges before meeting vendors?
+- Which category created the most surprise cost?
+- Did final decor match the reference?
+- Who maintained guest count, food count, stay, and room allocation?
+- What was managed in Excel, WhatsApp, diary, or memory?
+- Would a 3D preview have helped you approve decor faster?
+- Would you pay for a 3D wedding preview if it prevented one wrong decision?
+- What would you trust more: vendor listing, cost checker, legal guide, or real family cost examples?
+
+Questions for event managers/decorators:
+
+- How do you currently convince families?
+- How often do families reject because they cannot visualize?
+- Do you lose deals due to poor portfolio/photos?
+- Would a venue-wise reusable 3D model help close deals faster?
+- Would you pay per 3D proposal or monthly for proposal tools?
+- What is the cost of one failed revision or unclear brief?
+- Which decor items create the most quotation confusion?
+
+Data to collect:
+
+- Real quote formats.
+- Package names and inclusions.
+- Per plate catering rates.
+- Decor category ranges.
+- Venue capacity and restrictions.
+- Hidden charges.
+- Advance/payment patterns.
+- Photo/portfolio quality gaps.
+- Families' most common Google searches.
+
+### Updated Expansion Strategy
+
+1. Durgapur pilot
+   - Build trust through free cost tools, registry guide, guest/stay planner, and decor handover.
+
+2. West Bengal scale
+   - Add Bengali wedding templates, MARREG/legal guide, city-wise fair ranges, and venue/decor digital twin pilots.
+
+3. PAN India expansion
+   - Add regional wedding templates, state-wise registry/legal guidance, city cost intelligence, and partner ecosystem.
+
+### Strategic Product Truth
+
+```text
+If BiyeFlow starts vendor-first, it becomes another marketplace.
+If BiyeFlow starts family-first and vendors/event managers come later for serious execution infrastructure, it becomes wedding infrastructure.
+```
+
+
+## Cost Planning And Agile Roadmap - 2026-06-26
+
+This section captures the product cost model and agile roadmap direction. BiyeFlow should be built with cost discipline from day one because the family-facing product is expected to be mostly free.
+
+### Cost Thinking Framework
+
+Track cost at three separate levels:
+
+1. Family wedding cost
+   - What families actually spend across venue, catering, decor, photography, makeup, clothes, gold, gifts, stay, transport, legal, printing, and hidden charges.
+   - This powers Fair Cost Intelligence and trust.
+
+2. Product operating cost
+   - Hosting, database, storage, AI, image/3D processing, WhatsApp/SMS/email, analytics, support, domain, and monitoring.
+   - This decides whether free users can scale safely.
+
+3. Business build and go-to-market cost
+   - Research, product design, development, content, local market surveys, sales, partner onboarding, legal/compliance, and field operations.
+   - This decides how much runway is needed before revenue.
+
+Every feature should have a cost/revenue note:
+
+```text
+User pain -> Feature -> Build cost -> Run cost -> Trust value -> Revenue path -> Risk
+```
+
+### Major Cost Buckets
+
+Planning assumptions only; verify exact prices before launch.
+
+1. Research and local data collection
+   - Durgapur pilot interviews, travel, incentives, quote collection, data entry, and local event-manager/venue visits.
+   - Keep this lean but real; this data becomes the moat for fair-cost intelligence.
+
+2. Product development
+   - Founder-led build keeps cash cost low, but opportunity cost is high.
+   - Avoid overbuilding. First build only the modules that prove retention, trust, and decision support.
+
+3. Infrastructure
+   - Local-first PWA keeps early server cost low.
+   - Cloudflare Workers has a free plan; the paid Workers plan has a minimum charge of $5/month if higher limits are needed.
+   - Cloudflare D1 has a free prototyping tier; D1 free limits can block queries when exceeded, so production needs monitoring.
+   - Cloudflare R2 has a free tier for storage/operations and then usage-based pricing; useful for images, handovers, and exported assets.
+   - Image-heavy and 3D-heavy features can become the main infrastructure cost if not controlled.
+
+4. AI and visualization
+   - Text-based planning, quote extraction, and checklist assistance are cheaper than image/3D generation.
+   - 3D should start with reusable templates, local assets, and Three.js-style rendering before expensive generative workflows.
+   - Venue digital twins should be created only for venues/event managers that can generate revenue or strong pilot proof.
+
+5. Communication
+   - Manual WhatsApp copy is free and should remain the v1 behavior.
+   - WhatsApp Business API, SMS, and automated reminders should be paid add-ons or partner-funded because message costs scale directly with usage.
+
+6. Legal and compliance
+   - Privacy policy, terms, consent language, data deletion/export, and partner disclaimers are mandatory before public beta.
+   - Registry Hub must guide users to official government flows and clearly separate guidance from paid legal/document partner assistance.
+
+7. Marketing and trust-building
+   - SEO/content around cost calculators, registry guides, guest templates, and decor planning is more important than paid ads early.
+   - Local Durgapur trust can be built through useful tools, survey reports, family case studies, and transparent cost education.
+
+8. Support and operations
+   - Free users still create support load. Design the app with self-explanatory flows, exports, onboarding checklists, and in-product guidance.
+   - Human concierge should be paid or limited to beta learning.
+
+### Cost Control Principles
+
+- Local-first until cloud sync is truly needed.
+- Manual WhatsApp before paid automation.
+- 2D layout before full 3D.
+- Template-based 3D before venue-specific digital twins.
+- Family free layer before paid marketplace-like monetization.
+- No vendor/venue discovery as a core build cost.
+- Measure storage and AI cost per wedding, not only monthly cloud bill.
+- Build every paid feature only after it has a clear buyer: family, planner, event manager, venue, or partner.
+
+### Agile Delivery Model
+
+Use practical agile, not ceremony-heavy agile.
+
+Cadence:
+
+- 2-week sprints.
+- 1-week spikes only for uncertain technical or market questions.
+- Demo every sprint, even if only to internal users.
+- Retrospective every sprint: what shipped, what confused users, what cost too much, what should be cut.
+- Maintain one prioritized backlog with epics, user stories, acceptance criteria, and cost/revenue notes.
+
+Each sprint should ship one visible improvement and one measurable learning.
+
+Definition of Done:
+
+- Works on desktop and acceptable mobile view.
+- Feeds the Control Room with a status, risk, metric, or next action.
+- Produces a useful export, handover, or WhatsApp copy where relevant.
+- Has local persistence and import/export safety where relevant.
+- Has empty state, error state, and mobile behavior checked.
+- Has clear cost implication if it uses cloud, AI, storage, messaging, or 3D assets.
+
+### Roadmap Epics
+
+Epic A: Market Study and Fair Cost Data
+
+- Durgapur family interviews.
+- Vendor/event manager/venue quote workflow study.
+- Caterer rate and hidden-cost collection.
+- Wedding cost taxonomy.
+- First fair-cost range model.
+
+Epic B: Family Control Room
+
+- Wedding setup.
+- Event template.
+- Dashboard metrics.
+- Risk and pending action queue.
+- Local backup/export.
+
+Epic C: Guest, Stay, Transport, and RSVP
+
+- Guest import.
+- Event-wise attendance.
+- Stay requirement.
+- Room allocation.
+- Transport fields.
+- RSVP later through tiny cloud layer.
+
+Epic D: Budget and Fair Cost Checker
+
+- Budget categories.
+- Actual vs expected.
+- Quote comparison.
+- Hidden cost detector.
+- City-wise fair range notes.
+
+Epic E: Vendor Deal Room Without Discovery
+
+- Family-added vendors.
+- Quote, advance, balance.
+- Readiness checklist.
+- Question prompts.
+- Vendor handover.
+
+Epic F: Menu and Caterer Board
+
+- Day-wise menu.
+- Count sent tracking.
+- Plate/counter estimate.
+- Caterer handover.
+- Guest-count-change alerts.
+
+Epic G: Registry / Legal Hub
+
+- West Bengal registry guide first.
+- Official portal links.
+- Document/witness checklist.
+- Appointment and certificate tracker.
+- Partner path later.
+
+Epic H: Decor Brief, Layout, and 3D Event View
+
+- Moodboard/reference intake.
+- Guided layout planner.
+- Stage, entry, aisle, dining, counter, and lighting zones.
+- Decorator handover.
+- Semi-3D view.
+- Venue digital twin pilot later.
+
+Epic I: Planner / Event Manager / Venue Pro
+
+- Proposal workspace.
+- 3D client demo.
+- Approval flow.
+- Multi-client workspaces.
+- Venue-specific reusable layouts.
+
+Epic J: Integrations and Automation
+
+- Excel import/export.
+- PDF/print handovers.
+- WhatsApp copy links.
+- WhatsApp automation later.
+- Payment, legal, hotel, transport, gift, print, and honeymoon partners later.
+
+### Suggested Release Roadmap
+
+Phase 0: Validation and Data Spine, 2 to 3 weeks
+
+- Run initial Durgapur interviews.
+- Define wedding cost taxonomy.
+- Define event, guest, vendor, budget, registry, and decor data models.
+- Build landing-style free tools or prototype screens for cost checker and guest/stay planner.
+- Success gate: families understand the promise and would use at least one free tool.
+
+Phase 1: Family MVP, 4 to 6 weeks
+
+- Wedding setup.
+- Control Room.
+- Guest import and event-wise counts.
+- Budget tracker.
+- Basic Registry Hub.
+- Basic Vendor Deal Room without discovery.
+- WhatsApp-ready outputs.
+- Success gate: one real wedding can run guest, budget, registry, and vendor memory inside BiyeFlow.
+
+Phase 2: Operational Wedding MVP, 6 to 8 weeks
+
+- Stay/room planner.
+- Menu and caterer board.
+- Caterer handover.
+- Decorator brief canvas v1.
+- Better dashboard risks.
+- Import/export backup.
+- Success gate: families revisit weekly because the app has become the source of truth.
+
+Phase 3: Fair Cost and Decor Differentiator, 8 to 12 weeks
+
+- Durgapur fair-cost ranges.
+- Quote comparison with warnings.
+- 2D layout planner.
+- Stage/entry/dining/counter visual concepts.
+- Semi-3D event view prototype.
+- Success gate: event managers/decorators say the visual proposal helps close or clarify deals.
+
+Phase 4: Private Beta, 8 to 10 weddings
+
+- Run with real families.
+- Track usage, confusion, repeat visits, exported handovers, vendor quote comparisons, and budget changes.
+- Do not scale before learning where the app genuinely reduces stress or saves money.
+
+Phase 5: B2B Monetization Pilot
+
+- Event manager/decorator proposal mode.
+- Venue digital twin pilot.
+- Planner Pro workspace.
+- Paid advanced 3D or premium handover pack.
+- Success gate: at least one B2B buyer pays because BiyeFlow helps them close or execute better.
+
+### Agile Backlog Prioritization Score
+
+Score each item 1 to 5:
+
+```text
+Trust impact
+Frequency of use
+Money saved or clarified
+Uniqueness vs existing apps
+Build effort, inverted score
+Run cost, inverted score
+Revenue path clarity
+```
+
+Build highest total score first. If two items tie, choose the one that teaches more about real user behavior.
+
+### Key Metrics
+
+Family metrics:
+
+- Event created.
+- Guest list imported.
+- Budget categories filled.
+- Registry checklist started.
+- Vendor quote added.
+- Handover generated.
+- Day-7 and day-30 revisit.
+- Number of WhatsApp-ready copies used.
+
+Trust metrics:
+
+- Cost checker completions.
+- Quote comparison completions.
+- Hidden-cost warnings viewed.
+- Users saying they avoided confusion or overpaying.
+
+3D/decor metrics:
+
+- Moodboard created.
+- Layout created.
+- Decorator handover exported.
+- 3D preview viewed.
+- Event manager/decorator proposal conversion.
+
+Business metrics:
+
+- Cost per active wedding.
+- Cloud/AI/storage cost per wedding.
+- Support minutes per wedding.
+- Free-to-premium conversion.
+- B2B pilot revenue.
+- Partner referral revenue.
+
+### Build Discipline
+
+Do not build a feature because it sounds good. Build it only if it supports one of these:
+
+```text
+Trust
+Cost clarity
+Repeat usage
+Execution control
+Vendor/event-manager handover
+Revenue path
+```
+
 
 ## Current Workspace State
 
@@ -1329,14 +1926,15 @@ Build:
 - Room pressure alerts
 - Room Allocation Handover
 
-### Phase 4: Vendor Deal Room and Budget
+### Phase 4: Vendor Deal Room, Budget, and Fair Cost
 
 Build:
 
-- Vendor list
+- Manual vendor records added by the family, not marketplace discovery
 - Caterer/decorator vendor cards
 - Deal Readiness score
 - Missing questions / risk prompts
+- Quote comparison and fair-range notes
 - Quote, advance, balance
 - Budget chart
 - Vendor follow-up queue
@@ -1352,15 +1950,26 @@ Build:
 - Print/copy WhatsApp output
 - Alerts when guest count changes after count sent
 
-### Phase 6: Theme / Decorator Brief Canvas
+### Phase 6: Theme / Decorator Brief Canvas and 3D Event View
 
 Build:
 
 - Guided layout templates
 - Drag/drop decor zones
-- Local reference photos
+- Local reference photos and Pinterest-style moodboards
+- Stage, entry, aisle, dining, counter, lighting, and flow zones
 - Decorator Handover preview
 - Print/copy WhatsApp output
+- Later: semi-3D views and venue-specific 3D digital twins for event-manager proposal demos
+
+### Phase 7A: Registry / Legal Hub
+
+Build:
+
+- State-wise official portal guidance
+- Document, witness, appointment, and certificate checklist
+- West Bengal MARREG guidance first
+- Fake-agent red flags and transparent legal-partner path later
 
 ### Phase 7: Shopping and Gift Corner
 
@@ -1398,15 +2007,31 @@ Build:
 - Simple roles
 - Keep emotional buzz separate from core supervision
 
-### Phase 11: Vendor Portal
+### Phase 11: Event Manager / Vendor Execution Portal
 
 Later:
 
-- Vendor-specific web portal
+- Event-manager and decorator proposal workspace
+- 3D proposal/demo mode
 - Scope confirmation
 - Upload quote/bill
 - Deliverable status
 - Family-vendor shared updates
+- Keep this execution-focused, not vendor-discovery-first
+
+## Marriage Registry And Legal Hub
+
+Add a dedicated Registry / Legal Hub tab.
+
+Purpose:
+
+- Help families understand marriage registration without depending on random agents.
+- Provide state-wise official portal links and document checklists.
+- Track witnesses, appointment, certificate status, and post-wedding document tasks.
+- Start as guidance only; do not claim to register marriages directly.
+- Later, add verified legal/document partners with transparent pricing.
+
+For West Bengal, study and link the official MARREG portal flow.
 
 ## Cost Strategy
 
@@ -1431,10 +2056,15 @@ Charge WhatsApp automation separately later.
 Suggested pricing direction:
 
 ```text
-Local Wedding Pass
-Premium Interactive Invitation add-on
-WhatsApp credits optional later
-Event manager mode later
+Family free layer
+Family premium event pass
+Advanced 3D visualization add-on
+WhatsApp automation credits optional later
+Event manager / decorator proposal mode
+Venue digital twin SaaS
+Planner Pro workspace
+Partner/referral revenue for hotel, transport, legal, gifts, printing, honeymoon, insurance, and payments
+City cost intelligence reports later
 ```
 
 ## Design Principles
@@ -1471,7 +2101,7 @@ What is risky?
 
 Known competitor categories and examples:
 
-- Vendor discovery / Indian wedding marketplaces: WedMeGood, WeddingWire India
+- Vendor discovery / Indian wedding marketplaces: WedMeGood, WeddingWire India, WeddingBazaar
 - Global wedding planning apps: The Knot, Zola, Joy
 - Generic all-in-one planners: Vowra, Folia, Altar, My Wed Hub
 - Seating/floor plan tools: Seatbee, Seatly, Seat Maker, Aisle Planner
@@ -1513,10 +2143,10 @@ A non-tech family creates a simple vendor-ready brief from their own supervision
 and sends it manually on WhatsApp.
 ```
 
-Avoid trying to beat big players on lead discovery, invitation templates, or generic checklists. Use them as external lead/inspiration sources. BiyeFlow starts where families lose control:
+Avoid trying to beat big players on lead discovery, venue discovery, invitation templates, or generic checklists. Use them as external lead/inspiration sources. BiyeFlow starts where families lose control:
 
 ```text
-Found vendor -> Compare -> Ask right questions -> Understand risk -> Book -> Track agreement -> Final count -> Handover
+Found vendor/venue elsewhere -> Add to BiyeFlow -> Compare quote -> Ask right questions -> Understand risk -> Visualize decor/layout -> Book -> Track agreement -> Final count -> Handover
 ```
 
 ## Important Open Decisions
@@ -1531,6 +2161,9 @@ Found vendor -> Compare -> Ask right questions -> Understand risk -> Book -> Tra
 - What should the first event template schema look like?
 - Which modules should be enabled by default for Bengali Wedding?
 - What is the exact formula and weightage for Vendor Deal Readiness?
+- What is the first version of Fair Cost Intelligence: manual ranges, survey data, or quote comparison only?
+- What should the Registry / Legal Hub include for West Bengal first?
+- What is the minimum useful 3D visualization: stage-only, full venue zones, or venue digital twin?
 - What are the first 8 to 12 caterer readiness checks that are practical and non-subjective?
 - What should the Decorator Brief Canvas templates include first?
 - Should layout canvas be rough/not-to-scale first, or support dimensions from v1?
@@ -1572,10 +2205,30 @@ Control Room signals
 9. Then build the first strong differentiator slice:
 
 ```text
-Vendor Deal Room
+Fair Cost Checker
+Registry / Legal Hub
+Vendor Deal Room without vendor discovery
 Menu Caterer Handover
 Decorator Brief Canvas
+2D Layout Planner -> 3D Event View path
 Room Planner
 ```
 
-10. Keep the app usable for the user's own wedding testing first.
+10. Run the Durgapur business study in parallel:
+
+```text
+Recent family interviews
+Currently planning family interviews
+Decorator/event manager quote workflow study
+Venue photo/portfolio gap study
+Caterer rate and count workflow study
+Real quote and hidden-cost collection
+```
+
+11. Keep the app usable for the user's own wedding testing first.
+
+
+
+
+
+

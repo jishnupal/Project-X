@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BiyeFlow — Mobile Preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: radial-gradient(circle at top, #3a1520 0%, #12060a 55%, #0a0305 100%);
+        color: #f8efea;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 24px 16px 32px;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .subtitle {
+        margin: 0 0 20px;
+        font-size: 0.85rem;
+        color: rgba(248, 239, 234, 0.65);
+        text-align: center;
+        max-width: 520px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .toolbar label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(248, 239, 234, 0.55);
+      }
+
+      select {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #fff;
+        border-radius: 8px;
+        padding: 8px 10px;
+        min-width: 140px;
+      }
+
+      .phone-shell {
+        position: relative;
+        padding: 14px;
+        border-radius: 44px;
+        background: linear-gradient(145deg, #2a2a2e, #111114);
+        box-shadow:
+          0 30px 80px rgba(0, 0, 0, 0.55),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .phone-screen {
+        position: relative;
+        overflow: hidden;
+        border-radius: 32px;
+        background: #fff8f5;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .notch {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 110px;
+        height: 26px;
+        background: #111;
+        border-radius: 20px;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      iframe {
+        display: block;
+        border: 0;
+        background: #fff8f5;
+      }
+
+      .hint {
+        margin-top: 18px;
+        font-size: 0.78rem;
+        color: rgba(248, 239, 234, 0.5);
+        text-align: center;
+        max-width: 420px;
+        line-height: 1.45;
+      }
+
+      .hint code {
+        background: rgba(255, 255, 255, 0.08);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>BiyeFlow mobile viewer</h1>
+    <p class="subtitle">
+      Local dev phone frame — loads the real app at mobile width (390px). Use this instead of
+      squeezing the desktop window.
+    </p>
+
+    <div class="toolbar">
+      <label>
+        Page
+        <select id="route">
+          <option value="/menu">Menu</option>
+          <option value="/guests">Guests</option>
+          <option value="/coming-soon">Coming soon</option>
+        </select>
+      </label>
+      <label>
+        Device
+        <select id="device">
+          <option value="390,844">iPhone 14 (390×844)</option>
+          <option value="393,852">iPhone 15 Pro (393×852)</option>
+          <option value="360,800">Pixel 7 (360×800)</option>
+          <option value="375,667">iPhone SE (375×667)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="phone-shell">
+      <div class="phone-screen" id="screen">
+        <div class="notch" aria-hidden="true"></div>
+        <iframe id="frame" title="BiyeFlow mobile preview" src="/menu"></iframe>
+      </div>
+    </div>
+
+    <p class="hint">
+      Run <code>npm run dev:mobile</code> first. On your phone (same Wi‑Fi), open the Network URL
+      from the terminal, e.g. <code>http://192.168.x.x:5173/menu</code>
+    </p>
+
+    <script>
+      const route = document.getElementById("route");
+      const device = document.getElementById("device");
+      const frame = document.getElementById("frame");
+
+      function apply() {
+        const [w, h] = device.value.split(",").map(Number);
+        frame.width = w;
+        frame.height = h;
+        frame.src = route.value;
+      }
+
+      route.addEventListener("change", apply);
+      device.addEventListener("change", apply);
+      apply();
+    </script>
+  </body>
+</html>

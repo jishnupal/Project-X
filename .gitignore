@@ -1,0 +1,23 @@
+# Dependencies & build output
+node_modules/
+dist/
+dist-ssr/
+
+# Local browser profiles (Playwright / Chrome testing)
+chrome-profile-*/
+
+# Tooling caches
+.agents/
+outputs/
+
+# Logs & env
+*.log
+*.local
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

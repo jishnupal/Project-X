@@ -1,0 +1,40 @@
+{
+  "name": "biyeflow",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:mobile": "vite --host --open /mobile-preview.html",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "icons": "node scripts/generate-icons.mjs",
+    "deploy": "node scripts/pages-deploy.mjs",
+    "deploy:rollback": "node scripts/pages-rollback.mjs",
+    "deploy:direct": "npm run icons && npm run build && npx wrangler pages deploy dist --project-name=biyeflow"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "dexie": "^4.4.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.1",
+    "tailwind-merge": "^3.6.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/node": "^24.13.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "oxlint": "^1.71.0",
+    "playwright": "^1.61.1",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.2",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}

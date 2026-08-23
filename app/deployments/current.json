@@ -1,0 +1,8 @@
+{
+  "deploymentId": "f6dd340a-350f-45fb-8017-268599d691b2",
+  "url": "https://f6dd340a.biyeflow.pages.dev",
+  "productionUrl": "https://biyeflow.pages.dev",
+  "deployedAt": "2026-07-17T16:13:23.792Z",
+  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/f6dd340a-350f-45fb-8017-268599d691b2",
+  "rollbackTarget": "12d40efc-e8c9-4d4e-b1f0-bb7348ab61fb"
+}

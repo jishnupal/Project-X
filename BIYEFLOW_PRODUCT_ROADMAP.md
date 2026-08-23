@@ -1,6 +1,6 @@
-# BiyeFlow Product Roadmap Overview
+﻿# BiyeFlow Product Roadmap Overview
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 ## 1. Product Thesis
 
@@ -63,6 +63,91 @@ The product must help families:
 - Paid WhatsApp automation in the free layer.
 - Native Android/iOS apps before PWA validation.
 - PAN India launch before local proof.
+
+
+### Founder Reality Update - 2026-06-27
+
+The latest strategic correction is that BiyeFlow should not assume people will pay meaningfully for planning software, handover PDFs, caterer count checks, or basic quote summaries.
+
+Most families can and will use diary, Excel, Google Sheets, relatives, WhatsApp, and event planners. If the product asks for payment too early, many users will reject it and continue manually.
+
+Therefore the first MVP should be free and founder-led.
+
+Hard conclusions:
+
+- Direct family subscription is weak because weddings are mostly one-time events.
+- Paid handover packs are product outputs, not a dependable core business.
+- Caterer count review or room allocation review cannot be assumed as paid demand.
+- Free result plus paid detailed report may work only at low conversion.
+- Human-assisted services may work only when the user already feels risk or confusion.
+- B2B revenue from decorators/event managers should not be assumed early.
+- 3D visualization is a future differentiator, not the business foundation.
+- Company burn must stay extremely low until real user behavior proves monetization.
+
+Revised product/business thesis:
+
+```text
+Free wedding operations utility
+-> structured high-intent wedding needs
+-> user-requested help
+-> consent-based partner revenue
+-> anonymous local cost intelligence
+-> B2B workflow only after proof
+```
+
+### Durgapur Market Reality
+
+In Durgapur, many families rely on event planners who can manage everything from a Rs 5 lakh wedding to a Rs 5 crore wedding.
+
+BiyeFlow should not position itself as replacing the event planner.
+
+Better positioning for the local market:
+
+```text
+A wedding clarity and control app for families working with planners, caterers, decorators, hotels, and relatives.
+```
+
+The family still needs clarity on:
+
+- Guest count.
+- Event-wise attendance.
+- Food/headcount sent to caterer or planner.
+- Stay and room pressure.
+- Decor references and expectations.
+- Budget ranges and hidden-cost awareness.
+- Registry/legal checklist.
+- Family responsibility split.
+- What has been finalized and what is still unclear.
+
+BiyeFlow should reduce confusion and make the family more informed. It should not pretend to replace real venue visits, planner meetings, or family decision-making.
+
+### Data And Lead Ethics
+
+Personal data should not be silently sold.
+
+Collecting email, phone, IP, city, wedding date, and guest count only becomes valuable if users trust the platform and explicitly request help.
+
+Valuable high-intent data:
+
+- Wedding city.
+- Wedding date.
+- Guest count.
+- Stay requirement.
+- Transport requirement.
+- Registry/legal need.
+- Printing/gift need.
+- Honeymoon/travel intent.
+- Budget range.
+- User consent to be contacted for a specific requirement.
+
+Rules:
+
+- Ask wedding city directly; do not rely on IP as core planning data.
+- Phone should be optional until service request or account recovery.
+- Partner sharing must be opt-in and purpose-specific.
+- Sponsored/partner flows must be clearly marked.
+- Anonymous cost intelligence must not expose personal identity.
+- Users should be able to export and delete their data when cloud accounts exist.
 
 ### Why No Vendor/Venue Discovery First
 
@@ -889,7 +974,9 @@ Success gate:
 - Guests engage without weakening the serious planning experience.
 - Buzz helps organic sharing.
 
-### Phase 6: B2B Proposal Tools
+### Phase 6: B2B Workflow Experiments After Proof
+
+B2B should not be assumed as early revenue. Event managers and decorators already handle requirements through calls, meetings, venue visits, and their own inventory. Build B2B tools only after family-side usage proves structured demand.
 
 Timeline:
 
@@ -899,16 +986,16 @@ Timeline:
 
 Build:
 
-- Event manager proposal mode.
-- Decorator proposal workspace.
-- 3D proposal credits.
-- Client approval.
+- Inventory-aware decor/package proposals.
+- Client requirement summary from family data.
 - Quote/brief versioning.
-- Multi-client dashboard.
+- Scope freeze and approval record.
+- Multi-client dashboard later.
+- 3D proposal credits only if willingness to pay is proven.
 
 Success gate:
 
-- At least one event manager/decorator pays because BiyeFlow helps close or clarify deals.
+- At least one event manager/decorator pays because BiyeFlow saves time, reduces confusion, protects scope, or supports their existing inventory.
 
 ### Phase 7: Venue Digital Twin Pilot
 
@@ -1103,53 +1190,191 @@ Definition of Done:
 - Produces handover/export if relevant.
 - Cost impact is understood.
 
-## 11. Pricing And Business Roadmap
+## 11. Pricing, Cost, And Business Roadmap
 
-### Family Layer
+### Pricing Reality
 
-Pricing direction:
+The first version should not depend on families paying for planning software.
 
-```text
-Free control room: Rs 0
-Premium Wedding Pass: Rs 799 to Rs 1,999 one-time
-Advanced handover pack: Rs 499 to Rs 1,499
-3D decor preview: Rs 1,999 to Rs 7,999
-Full 3D venue concept: Rs 7,999 to Rs 24,999
-Concierge audit: Rs 4,999 to Rs 19,999
-Registry/legal assistance: free guide, paid partner service later
-```
-
-Rule:
-
-Do not charge families upfront. Charge only when value is clear: export, audit, 3D, automation, or concierge.
-
-### B2B Layer
-
-Pricing direction:
+User behavior assumption:
 
 ```text
-Event manager starter: Rs 1,999 to Rs 4,999/month
-Event manager pro: Rs 7,999 to Rs 24,999/month
-3D proposal credit: Rs 499 to Rs 2,999/proposal
-Premium 3D proposal: Rs 5,000 to Rs 25,000/proposal
-Venue digital twin setup: Rs 25,000 to Rs 1.5 lakh one-time
-Venue digital twin SaaS: Rs 3,000 to Rs 25,000/month
-Planner pro workspace: Rs 5,000 to Rs 30,000/month
+Most families expect planning tools to be free.
+If payment appears too early, they will try diary, Excel, Google Sheets, relatives, WhatsApp, or the event planner.
 ```
+
+Therefore:
+
+- Core MVP should be free.
+- No login should be required for first private MVP.
+- No domain is required for first private MVP.
+- No cloud sync is required for first private MVP.
+- Paid handover packs should not be treated as primary revenue.
+- Paid reports can exist later, but only as optional detailed outputs.
+
+### Founder-Led Bare Minimum Cost
+
+If the founder builds, tests, supports, and distributes the MVP personally, the cheapest live MVP can be extremely lean.
+
+Bare minimum setup:
+
+```text
+Static PWA
+Free hosting URL
+Local browser storage
+Excel import/export
+Manual WhatsApp copy
+No backend
+No login
+No payment gateway
+No WhatsApp API
+No AI
+No 3D
+Google Form or simple contact form for help requests
+```
+
+Estimated cost:
+
+```text
+One-time launch cost: Rs 0 to Rs 35,000
+Monthly running cost: Rs 0 to Rs 5,000
+Optional monthly field/research cost: Rs 5,000 to Rs 20,000
+```
+
+Cost notes:
+
+- Domain is not required for the first private MVP.
+- Cloudflare Pages, GitHub Pages, Netlify, or Vercel free URLs can be used initially.
+- A custom domain becomes useful later for brand trust, SEO, partner discussions, and public launch.
+- The largest cost is founder time, discipline, support, real user testing, and data cleanup.
+
+### If A Paid Team Is Added Later
+
+Rough monthly cost bands:
+
+```text
+Solo founder prototype: Rs 0 to Rs 50,000 cash cost
+Founder-led public MVP: Rs 25,000 to Rs 1.5 lakh
+Founder-led with support/content/research: Rs 1 lakh to Rs 4 lakh
+Small paid team: Rs 5 lakh to Rs 15 lakh+ monthly
+```
+
+Breakdown for founder-led public MVP:
+
+- Hosting/tools: Rs 0 to Rs 15,000/month.
+- AI/document processing if added: Rs 5,000 to Rs 50,000/month.
+- Local research/data cleanup: Rs 10,000 to Rs 75,000/month.
+- Content/SEO: Rs 10,000 to Rs 75,000/month.
+- Support/operations: Rs 15,000 to Rs 1 lakh/month if outsourced.
+- Legal/accounting/compliance: Rs 5,000 to Rs 30,000/month or occasional.
+
+### Revenue Model v1
+
+BiyeFlow should not be monetized as a paid spreadsheet.
+
+The practical revenue path is:
+
+```text
+Free wedding tools
+-> user enters real wedding context
+-> app detects high-intent needs
+-> user requests help
+-> partner/service revenue
+```
+
+Revenue sources to test first:
+
+1. Consent-based partner requests
+   - Hotel rooms.
+   - Guest transport.
+   - Marriage registry/document help.
+   - Printing/invitation/return gifts.
+   - Honeymoon/travel.
+   - Insurance/finance later through regulated partners.
+
+2. Assisted services only where risk is visible
+   - Detailed quote or hidden-cost review.
+   - Final wedding operations review.
+   - Registry assistance.
+   - Room/stay assistance.
+
+3. Local sponsorship and clearly marked content
+   - Durgapur wedding cost guide.
+   - Registry guide sponsor.
+   - Guest planning template sponsor.
+   - Gift/printing/travel sponsor.
+
+4. Anonymous local cost intelligence later
+   - Community-reported Durgapur cost index.
+   - Quote range reports by category.
+   - Quarterly city wedding cost report.
+
+5. B2B workflow only after proof
+   - Event manager/planner/decorator tools should be delayed until family usage proves structured demand.
+   - Do not assume decorators will pay early for proposal software.
+   - 3D should remain a paid experiment until real willingness to pay is proven.
+
+### Partner Revenue Logic
+
+Do not sell raw leads.
+
+Use opt-in requests:
+
+```text
+I need hotel rooms
+I need transport
+I need registry help
+I need printing/gifts
+I need honeymoon planning
+I need detailed quote review
+```
+
+Then ask the user if BiyeFlow can share specific requirement data with selected partners.
+
+Possible revenue:
+
+```text
+Fixed qualified request fee
+Conversion commission
+Sponsored guide placement with disclosure
+Revenue share on completed booking
+```
+
+### Why People May Trust Later
+
+BiyeFlow is not trustworthy on day one. Trust must be earned locally.
+
+Trust-building sequence:
+
+1. Utility trust
+   - Guest, room, caterer, and decor tools actually work.
+
+2. Local proof
+   - Friends and Durgapur families use it in real weddings.
+
+3. Transparency
+   - Cost ranges show sample size, city, date range, and confidence level.
+
+4. Consent
+   - Users decide when to request help and when to share data.
+
+5. Neutrality
+   - No hidden paid ranking and no silent data selling.
 
 ### Revenue Principle
 
 BiyeFlow must not become vendor-controlled.
 
-Revenue should be mixed:
+The business should be:
 
-- Family premium.
-- 3D visualization.
-- Event manager tools.
-- Venue digital twins.
-- Planner pro.
-- Legal/hotel/transport/gift/printing partners.
-- City cost intelligence later.
+```text
+Free family trust layer
++ opt-in partner transactions
++ assisted services where risk is visible
++ anonymous cost intelligence
++ B2B workflow after proof
+```
+
 
 ## 12. Validation Metrics
 
@@ -1221,13 +1446,25 @@ Desktop handles planning. Mobile handles quick actions.
 
 Counter:
 
-Local-first, manual WhatsApp, credit-based AI/3D, no unlimited automation.
+Local-first, manual WhatsApp, no login in private MVP, no cloud sync until needed, credit-based AI/3D later, and no unlimited automation.
 
-### Risk 6: 3D Being Too Expensive
+### Risk 6: Families Refuse To Pay
+
+Counter:
+
+Assume the family app is free. Monetize only through opt-in partner requests, visible-risk assisted services, sponsorship, and anonymous cost intelligence.
+
+### Risk 7: 3D Being Too Expensive
 
 Counter:
 
 Start with 2D layout and template-based semi-3D. Build venue digital twins only after paid proof.
+
+### Risk 8: B2B Revenue Is Overestimated
+
+Counter:
+
+Do not build for event managers/decorators until the family-side product proves structured demand and a specific paid workflow.
 
 ## 14. Final Product Direction
 
@@ -1248,4 +1485,5 @@ The long-term product should become:
 ```text
 The trusted wedding operating system for Indian families, with fair-cost intelligence, visual planning, private engagement, and execution-ready handovers.
 ```
+
 

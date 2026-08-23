@@ -4,6 +4,8 @@ export type MenuCourse =
   | "Evening Snacks"
   | "Dinner";
 
+export type GrandMealCourse = "Lunch" | "Dinner";
+
 export type MenuStatus = "Discuss" | "Confirmed";
 
 export type MenuCategory =
@@ -51,6 +53,12 @@ export interface GuestRow {
   rooms: string;
   invitationSent: boolean;
   inviteStatus: GuestInviteStatus;
+  groupId: string;
+}
+
+export interface GuestGroup {
+  id: string;
+  name: string;
 }
 
 export interface WeddingFunction {
@@ -67,8 +75,10 @@ export interface WeddingState {
   research: unknown[];
   reminders: unknown[];
   guests: GuestRow[];
+  guestGroups: GuestGroup[];
   menu: MenuRow[];
   theme: Record<string, string>;
+  grandMealByDay: Record<string, GrandMealCourse>;
 }
 
 export interface MenuAddOn {

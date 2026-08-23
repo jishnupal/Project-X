@@ -1,10 +1,61 @@
-import type { GuestRow, WeddingState } from "./types";
+import type { GuestGroup, GuestRow, WeddingState } from "./types";
 import { createId } from "./event";
 import { functionOffset, resolveDayName, resolveFunctionDateLabel } from "./functions";
 
 export type GuestFunctionDay = "1" | "2" | "3" | "4";
 
 export const GUEST_FUNCTION_DIALS: GuestFunctionDay[] = ["1", "2", "4", "3"];
+export const RECEPTION_DAY: GuestFunctionDay = "3";
+export const MAX_GUEST_GROUPS = 10;
+export const GROUP_CARD_NAME_SLOTS = 5;
+export const GROUP_MEMBER_BOARD_MAX = 40;
+
+export function groupBoardLayout(groupCount: number): { cols: number; rows: number; gapPx: number } {
+  const n = Math.min(Math.max(groupCount, 1), MAX_GUEST_GROUPS);
+  if (n === 1) return { cols: 1, rows: 1, gapPx: 16 };
+  if (n === 2) return { cols: 2, rows: 1, gapPx: 14 };
+  if (n === 3) return { cols: 3, rows: 1, gapPx: 12 };
+  if (n === 4) return { cols: 2, rows: 2, gapPx: 12 };
+  if (n <= 6) return { cols: 3, rows: 2, gapPx: 10 };
+  if (n <= 8) return { cols: 4, rows: 2, gapPx: 8 };
+  if (n === 9) return { cols: 3, rows: 3, gapPx: 8 };
+  return { cols: 2, rows: 5, gapPx: 6 };
+}
+
+/** Fill the left board with up to 40 family tiles. */
+export function groupMemberBoardLayout(memberCount: number): { cols: number; rows: number; gapPx: number } {
+  const n = Math.min(Math.max(memberCount, 1), GROUP_MEMBER_BOARD_MAX);
+  if (n <= 1) return { cols: 1, rows: 1, gapPx: 12 };
+  if (n === 2) return { cols: 2, rows: 1, gapPx: 12 };
+  if (n <= 4) return { cols: 2, rows: 2, gapPx: 10 };
+  if (n <= 6) return { cols: 3, rows: 2, gapPx: 10 };
+  if (n <= 9) return { cols: 3, rows: 3, gapPx: 8 };
+  if (n <= 12) return { cols: 4, rows: 3, gapPx: 8 };
+  if (n <= 16) return { cols: 4, rows: 4, gapPx: 7 };
+  if (n <= 20) return { cols: 5, rows: 4, gapPx: 6 };
+  if (n <= 25) return { cols: 5, rows: 5, gapPx: 6 };
+  if (n <= 30) return { cols: 6, rows: 5, gapPx: 5 };
+  if (n <= 36) return { cols: 6, rows: 6, gapPx: 5 };
+  return { cols: 8, rows: 5, gapPx: 4 };
+}
+
+export function guestBoardSplit(groupCount: number): { listCols: number; groupCols: number } {
+  if (groupCount <= 0) return { listCols: 12, groupCols: 0 };
+  if (groupCount <= 4) return { listCols: 6, groupCols: 6 };
+  if (groupCount <= 6) return { listCols: 5, groupCols: 7 };
+  return { listCols: 4, groupCols: 8 };
+}
+
+/** How many guest-row columns to use. Follows group count, never the Add tile. */
+export function guestListColumnCount(groupCount: number): 1 | 2 | 3 {
+  if (groupCount <= 0) return 3;
+  if (groupCount <= 4) return 2;
+  return 1;
+}
+
+export function isReceptionFilter(activeDay: string): boolean {
+  return activeDay === RECEPTION_DAY;
+}
 
 const DIAL_COLORS: Record<GuestFunctionDay, string> = {
   "1": "#ba1a1a",
@@ -72,6 +123,7 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
     rooms,
     invitationSent,
     inviteStatus: invitationSent ? "Sent" : "Pending",
+    groupId: String(row.groupId || "").trim(),
   };
 }
 
@@ -156,12 +208,15 @@ export function applyStayCountChange(row: GuestRow, stayCount: string): GuestRow
 }
 
 export function applyTotalCountChange(row: GuestRow, count: string): GuestRow {
-  const next = normalizeGuestRow({
-    ...row,
-    count,
-    receptionCount: count,
-  });
-  return syncGuestEventCounts(keepTotalAtLeastEventCounts(next));
+  const total = Math.max(1, parseCount(count) || 1);
+  // Total and Reception stay in sync; other event/stay counts clamp to the new total.
+  return syncGuestEventCounts(
+    normalizeGuestRow({
+      ...row,
+      count: String(total),
+      receptionCount: String(total),
+    }),
+  );
 }
 
 export function applyFieldCountChange(
@@ -169,15 +224,18 @@ export function applyFieldCountChange(
   field: keyof GuestRow,
   value: string,
 ): GuestRow {
-  let next = normalizeGuestRow({ ...row, [field]: value });
   if (field === "count") {
-    next = applyTotalCountChange(next, value);
-  } else if (field === "stayCount") {
-    next = applyStayCountChange(next, value);
-  } else {
-    next = syncGuestEventCounts(keepTotalAtLeastEventCounts(next));
+    return applyTotalCountChange(row, value);
   }
-  return next;
+  if (field === "receptionCount") {
+    // Reception moves Total with it.
+    return applyTotalCountChange(row, value);
+  }
+  if (field === "stayCount") {
+    return applyStayCountChange(normalizeGuestRow({ ...row, stayCount: value }), value);
+  }
+  const next = normalizeGuestRow({ ...row, [field]: value });
+  return syncGuestEventCounts(keepTotalAtLeastEventCounts(next));
 }
 
 export function createGuestFromDraft(draft: {
@@ -264,19 +322,24 @@ export function guestMatchesFilter(
     .join(" ")
     .toLowerCase();
   const queryMatch = !searchTerm || haystack.includes(searchTerm.toLowerCase());
-  const dayMatch =
-    activeDay === "All" ? true : guestCountForFunction(row, activeDay) > 0;
+  const dayMatch = !activeDay || activeDay === "All" ? true : guestCountForFunction(row, activeDay) > 0;
   return queryMatch && dayMatch;
 }
 
-export function guestMetrics(guests: GuestRow[]) {
-  const stayTotal = guests.reduce(
+export function guestMetrics(guests: GuestRow[], day?: string) {
+  const pool =
+    !day || day === "All" ? guests : guests.filter((row) => guestCountForFunction(row, day) > 0);
+  const stayTotal = pool.reduce(
     (sum, row) => (row.needsStay ? sum + parseCount(row.stayCount || row.count) : sum),
     0,
   );
-  const headTotal = guests.reduce((sum, row) => sum + parseCount(row.count), 0);
-  const inviteSentTotal = guests.filter((row) => row.invitationSent).length;
-  return { stayTotal, headTotal, inviteSentTotal, familyCount: guests.length };
+  const headTotal = pool.reduce(
+    (sum, row) =>
+      sum + (!day || day === "All" ? parseCount(row.count) : guestCountForFunction(row, day)),
+    0,
+  );
+  const inviteSentTotal = pool.filter((row) => row.invitationSent).length;
+  return { stayTotal, headTotal, inviteSentTotal, familyCount: pool.length };
 }
 
 export function syncEventGuestCount(guests: GuestRow[]): string {
@@ -301,8 +364,70 @@ export function formatGuestPlan(state: WeddingState): string {
     `${state.event.name || "Bengali wedding"} - guest and accommodation list`,
     `Functions: ${functionLabels || "Dates not set"}`,
     "",
+    ...(state.guestGroups || []).map((group) => {
+      const members = (state.guests || []).filter((row) => row.groupId === group.id);
+      const names = members.map((row) => row.name || "Guest not set").join(", ");
+      return `Group ${group.name}: ${names || "no guests assigned"}`;
+    }),
+    state.guestGroups?.length ? "" : "",
     ...(rows.length ? rows : ["- No guests added"]),
-  ].join("\n");
+  ]
+    .filter((line, index, all) => line !== "" || all[index - 1] !== "")
+    .join("\n");
+}
+
+export function normalizeGuestGroup(row: Partial<GuestGroup>): GuestGroup {
+  return {
+    id: row.id || createId("gg"),
+    name: String(row.name || "").trim() || "Untitled group",
+  };
+}
+
+export function createGuestGroup(name: string): GuestGroup {
+  return normalizeGuestGroup({ name });
+}
+
+export function guestsInGroup(guests: GuestRow[], groupId: string): GuestRow[] {
+  return guests.filter((row) => row.groupId === groupId);
+}
+
+export function groupPeopleCount(guests: GuestRow[], groupId: string): number {
+  return guestsInGroup(guests, groupId).reduce((sum, row) => sum + parseCount(row.count), 0);
+}
+
+export function assignGuestToGroup(row: GuestRow, groupId: string): GuestRow {
+  if (!groupId) return { ...row, groupId: "" };
+  const total = String(Math.max(1, parseCount(row.count)));
+  return syncGuestEventCounts({
+    ...row,
+    groupId,
+    sangeetCount: parseCount(row.sangeetCount) > 0 ? row.sangeetCount : total,
+    biyebariCount: parseCount(row.biyebariCount) > 0 ? row.biyebariCount : total,
+    borjatriCount: parseCount(row.borjatriCount) > 0 ? row.borjatriCount : total,
+    receptionCount: parseCount(row.receptionCount) > 0 ? row.receptionCount : total,
+  });
+}
+
+export function removeGuestGroup(state: WeddingState, groupId: string): WeddingState {
+  return {
+    ...state,
+    guestGroups: (state.guestGroups || []).filter((group) => group.id !== groupId),
+    guests: state.guests.map((row) =>
+      row.groupId === groupId ? { ...row, groupId: "" } : row,
+    ),
+  };
+}
+
+export function reconcileGuestGroups(
+  groups: GuestGroup[] | undefined,
+  guests: GuestRow[],
+): { guestGroups: GuestGroup[]; guests: GuestRow[] } {
+  const guestGroups = (groups || []).map(normalizeGuestGroup);
+  const ids = new Set(guestGroups.map((group) => group.id));
+  return {
+    guestGroups,
+    guests: guests.map((row) => (row.groupId && !ids.has(row.groupId) ? { ...row, groupId: "" } : row)),
+  };
 }
 
 export function dialPercentage(count: number, max: number): number {

@@ -15,9 +15,9 @@ export function AppSidebar() {
   const { setNewEventModalOpen } = useWeddingState();
 
   return (
-    <aside className="hidden lg:flex flex-col h-screen sticky top-0 bg-surface-container-low border-r border-outline-variant w-64 p-6 space-y-4 shrink-0 overflow-y-auto">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-on-primary font-bold text-xl">
+    <aside className="hidden lg:flex flex-col h-dvh sticky top-0 bg-surface-container-low border-r border-outline-variant w-56 xl:w-60 px-4 py-4 space-y-3 shrink-0 overflow-y-auto">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-on-primary font-bold text-lg">
           B
         </div>
         <div>
@@ -37,7 +37,7 @@ export function AppSidebar() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
                 isActive
                   ? "bg-secondary-container text-on-secondary-container font-semibold"
                   : "text-secondary hover:bg-surface-container-high",
@@ -53,10 +53,12 @@ export function AppSidebar() {
       <button
         type="button"
         onClick={() => setNewEventModalOpen(true)}
-        className="w-full bg-primary text-on-primary py-3 rounded-full font-button text-button flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+        className="day-pill-idle relative z-[1] w-full min-h-[48px] py-2.5 px-3 rounded-xl flex items-center gap-3 hover:brightness-110 transition-[filter] border border-[rgba(243,213,138,0.45)]"
       >
-        <Icon name="add" className="text-[20px]" />
-        New Event
+        <Icon name="add" className="relative z-[1] text-[20px] text-[#f3d58a] shrink-0" />
+        <span className="relative z-[1] text-white font-label-caps text-label-caps">
+          New Event
+        </span>
       </button>
     </aside>
   );

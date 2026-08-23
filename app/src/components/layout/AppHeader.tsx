@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Icon } from "../ui/Icon";
 import { cn } from "../../design-system/cn";
+import { SyncStatusChip } from "./SyncStatusChip";
 
 const HEADER_TABS = [
   { to: "/coming-soon", label: "Dashboard" },
@@ -14,7 +15,7 @@ const AVATAR_URL =
 
 export function AppHeader() {
   return (
-    <header className="flex justify-between items-center w-full px-3 sm:px-margin-mobile md:px-margin-desktop py-3 lg:py-4 border-b border-outline-variant bg-surface sticky top-0 z-40">
+    <header className="flex justify-between items-center w-full px-3 sm:px-margin-mobile md:px-margin-desktop py-2.5 lg:py-2.5 border-b border-outline-variant bg-surface shrink-0 z-40">
       <div className="lg:hidden flex items-center gap-2 min-w-0">
         <span className="font-headline-md text-lg sm:text-headline-md font-bold text-primary truncate">
           BiyeFlow
@@ -40,10 +41,16 @@ export function AppHeader() {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-        <Icon name="notifications" className="hidden sm:block text-secondary cursor-pointer" />
-        <Icon name="settings" className="hidden sm:block text-secondary cursor-pointer" />
-        <div className="w-8 h-8 rounded-full bg-secondary-container overflow-hidden shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+        <SyncStatusChip />
+        <button
+          type="button"
+          className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high hover:text-primary transition-colors"
+          aria-label="Notifications"
+        >
+          <Icon name="notifications" className="text-[22px]" />
+        </button>
+        <div className="w-8 h-8 rounded-full bg-secondary-container overflow-hidden shrink-0 ml-1">
           <img className="w-full h-full object-cover" src={AVATAR_URL} alt="Profile" />
         </div>
       </div>

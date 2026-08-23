@@ -2,11 +2,19 @@ import type { EventInfo, MenuCourse, MenuRow, WeddingFunction, WeddingState } fr
 import { createId } from "./event";
 import { MENU_COURSES, emptyMenuCategoryDraft, normalizeMenuRow } from "./menu";
 
+/** Always present. Cannot be removed. */
+export const CORE_FUNCTION_IDS = [1, 2, 3] as const;
+
 const LEGACY_DAY_NAMES: Record<number, string> = {
   1: "Sangeet",
   2: "Marriage",
   3: "Reception",
+  4: "Event",
 };
+
+export function isCoreWeddingFunction(dayId: number): boolean {
+  return CORE_FUNCTION_IDS.includes(Number(dayId) as (typeof CORE_FUNCTION_IDS)[number]);
+}
 
 export function functionOffset(day: number): number {
   return ({ 1: 0, 2: 2, 3: 4, 4: 2 } as Record<number, number>)[Number(day)] ?? 0;
@@ -21,9 +29,9 @@ export function defaultFunctionDate(event: EventInfo, dayId: number): string {
 
 export function buildDefaultFunctions(event: EventInfo): WeddingFunction[] {
   return [
-    { id: 1, name: "Sangeet", date: defaultFunctionDate(event, 1) },
-    { id: 2, name: "Marriage", date: defaultFunctionDate(event, 2) },
-    { id: 3, name: "Reception", date: defaultFunctionDate(event, 3) },
+    { id: 1, name: "Sangeet", date: defaultFunctionDate(event, 1), custom: false },
+    { id: 2, name: "Marriage", date: defaultFunctionDate(event, 2), custom: false },
+    { id: 3, name: "Reception", date: defaultFunctionDate(event, 3), custom: false },
   ];
 }
 
@@ -31,15 +39,42 @@ export function normalizeFunctions(
   functions: WeddingFunction[] | undefined,
   event: EventInfo,
 ): WeddingFunction[] {
+  const defaults = buildDefaultFunctions(event);
   if (!Array.isArray(functions) || !functions.length) {
-    return buildDefaultFunctions(event);
+    return defaults;
   }
-  return functions.map((fn) => ({
-    id: Number(fn.id),
-    name: fn.name || LEGACY_DAY_NAMES[Number(fn.id)] || "Event",
-    date: fn.date || defaultFunctionDate(event, Number(fn.id)),
-    custom: Boolean(fn.custom),
-  }));
+
+  const byId = new Map(
+    functions.map((fn) => {
+      const id = Number(fn.id);
+      return [
+        id,
+        {
+          id,
+          name: fn.name || LEGACY_DAY_NAMES[id] || "Event",
+          date: fn.date || defaultFunctionDate(event, id),
+          custom: Boolean(fn.custom),
+        } satisfies WeddingFunction,
+      ] as const;
+    }),
+  );
+
+  const cores = defaults.map((core) => {
+    const existing = byId.get(core.id);
+    if (!existing) return core;
+    return {
+      ...existing,
+      id: core.id,
+      name: existing.name || core.name,
+      custom: false,
+    };
+  });
+
+  const extras = [...byId.values()]
+    .filter((fn) => !isCoreWeddingFunction(fn.id))
+    .map((fn) => ({ ...fn, custom: true }));
+
+  return [...cores, ...extras].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function resolveDayName(state: WeddingState, dayId: number): string {
@@ -71,7 +106,10 @@ export function addWeddingFunction(
   const trimmed = name.trim();
   if (!trimmed || !date) return state;
 
-  const nextId = Math.max(0, ...state.functions.map((f) => f.id)) + 1;
+  const used = new Set(state.functions.map((f) => f.id));
+  let nextId = Math.max(3, ...state.functions.map((f) => f.id)) + 1;
+  while (used.has(nextId) || isCoreWeddingFunction(nextId)) nextId += 1;
+
   const newFunction: WeddingFunction = {
     id: nextId,
     name: trimmed,
@@ -102,8 +140,8 @@ export function addWeddingFunction(
 }
 
 export function canRemoveWeddingFunction(state: WeddingState, dayId: number): boolean {
-  const fn = state.functions.find((f) => f.id === dayId);
-  return Boolean(fn?.custom) && state.functions.length > 1;
+  if (isCoreWeddingFunction(dayId)) return false;
+  return state.functions.some((f) => f.id === dayId);
 }
 
 export function removeWeddingFunction(state: WeddingState, dayId: number): WeddingState {

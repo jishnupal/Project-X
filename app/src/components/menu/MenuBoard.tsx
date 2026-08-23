@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MENU_ADD_ON_ITEMS } from "../../domain/defaults";
 import {
   functionIds,
@@ -12,14 +12,17 @@ import {
   addAddOnItemToMenu,
   formatMenuPlan,
   getMenuRow,
+  isGrandMealCourse,
   menuBalanceSuggestions,
   menuFeaturedRow,
+  menuSideRows,
+  resolveGrandMealCourse,
 } from "../../domain/menu";
 import {
   menuCommercialEstimate,
   menuCommercialPlateCount,
 } from "../../domain/menuDisplay";
-import type { MenuCourse, MenuRow } from "../../domain/types";
+import type { GrandMealCourse, MenuCourse, MenuRow } from "../../domain/types";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import { Icon } from "../ui/Icon";
 import { cn } from "../../design-system/cn";
@@ -33,14 +36,31 @@ import { MenuAssistModal } from "./MenuAssistModal";
 import { DayPill } from "./DayPill";
 
 export function MenuBoard() {
-  const { state, setState, showToast, lastCreatedFunctionId, clearLastCreatedFunctionId } =
-    useWeddingState();
+  const {
+    state,
+    setState,
+    showToast,
+    lastCreatedFunctionId,
+    clearLastCreatedFunctionId,
+  } = useWeddingState();
   const dayIds = useMemo(() => functionIds(state), [state]);
-  const [activeDay, setActiveDay] = useState(() => dayIds[1] ?? dayIds[0] ?? 2);
+  const receptionDayId = state.functions.find((fn) => /reception/i.test(fn.name))?.id;
+  const userPickedDay = useRef(false);
+  const [activeDay, setActiveDay] = useState(
+    () => receptionDayId ?? dayIds[1] ?? dayIds[0] ?? 2,
+  );
   const [detailRowId, setDetailRowId] = useState<string | null>(null);
   const [commercialRowId, setCommercialRowId] = useState<string | null>(null);
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [assistOpen, setAssistOpen] = useState(false);
+  const [swapTo, setSwapTo] = useState<GrandMealCourse | null>(null);
+  const swapTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (swapTimer.current) window.clearTimeout(swapTimer.current);
+    };
+  }, []);
   const [removingDayId, setRemovingDayId] = useState<number | null>(null);
 
   const detailRow = useMemo(
@@ -58,7 +78,13 @@ export function MenuBoard() {
   }, [dayIds, activeDay]);
 
   useEffect(() => {
+    if (userPickedDay.current || receptionDayId == null) return;
+    if (activeDay !== receptionDayId) setActiveDay(receptionDayId);
+  }, [receptionDayId, activeDay]);
+
+  useEffect(() => {
     if (lastCreatedFunctionId && dayIds.includes(lastCreatedFunctionId)) {
+      userPickedDay.current = true;
       setActiveDay(lastCreatedFunctionId);
       clearLastCreatedFunctionId();
     }
@@ -68,11 +94,26 @@ export function MenuBoard() {
     () => MENU_COURSES.map((course) => getMenuRow(state, activeDay, course)),
     [state, activeDay],
   );
-  const featured = useMemo(() => menuFeaturedRow(dayRows), [dayRows]);
-  const sideRows = useMemo(
-    () => dayRows.filter((row) => row.id !== featured.id),
-    [dayRows, featured.id],
+  const grandCourse = useMemo(
+    () => resolveGrandMealCourse(dayRows, state.grandMealByDay?.[String(activeDay)]),
+    [dayRows, state.grandMealByDay, activeDay],
   );
+  const featured = useMemo(
+    () => menuFeaturedRow(dayRows, grandCourse),
+    [dayRows, grandCourse],
+  );
+  const sideRows = useMemo(() => menuSideRows(dayRows, featured.id), [dayRows, featured.id]);
+
+  const setGrandCourse = (course: GrandMealCourse) => {
+    if (course === grandCourse) return;
+    setSwapTo(course);
+    if (swapTimer.current) window.clearTimeout(swapTimer.current);
+    swapTimer.current = window.setTimeout(() => setSwapTo(null), 720);
+    setState((prev) => ({
+      ...prev,
+      grandMealByDay: { ...(prev.grandMealByDay || {}), [String(activeDay)]: course },
+    }));
+  };
 
   const handleDeleteDay = (dayId: number) => {
     const name = resolveDayName(state, dayId);
@@ -108,6 +149,7 @@ export function MenuBoard() {
 
   const handleAddOn = (addOnId: string, day: number, course: MenuCourse) => {
     setState(addAddOnItemToMenu(state, addOnId, day, course, MENU_ADD_ON_ITEMS));
+    userPickedDay.current = true;
     setActiveDay(day);
     showToast("Item added to menu");
   };
@@ -121,7 +163,10 @@ export function MenuBoard() {
       canDelete={canRemoveWeddingFunction(state, day)}
       isRemoving={removingDayId === day}
       compact={compact}
-      onSelect={() => setActiveDay(day)}
+      onSelect={() => {
+        userPickedDay.current = true;
+        setActiveDay(day);
+      }}
       onDelete={() => handleDeleteDay(day)}
     />
   );
@@ -137,13 +182,27 @@ export function MenuBoard() {
     />
   );
 
+  const renderMini = (row: MenuRow) => (
+    <MiniMealCard
+      row={row}
+      onOpen={() => setDetailRowId(row.id)}
+      onMakeGrand={
+        isGrandMealCourse(row.course)
+          ? () => setGrandCourse(row.course as GrandMealCourse)
+          : undefined
+      }
+      swapping={Boolean(swapTo) && isGrandMealCourse(row.course)}
+    />
+  );
+
   return (
     <>
-      <div className="bento-card mobile-card rounded-2xl lg:rounded-xl overflow-hidden flex flex-col">
-        {/* ——— Mobile layout ——— */}
+      <div className="bento-card mobile-card rounded-2xl lg:rounded-xl overflow-hidden flex flex-col lg:h-full lg:min-h-0">
         <div className="lg:hidden border-b border-surface-container-highest bg-surface-container-low">
           <div className="px-3 pt-3 pb-2">
-            <div className="mobile-h-scroll scroll-hide">{dayIds.map((day) => renderDayPill(day, true))}</div>
+            <div className="flex gap-2 items-center overflow-x-auto scroll-hide py-1">
+              {dayIds.map((day) => renderDayPill(day, true))}
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2 px-3 pb-3 border-t border-outline-variant/60 pt-2">
             <button
@@ -177,30 +236,35 @@ export function MenuBoard() {
             </button>
           </div>
           <div className="px-3 pb-3">
-            <div className="mobile-h-scroll scroll-hide">{dayRows.map((row) => renderDial(row, true))}</div>
+            <div className="mobile-h-scroll scroll-hide">
+              {dayRows.map((row) => renderDial(row, true))}
+            </div>
           </div>
         </div>
 
         <div className="lg:hidden p-3 bg-surface-container-low space-y-3">
           <FeaturedMealCard
+            key={featured.id}
             row={featured}
             dayLabel={resolveDayName(state, activeDay)}
             onOpen={() => setDetailRowId(featured.id)}
+            grandCourse={grandCourse}
+            onGrandCourseChange={setGrandCourse}
+            swapTo={swapTo}
           />
           <div className="mobile-h-scroll scroll-hide pb-1">
             {sideRows.map((row) => (
               <div key={row.id} className="w-[min(78vw,280px)]">
-                <MiniMealCard row={row} onOpen={() => setDetailRowId(row.id)} />
+                {renderMini(row)}
               </div>
             ))}
           </div>
           <AiMenuGeneratorCTA onClick={() => setAssistOpen(true)} />
         </div>
 
-        {/* ——— Desktop layout ——— */}
-        <div className="hidden lg:flex px-6 py-3 bg-surface-container-low border-b border-surface-container-highest items-center">
-          <div className="flex gap-2 overflow-x-auto flex-1 min-w-0 scroll-hide py-1">
-            {dayIds.map((day) => renderDayPill(day))}
+        <div className="hidden lg:flex px-5 py-2 bg-surface-container-low border-b border-surface-container-highest items-center shrink-0">
+          <div className="flex gap-2 items-center min-w-0 overflow-x-auto scroll-hide py-1">
+            {dayIds.map((day) => renderDayPill(day, true))}
           </div>
           <div className="flex gap-2 shrink-0 items-center ml-6 pl-6 border-l border-outline-variant">
             <button
@@ -227,15 +291,17 @@ export function MenuBoard() {
           </div>
         </div>
 
-        <div className="hidden lg:flex px-6 py-2 border-b border-surface-container-highest items-center gap-3">
-          <div className="grid grid-cols-4 gap-2 flex-1">{dayRows.map((row) => renderDial(row))}</div>
+        <div className="hidden lg:flex px-5 py-1.5 border-b border-surface-container-highest items-center gap-3 shrink-0">
+          <div className="grid grid-cols-4 gap-2 flex-1">
+            {dayRows.map((row) => renderDial(row))}
+          </div>
           <button
             type="button"
             onClick={shareMenuPlan}
             aria-label="Share full menu plan"
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 shrink-0",
-              "w-14 h-14 rounded-2xl border border-outline-variant bg-surface",
+              "w-12 h-12 rounded-xl border border-outline-variant bg-surface",
               "text-primary hover:bg-primary hover:text-on-primary hover:border-primary transition-colors shadow-sm",
             )}
           >
@@ -244,20 +310,26 @@ export function MenuBoard() {
           </button>
         </div>
 
-        <div className="hidden lg:block p-10 bg-surface-container-low relative">
+        <div className="hidden lg:flex flex-1 min-h-0 p-4 xl:p-5 bg-surface-container-low relative">
           <div className="absolute inset-0 menu-cards-radial pointer-events-none" />
-          <div className="grid grid-cols-12 gap-8 relative z-10">
-            <div className="col-span-4 flex flex-col gap-5">
+          <div className="grid grid-cols-12 gap-4 xl:gap-5 relative z-10 min-h-0 h-full w-full">
+            <div className="col-span-4 flex flex-col gap-3 min-h-0 overflow-hidden">
               {sideRows.map((row) => (
-                <MiniMealCard key={row.id} row={row} onOpen={() => setDetailRowId(row.id)} />
+                <div key={row.id} className="min-h-0 flex">
+                  {renderMini(row)}
+                </div>
               ))}
               <AiMenuGeneratorCTA onClick={() => setAssistOpen(true)} />
             </div>
-            <div className="col-span-8">
+            <div className="col-span-8 min-h-0 h-full">
               <FeaturedMealCard
+                key={featured.id}
                 row={featured}
                 dayLabel={resolveDayName(state, activeDay)}
                 onOpen={() => setDetailRowId(featured.id)}
+                grandCourse={grandCourse}
+                onGrandCourseChange={setGrandCourse}
+                swapTo={swapTo}
               />
             </div>
           </div>
@@ -279,7 +351,11 @@ export function MenuBoard() {
         onClose={() => setDetailRowId(null)}
         onSave={updateMenuRow}
       />
-      <BalanceCheckModal open={balanceOpen} issues={balanceIssues} onClose={() => setBalanceOpen(false)} />
+      <BalanceCheckModal
+        open={balanceOpen}
+        issues={balanceIssues}
+        onClose={() => setBalanceOpen(false)}
+      />
       <MenuAssistModal
         open={assistOpen}
         state={state}

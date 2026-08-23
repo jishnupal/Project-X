@@ -1,4 +1,5 @@
 import type {
+  GrandMealCourse,
   MenuCategories,
   MenuCategory,
   MenuCourse,
@@ -149,12 +150,19 @@ export function normalizeMenuRow(row: Partial<MenuRow>): MenuRow {
 
 export function normalizeMenu(menu: MenuRow[] | undefined, fallback: MenuRow[]): MenuRow[] {
   const rows = Array.isArray(menu) ? menu.map(normalizeMenuRow) : [];
-  return fallback.map((fallbackRow) => {
+  const merged = fallback.map((fallbackRow) => {
     const saved = rows.find(
       (row) => Number(row.day) === Number(fallbackRow.day) && row.course === fallbackRow.course,
     );
     return saved || normalizeMenuRow(fallbackRow);
   });
+  const extras = rows.filter(
+    (row) =>
+      !merged.some(
+        (kept) => Number(kept.day) === Number(row.day) && kept.course === row.course,
+      ),
+  );
+  return [...merged, ...extras];
 }
 
 export function menuItemsArray(row: MenuRow): string[] {
@@ -243,12 +251,52 @@ export function menuRowCost(state: WeddingState, row: MenuRow): number {
   return plates * (Number.isFinite(rate) ? rate : 0);
 }
 
-export function menuFeaturedRow(rows: MenuRow[]): MenuRow {
+export const GRAND_MEAL_COURSES: GrandMealCourse[] = ["Lunch", "Dinner"];
+
+export function isGrandMealCourse(course: MenuCourse | string): course is GrandMealCourse {
+  return course === "Lunch" || course === "Dinner";
+}
+
+export function defaultGrandMealCourse(rows: MenuRow[]): GrandMealCourse {
+  const dinner = rows.find((row) => row.course === "Dinner");
+  const lunch = rows.find((row) => row.course === "Lunch");
+  if (dinner?.status === "Confirmed") return "Dinner";
+  if (lunch?.status === "Confirmed") return "Lunch";
+  if (dinner) return "Dinner";
+  return "Lunch";
+}
+
+export function resolveGrandMealCourse(
+  rows: MenuRow[],
+  preference?: GrandMealCourse | string | null,
+): GrandMealCourse {
+  if (
+    (preference === "Lunch" || preference === "Dinner") &&
+    rows.some((row) => row.course === preference)
+  ) {
+    return preference;
+  }
+  return defaultGrandMealCourse(rows);
+}
+
+export function toggleGrandMealCourse(course: GrandMealCourse): GrandMealCourse {
+  return course === "Dinner" ? "Lunch" : "Dinner";
+}
+
+export function menuFeaturedRow(
+  rows: MenuRow[],
+  preference?: GrandMealCourse | string | null,
+): MenuRow {
+  const course = resolveGrandMealCourse(rows, preference);
   return (
-    rows.find((row) => row.course === "Lunch") ||
-    rows.find((row) => row.status === "Confirmed") ||
+    rows.find((row) => row.course === course) ||
+    rows.find((row) => isGrandMealCourse(row.course)) ||
     rows[0]
   );
+}
+
+export function menuSideRows(rows: MenuRow[], featuredId: string): MenuRow[] {
+  return rows.filter((row) => row.id !== featuredId);
 }
 
 export function compactMenuItems(items: string[], limit = 3): string {

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "wrangler pages dev --proxy 5173 --kv BIYEFLOW_SYNC --compatibility-date=2026-01-01",
     "dev:mobile": "vite --host --open /mobile-preview.html",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
@@ -15,6 +16,9 @@
     "deploy:direct": "npm run icons && npm run build && npx wrangler pages deploy dist --project-name=biyeflow"
   },
   "dependencies": {
+    "@fontsource-variable/material-symbols-outlined": "^5.3.3",
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
     "clsx": "^2.1.1",
     "dexie": "^4.4.4",
     "react": "^19.2.7",

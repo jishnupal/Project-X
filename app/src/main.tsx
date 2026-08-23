@@ -1,11 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { registerSW } from "virtual:pwa-register";
 import "./styles/globals.css";
 import App from "./App.tsx";
+import { startAppUpdateWatcher } from "./pwa/appUpdate";
+import { revealAppShell } from "./pwa/boot";
+import { runLaunchSequence } from "./pwa/launch";
 
-registerSW({ immediate: true });
+startAppUpdateWatcher();
+void runLaunchSequence();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -14,3 +17,5 @@ createRoot(document.getElementById("root")!).render(
     </BrowserRouter>
   </StrictMode>,
 );
+
+revealAppShell();

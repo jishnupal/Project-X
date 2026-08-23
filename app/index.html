@@ -11,19 +11,132 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="BiyeFlow" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
     <title>BiyeFlow - Menu Board</title>
+    <style>
+      html, body {
+        margin: 0;
+        background: #fff8f5;
+        color: #1e1b18;
+      }
+      #root {
+        opacity: 0;
+      }
+      html.app-ready #root {
+        opacity: 1;
+        transition: opacity 160ms ease;
+      }
+      #boot-cover {
+        position: fixed;
+        inset: 0;
+        z-index: 9998;
+        background: #fff8f5;
+        pointer-events: none;
+      }
+      html.app-ready #boot-cover {
+        opacity: 0;
+        transition: opacity 200ms ease;
+      }
+      html.has-welcome #boot-cover {
+        opacity: 0;
+      }
+      #launch-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(120% 80% at 50% 20%, #9a1230 0%, #570013 46%, #3a000c 100%);
+        color: #fff8f5;
+      }
+      html.has-welcome #launch-splash {
+        display: flex;
+      }
+      #launch-splash .launch-mark {
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 38px;
+        font-weight: 700;
+        color: #570013;
+        background: linear-gradient(180deg, #ffe088 0%, #cca730 100%);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        animation: launch-mark 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      #launch-splash .launch-word {
+        margin: 22px 0 0;
+        font-family: "Playfair Display", Georgia, serif;
+        font-size: 34px;
+        letter-spacing: -0.03em;
+        animation: launch-word 900ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      #launch-splash .launch-line {
+        width: 0;
+        height: 1px;
+        margin-top: 16px;
+        background: linear-gradient(90deg, transparent, #cca730, transparent);
+        animation: launch-line 800ms 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      #launch-splash .launch-note {
+        margin-top: 14px;
+        font-family: Manrope, system-ui, sans-serif;
+        font-size: 10px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: rgba(255, 248, 245, 0.55);
+        animation: launch-word 900ms 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      #launch-splash.is-out {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 420ms ease;
+      }
+      @keyframes launch-mark {
+        from { opacity: 0; transform: scale(0.72) translateY(12px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes launch-word {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes launch-line {
+        from { width: 0; opacity: 0; }
+        to { width: 88px; opacity: 1; }
+      }
+    </style>
+    <script>
+      (function () {
+        var standalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.matchMedia("(display-mode: fullscreen)").matches ||
+          window.navigator.standalone === true;
+        var local = /localhost|127\.0\.0\.1/.test(location.hostname);
+        var seen = false;
+        try {
+          seen = sessionStorage.getItem("biyeflow.welcomed") === "1";
+        } catch (e) {}
+        if (standalone && !local && !seen) {
+          document.documentElement.classList.add("has-welcome");
+        }
+        window.setTimeout(function () {
+          document.documentElement.classList.add("app-ready");
+        }, 2200);
+      })();
+    </script>
   </head>
   <body>
+    <div id="boot-cover" aria-hidden="true"></div>
+    <div id="launch-splash" aria-hidden="true">
+      <div class="launch-mark">B</div>
+      <p class="launch-word">BiyeFlow</p>
+      <span class="launch-line"></span>
+      <p class="launch-note">Wedding OS</p>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

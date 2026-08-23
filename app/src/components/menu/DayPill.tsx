@@ -49,29 +49,25 @@ export function DayPill({
       <button
         type="button"
         onClick={onSelect}
+        aria-pressed={isActive}
         className={cn(
-          "flex flex-col items-start rounded-xl transition-colors",
-          compact ? "min-w-[92px] px-3 py-1.5" : "min-w-[120px] px-4 py-2",
-          isActive
-            ? "bg-primary-container text-white shadow-md"
-            : "border border-outline-variant bg-surface group hover:border-primary",
+          "relative inline-flex items-center justify-between gap-3 rounded-xl overflow-hidden text-white transition-[box-shadow,transform]",
+          compact ? "h-11 min-w-[148px] px-4" : "h-12 min-w-[168px] px-5",
+          isActive ? "day-pill-selected" : "day-pill-idle hover:brightness-110",
         )}
       >
         <span
           className={cn(
-            "font-label-caps text-[10px]",
-            isActive
-              ? "text-on-primary-container opacity-80"
-              : "text-secondary group-hover:text-primary",
+            "relative z-[1] font-headline-md text-white whitespace-nowrap leading-none",
+            compact ? "text-[15px]" : "text-[16px]",
           )}
         >
           {name}
         </span>
         <span
           className={cn(
-            "font-body-md font-bold",
-            compact ? "text-xs" : "text-sm",
-            isActive ? "" : "text-on-surface",
+            "relative z-[1] font-label-caps tracking-[0.06em] text-[#f3d58a] tabular-nums whitespace-nowrap leading-none",
+            compact ? "text-[11px]" : "text-[12px]",
           )}
         >
           {dateLabel || "—"}

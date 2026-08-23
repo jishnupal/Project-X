@@ -3,10 +3,25 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const buildId = `${Date.now().toString(36)}`;
+
 export default defineConfig({
+  define: {
+    __BIYEFLOW_BUILD_ID__: JSON.stringify(buildId),
+  },
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: "biyeflow-version-file",
+      generateBundle() {
+        this.emitFile({
+          type: "asset",
+          fileName: "version.json",
+          source: `${JSON.stringify({ buildId, builtAt: new Date().toISOString() })}\n`,
+        });
+      },
+    },
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
@@ -19,7 +34,7 @@ export default defineConfig({
       manifest: {
         name: "BiyeFlow",
         short_name: "BiyeFlow",
-        description: "Premium Bengali wedding control room",
+        description: "Premium Wedding OS",
         theme_color: "#570013",
         background_color: "#fff8f5",
         display: "standalone",
@@ -53,8 +68,30 @@ export default defineConfig({
         ],
       },
       workbox: {
+        cacheId: "biyeflow-shell-5",
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globIgnores: ["**/version.json"],
+        navigateFallback: undefined,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "biyeflow-pages",
+              networkTimeoutSeconds: 2,
+            },
+          },
+          {
+            urlPattern: /\/version\.json/i,
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /\/api\//,
+            handler: "NetworkOnly",
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",

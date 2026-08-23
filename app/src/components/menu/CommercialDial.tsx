@@ -86,7 +86,7 @@ export function CommercialDial({ row, plates, estimate, onClick, compact = false
         isEmpty && "opacity-70 hover:opacity-100",
       )}
     >
-      <div className="relative w-14 h-14 shrink-0">
+      <div className="relative w-12 h-12 shrink-0">
         <svg className="w-full h-full dial-ring" viewBox="0 0 36 36">
           <circle
             className="stroke-surface-container-highest"

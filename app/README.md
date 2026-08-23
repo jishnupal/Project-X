@@ -48,6 +48,17 @@ Connect the repo in Cloudflare Pages:
 
 SPA routing is handled by `public/_redirects` (`/* /index.html 200`).
 
+### Cross-device sync (KV)
+
+1. `npx wrangler login`
+2. `npx wrangler kv namespace create BIYEFLOW_SYNC`
+3. Paste the namespace id into `wrangler.toml` under `[[kv_namespaces]]` with binding `BIYEFLOW_SYNC`
+4. Redeploy (`npm run deploy` or push to Git)
+
+In the Cloudflare dashboard you can also bind KV on the biyeflow Pages project: Settings → Bindings → KV.
+
+Without that binding, **Sync** will say cloud sync is not configured. Each browser still keeps its own local copy.
+
 ### PWA install
 
 After deploy (HTTPS required):
@@ -60,7 +71,17 @@ Local test: `npm run build && npm run preview`, then open DevTools → Applicati
 
 ## Data
 
-Uses the same `localStorage` key as the legacy prototype: `biyeflow.v1`. Open the React app in the same browser to keep your menu data.
+Each browser still caches a copy under `biyeflow.v1`. That is why a laptop Chrome profile and a phone Safari profile do not see each other by default.
+
+To share one wedding across devices:
+
+1. Open **https://biyeflow.pages.dev** on the laptop (not localhost).
+2. Tap **Sync** in the header → **Create wedding code**.
+3. Open the same URL on the phone → **Sync** → enter that 8-character code.
+
+Edits then push to Cloudflare KV and pull onto other linked devices. Export/Import JSON remains available as a manual backup.
+
+Local API testing: run `npm run dev` and `npm run dev:api` together.
 
 ## Phase 1 scope
 

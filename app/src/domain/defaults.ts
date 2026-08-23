@@ -1,5 +1,6 @@
 import type { MenuAddOn, MenuRow, WeddingState } from "./types";
 import { buildDefaultFunctions } from "./functions";
+import { buildDemoGuests } from "./guestSeed";
 
 export const STORAGE_KEY = "biyeflow.v1";
 
@@ -41,56 +42,7 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
   tasks: [],
   research: [],
   reminders: [],
-  guests: [
-    {
-      id: "g1",
-      name: "Mukherjee family",
-      count: "6",
-      receptionCount: "6",
-      sangeetCount: "6",
-      biyebariCount: "",
-      borjatriCount: "",
-      stayCount: "6",
-      needsStay: true,
-      checkIn: "1",
-      nights: "5",
-      rooms: "3",
-      invitationSent: true,
-      inviteStatus: "Sent",
-    },
-    {
-      id: "g2",
-      name: "College friends group",
-      count: "8",
-      receptionCount: "8",
-      sangeetCount: "",
-      biyebariCount: "8",
-      borjatriCount: "",
-      stayCount: "0",
-      needsStay: false,
-      checkIn: "2",
-      nights: "0",
-      rooms: "0",
-      invitationSent: false,
-      inviteStatus: "Pending",
-    },
-    {
-      id: "g3",
-      name: "Outstation relatives",
-      count: "10",
-      receptionCount: "10",
-      sangeetCount: "10",
-      biyebariCount: "",
-      borjatriCount: "",
-      stayCount: "10",
-      needsStay: true,
-      checkIn: "1",
-      nights: "5",
-      rooms: "5",
-      invitationSent: false,
-      inviteStatus: "Pending",
-    },
-  ],
+  guests: buildDemoGuests(100),
   menu: [
     {
       id: "mn1",
@@ -231,11 +183,42 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
       id: "mn12",
       day: 3,
       course: "Dinner",
-      items: "Fried rice\nNaan\nPaneer\nChicken\nMutton\nRabri\nIce cream",
+      items:
+        "Achari Fish/Soya Chaap\nReshmi Chicken/Paneer Tikka\nTandoori Aloo Pops\nChicken Lollipop\nFuchka\nGreen Salad\nFish Fry/Paneer Pasinda\nLuchi\nKosha Mangsho/ Stuffed Aloo\nSteam Rice\nDaab Chingri (Medium 4 Pieces) / Chhanar Kofta\nBhetki Paturi / Paneer Paturi\nBasanti Pulao\nMutton / Pomfret Masala / Paneer\nPapad\nChutney\nChom Chom\nNolen Gurer Roshogolla\nGajar Halwa & Raabdi\nAngoori Gulab Jamun & Ice Cream\nMocktail\nBenarasi Ice Paan\nMatka Chai",
+      categories: {
+        Appetizers: [
+          "Achari Fish/Soya Chaap",
+          "Reshmi Chicken/Paneer Tikka",
+          "Tandoori Aloo Pops",
+          "Chicken Lollipop",
+          "Fuchka",
+        ],
+        "Main Course": [
+          "Green Salad",
+          "Fish Fry/Paneer Pasinda",
+          "Luchi",
+          "Kosha Mangsho/ Stuffed Aloo",
+          "Steam Rice",
+          "Daab Chingri (Medium 4 Pieces) / Chhanar Kofta",
+          "Bhetki Paturi / Paneer Paturi",
+          "Basanti Pulao",
+          "Mutton / Pomfret Masala / Paneer",
+          "Papad",
+          "Chutney",
+        ],
+        Dessert: ["Chom Chom", "Nolen Gurer Roshogolla"],
+        "Live Counter": [
+          "Gajar Halwa & Raabdi",
+          "Angoori Gulab Jamun & Ice Cream",
+          "Mocktail",
+          "Benarasi Ice Paan",
+          "Matka Chai",
+        ],
+      },
       notes: "Reception main spread.",
       plateCount: "",
       rate: "500",
-      status: "Discuss",
+      status: "Confirmed",
     },
   ].map((row) => ({ ...row, estimate: "" })) as MenuRow[],
   theme: {
@@ -246,4 +229,6 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
     avoid: "",
     notes: "",
   },
+  grandMealByDay: {},
+  guestGroups: [],
 };

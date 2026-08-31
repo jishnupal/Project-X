@@ -5,11 +5,17 @@ export const SYNC_CODE_KEY = "biyeflow.syncCode";
 export const ACCOUNT_KEY = "biyeflow.accountCode";
 export const SYNC_ACTIVE_KEY = "biyeflow.syncActive";
 export const SYNC_META_KEY = "biyeflow.syncMeta";
+export const SYNC_META_VERSION_KEY = "biyeflow.syncMeta.v";
+const SYNC_META_VERSION = "5";
 const PAIR_COOKIE = "bf_pair";
 const ACCOUNT_COOKIE = "bf_account";
 const PAIR_COOKIE_MAX_AGE = 60 * 60 * 24 * 730;
 
 export const SYNC_CODE_PATTERN = /^[A-Z0-9]{8}$/;
+
+export type PushResult =
+  | { status: "ok"; version: number }
+  | { status: "conflict"; version: number; state: WeddingState };
 
 function writeCookie(name: string, value: string | null): void {
   if (typeof document === "undefined") return;
@@ -31,14 +37,9 @@ function readPairCookie(): string | null {
   return value && isValidSyncCode(value) ? value : null;
 }
 
-type SyncEnvelope = {
-  version: 1;
-  updatedAt: number;
-  state: WeddingState;
-};
-
-type SyncMeta = {
-  updatedAt: number;
+export type SyncMeta = {
+  cloudVersion: number;
+  dirty: boolean;
   lastSyncedAt: number | null;
 };
 
@@ -99,6 +100,18 @@ export function getStoredSyncCode(): string | null {
   return getAccountCode();
 }
 
+export function clearAccountCode(): void {
+  setSyncActive(false);
+  try {
+    localStorage.removeItem(SYNC_CODE_KEY);
+    localStorage.removeItem(ACCOUNT_KEY);
+  } catch {
+    /* ignore */
+  }
+  writeCookie(ACCOUNT_COOKIE, null);
+  writeCookie(PAIR_COOKIE, null);
+}
+
 export function setStoredSyncCode(code: string | null): void {
   if (!code) {
     setSyncActive(false);
@@ -135,30 +148,61 @@ export function rememberAccountFromLegacy(): void {
   }
 }
 
-export function getSyncMeta(): SyncMeta {
+function writeMeta(meta: SyncMeta): SyncMeta {
+  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
+  return meta;
+}
+
+function migrateSyncMetaIfNeeded(): void {
   try {
+    if (localStorage.getItem(SYNC_META_VERSION_KEY) === SYNC_META_VERSION) return;
     const raw = localStorage.getItem(SYNC_META_KEY);
-    if (!raw) return { updatedAt: 0, lastSyncedAt: null };
-    const parsed = JSON.parse(raw) as Partial<SyncMeta>;
-    return {
-      updatedAt: Number(parsed.updatedAt) || 0,
-      lastSyncedAt: parsed.lastSyncedAt ? Number(parsed.lastSyncedAt) : null,
-    };
+    let lastSyncedAt: number | null = null;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        lastSyncedAt = parsed.lastSyncedAt ? Number(parsed.lastSyncedAt) : null;
+      } catch {
+        /* ignore */
+      }
+    }
+    writeMeta({ cloudVersion: 0, dirty: false, lastSyncedAt });
+    localStorage.setItem(SYNC_META_VERSION_KEY, SYNC_META_VERSION);
   } catch {
-    return { updatedAt: 0, lastSyncedAt: null };
+    /* ignore */
   }
 }
 
-export function touchLocalUpdatedAt(at = Date.now()): SyncMeta {
-  const meta = { ...getSyncMeta(), updatedAt: at };
-  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
-  return meta;
+export function getSyncMeta(): SyncMeta {
+  migrateSyncMetaIfNeeded();
+  try {
+    const raw = localStorage.getItem(SYNC_META_KEY);
+    if (!raw) return { cloudVersion: 0, dirty: false, lastSyncedAt: null };
+    const parsed = JSON.parse(raw) as Partial<SyncMeta>;
+    return {
+      cloudVersion: Number(parsed.cloudVersion) || 0,
+      dirty: Boolean(parsed.dirty),
+      lastSyncedAt: parsed.lastSyncedAt ? Number(parsed.lastSyncedAt) : null,
+    };
+  } catch {
+    return { cloudVersion: 0, dirty: false, lastSyncedAt: null };
+  }
 }
 
-export function markSynced(at = Date.now()): SyncMeta {
-  const meta = { ...getSyncMeta(), lastSyncedAt: at };
-  localStorage.setItem(SYNC_META_KEY, JSON.stringify(meta));
-  return meta;
+export function markDirty(): SyncMeta {
+  return writeMeta({ ...getSyncMeta(), dirty: true });
+}
+
+export function clearDirty(): SyncMeta {
+  return writeMeta({ ...getSyncMeta(), dirty: false });
+}
+
+export function setCloudVersion(cloudVersion: number): SyncMeta {
+  return writeMeta({ ...getSyncMeta(), cloudVersion });
+}
+
+export function markCloudAligned(cloudVersion: number, at = Date.now()): SyncMeta {
+  return writeMeta({ cloudVersion, dirty: false, lastSyncedAt: at });
 }
 
 function apiUrl(code: string): string {
@@ -173,57 +217,73 @@ function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 8000): Promi
   });
 }
 
-export async function pullWeddingRevision(code: string): Promise<number | null> {
-  const response = await fetchWithTimeout(`${apiUrl(code)}?rev=1`, { method: "GET" });
-  if (response.status === 404) return null;
-  if (!response.ok) {
-    throw new Error(await readError(response));
-  }
-  assertJson(response);
-  const payload = (await response.json()) as { updatedAt?: number };
-  const updatedAt = Number(payload.updatedAt) || 0;
-  return updatedAt || null;
-}
-
 export async function pullWedding(
   code: string,
-): Promise<{ state: WeddingState; updatedAt: number } | null> {
+): Promise<{ state: WeddingState; version: number } | null> {
   const response = await fetchWithTimeout(apiUrl(code), { method: "GET" });
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(await readError(response));
   }
   assertJson(response);
-  const payload = (await response.json()) as Partial<SyncEnvelope>;
+  const payload = (await response.json()) as { version?: number; state?: WeddingState };
   if (!payload?.state) return null;
   return {
     state: hydrateWeddingState(payload.state),
-    updatedAt: Number(payload.updatedAt) || 0,
+    version: Number(payload.version) || 0,
   };
 }
 
 export async function pushWedding(
   code: string,
   state: WeddingState,
-  updatedAt: number,
-): Promise<void> {
-  const envelope: SyncEnvelope = { version: 1, updatedAt, state };
+  baseVersion: number,
+): Promise<PushResult> {
+  const body = { state, baseVersion };
   const response = await fetchWithTimeout(apiUrl(code), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(envelope),
+    body: JSON.stringify(body),
   });
+
+  assertJson(response);
+
+  if (response.status === 409) {
+    const payload = (await response.json()) as {
+      version?: number;
+      state?: WeddingState;
+    };
+    if (payload?.state && payload.version) {
+      return {
+        status: "conflict",
+        version: Number(payload.version) || 0,
+        state: hydrateWeddingState(payload.state),
+      };
+    }
+    throw new Error("Cloud has a newer copy. Pull and try again.");
+  }
+
   if (!response.ok) {
     throw new Error(await readError(response));
   }
-  assertJson(response);
+
+  const payload = (await response.json()) as { version?: number };
+  return {
+    status: "ok",
+    version: Number(payload.version) || 0,
+  };
 }
 
 function assertJson(response: Response): void {
   const type = response.headers.get("content-type") || "";
   if (!type.includes("application/json")) {
+    const local =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     throw new Error(
-      "Cloud sync only works on https://biyeflow.pages.dev after deploy. Localhost cannot share with your phone.",
+      local
+        ? "API not reachable. Run npm run dev:api and open http://localhost:8788 (or keep Vite + Wrangler both running)."
+        : "Cloud sync only works on https://biyeflow.pages.dev after deploy.",
     );
   }
 }

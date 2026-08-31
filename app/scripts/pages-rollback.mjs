@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -8,6 +8,7 @@ const appRoot = join(__dirname, "..");
 const deploymentsDir = join(appRoot, "deployments");
 const projectName = "biyeflow";
 const snapshotPath = join(deploymentsDir, "last-known-good.json");
+const historyPath = join(deploymentsDir, "history.json");
 
 if (!existsSync(snapshotPath)) {
   console.error("No rollback snapshot found. Deploy once with `npm run deploy` first.");
@@ -24,6 +25,8 @@ if (!deploymentId) {
 }
 
 console.log(`Rolling back to deployment ${deploymentId}`);
+if (snapshot.deployLabel) console.log(`Version label: ${snapshot.deployLabel}`);
+if (snapshot.appVersion) console.log(`App version: ${snapshot.appVersion}`);
 console.log(`Preview URL: ${snapshot.url}`);
 console.log(`Dashboard: ${snapshot.dashboardUrl}`);
 
@@ -38,6 +41,23 @@ execSync(`npx wrangler pages deploy "${artifactDir}" --project-name=${projectNam
   cwd: appRoot,
   stdio: "inherit",
 });
+
+if (existsSync(historyPath)) {
+  const history = JSON.parse(readFileSync(historyPath, "utf8"));
+  const current = existsSync(join(deploymentsDir, "current.json"))
+    ? JSON.parse(readFileSync(join(deploymentsDir, "current.json"), "utf8"))
+    : null;
+  history.unshift({
+    deploymentId,
+    productionUrl: snapshot.productionUrl,
+    deployedAt: new Date().toISOString(),
+    appVersion: snapshot.appVersion ?? null,
+    deployLabel: snapshot.deployLabel ?? null,
+    buildId: snapshot.buildId ?? null,
+    rolledBackFrom: current?.deploymentId ?? null,
+  });
+  writeFileSync(historyPath, `${JSON.stringify(history.slice(0, 20), null, 2)}\n`, "utf8");
+}
 
 console.log("\nRollback deploy submitted.");
 console.log("Production should now match the previous build at https://biyeflow.pages.dev");

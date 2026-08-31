@@ -7,14 +7,14 @@ export function ComingSoonPage() {
       <Icon name="construction" className="text-primary text-4xl mb-4" />
       <h2 className="font-headline-lg text-headline-lg text-primary mb-2">Coming Soon</h2>
       <p className="font-body-md text-on-surface-variant mb-6">
-        This module is part of Phase 2. The Menu Board is live now.
+        This module is part of a future release. Head back to Command Center for now.
       </p>
       <Link
-        to="/menu"
+        to="/command-center"
         className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-on-primary rounded-full font-button text-button hover:opacity-90"
       >
-        <Icon name="restaurant" />
-        Open Menu Board
+        <Icon name="dashboard" />
+        Back to Command Center
       </Link>
     </div>
   );

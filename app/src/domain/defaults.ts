@@ -1,5 +1,5 @@
-import type { MenuAddOn, MenuRow, WeddingState } from "./types";
-import { buildDefaultFunctions } from "./functions";
+import type { BuzzContent, MenuAddOn, MenuRow, WeddingState } from "./types";
+import { buildDefaultFunctions, PLACEHOLDER_START_DATE } from "./functions";
 import { buildDemoGuests } from "./guestSeed";
 
 export const STORAGE_KEY = "biyeflow.v1";
@@ -26,17 +26,28 @@ export const MENU_ADD_ON_ITEMS: MenuAddOn[] = [
   { id: "pasta-live-counter", name: "Pasta Live Counter", category: "Live Counter" },
 ];
 
+export const DEFAULT_BUZZ: BuzzContent = {
+  welcomeTitle: "Welcome to our wedding",
+  welcomeMessage:
+    "We are so happy you are here. This page has your invitation details, venue, and everything you need for the celebrations.",
+  invitationNote: "Your presence is our greatest gift.",
+  venueName: "Main venue",
+  venueAddress: "Add venue address in BUZZ edit mode",
+  venueMapUrl: "",
+};
+
 export const DEFAULT_WEDDING_STATE: WeddingState = {
   event: {
     name: "Bengali wedding",
     city: "",
-    startDate: "2027-03-07",
+    startDate: PLACEHOLDER_START_DATE,
     guests: "",
+    scheduleConfirmed: false,
   },
   functions: buildDefaultFunctions({
     name: "Bengali wedding",
     city: "",
-    startDate: "2027-03-07",
+    startDate: PLACEHOLDER_START_DATE,
     guests: "",
   }),
   tasks: [],
@@ -231,4 +242,5 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
   },
   grandMealByDay: {},
   guestGroups: [],
+  buzz: { ...DEFAULT_BUZZ },
 };

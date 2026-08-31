@@ -18,7 +18,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 24px 16px 32px;
+        padding: 20px 16px 32px;
       }
 
       h1 {
@@ -28,11 +28,11 @@
       }
 
       .subtitle {
-        margin: 0 0 20px;
+        margin: 0 0 16px;
         font-size: 0.85rem;
         color: rgba(248, 239, 234, 0.65);
         text-align: center;
-        max-width: 520px;
+        max-width: 560px;
       }
 
       .toolbar {
@@ -40,7 +40,8 @@
         flex-wrap: wrap;
         gap: 10px;
         justify-content: center;
-        margin-bottom: 20px;
+        align-items: flex-end;
+        margin-bottom: 16px;
       }
 
       .toolbar label {
@@ -53,13 +54,20 @@
         color: rgba(248, 239, 234, 0.55);
       }
 
-      select {
+      select,
+      button {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.15);
         color: #fff;
         border-radius: 8px;
         padding: 8px 10px;
         min-width: 140px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: rgba(255, 255, 255, 0.14);
       }
 
       .phone-shell {
@@ -74,10 +82,16 @@
 
       .phone-screen {
         position: relative;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
         border-radius: 32px;
         background: #fff8f5;
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+
+      .phone-screen.sim-safe-area {
+        background: #fff8f5;
       }
 
       .notch {
@@ -89,85 +103,156 @@
         height: 26px;
         background: #111;
         border-radius: 20px;
-        z-index: 2;
+        z-index: 3;
         pointer-events: none;
+      }
+
+      .status-band {
+        display: none;
+        flex-shrink: 0;
+        height: 47px;
+        background: #fff8f5;
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      .phone-screen.sim-safe-area .status-band {
+        display: block;
       }
 
       iframe {
         display: block;
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 0;
         border: 0;
         background: #fff8f5;
+        position: relative;
+        z-index: 2;
       }
 
-      .hint {
-        margin-top: 18px;
-        font-size: 0.78rem;
-        color: rgba(248, 239, 234, 0.5);
+      .links {
+        margin-top: 16px;
+        font-size: 0.82rem;
+        color: rgba(248, 239, 234, 0.75);
         text-align: center;
-        max-width: 420px;
-        line-height: 1.45;
+        max-width: 520px;
+        line-height: 1.6;
       }
 
-      .hint code {
+      .links a {
+        color: #f5c6d0;
+      }
+
+      .links code {
         background: rgba(255, 255, 255, 0.08);
         padding: 2px 6px;
         border-radius: 4px;
+        font-size: 0.78rem;
+      }
+
+      .badge {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(128, 0, 32, 0.35);
+        font-size: 0.72rem;
+        letter-spacing: 0.04em;
       }
     </style>
   </head>
   <body>
     <h1>BiyeFlow mobile viewer</h1>
     <p class="subtitle">
-      Local dev phone frame — loads the real app at mobile width (390px). Use this instead of
-      squeezing the desktop window.
+      Test mobile UI locally before deploy. Pick a page and device — the frame loads the real
+      dev app. Toggle safe-area to mimic iPhone status band + Dynamic Island clearance.
     </p>
 
     <div class="toolbar">
       <label>
         Page
         <select id="route">
-          <option value="/menu">Menu</option>
-          <option value="/guests">Guests</option>
-          <option value="/coming-soon">Coming soon</option>
+          <option value="/command-center" selected>Home</option>
+          <option value="/people/guests">People → Guests</option>
+          <option value="/people/menu">People → Menu</option>
+          <option value="/people/rooms">People → Rooms</option>
+          <option value="/buzz">Buzz</option>
+          <option value="/">Landing</option>
         </select>
       </label>
       <label>
         Device
         <select id="device">
+          <option value="393,852" selected>iPhone 15 / 15 Pro (393×852)</option>
           <option value="390,844">iPhone 14 (390×844)</option>
-          <option value="393,852">iPhone 15 Pro (393×852)</option>
           <option value="360,800">Pixel 7 (360×800)</option>
           <option value="375,667">iPhone SE (375×667)</option>
         </select>
       </label>
+      <label>
+        Safe area
+        <select id="safe">
+          <option value="1" selected>Simulate (47px top)</option>
+          <option value="0">Off (desktop)</option>
+        </select>
+      </label>
+      <button type="button" id="reload">Reload frame</button>
     </div>
 
     <div class="phone-shell">
-      <div class="phone-screen" id="screen">
+      <div class="phone-screen sim-safe-area" id="screen">
+        <div class="status-band" aria-hidden="true"></div>
         <div class="notch" aria-hidden="true"></div>
-        <iframe id="frame" title="BiyeFlow mobile preview" src="/menu"></iframe>
+        <iframe id="frame" title="BiyeFlow mobile preview" src="/command-center"></iframe>
       </div>
     </div>
 
-    <p class="hint">
-      Run <code>npm run dev:mobile</code> first. On your phone (same Wi‑Fi), open the Network URL
-      from the terminal, e.g. <code>http://192.168.x.x:5173/menu</code>
-    </p>
+    <div class="links">
+      <strong>On your iPhone</strong> (same Wi‑Fi): open
+      <br />
+      <a id="phone-link" href="#">http://localhost:5173/command-center</a>
+      <br />
+      <span class="badge">Deploy only after this + phone look good</span>
+      <p style="margin: 12px 0 0; font-size: 0.75rem; opacity: 0.65">
+        Run <code>npm run dev:phone</code> in <code>app/</code> if the phone link does not load.
+        PWA home-screen icon may cache old theme — use Safari for dev testing.
+      </p>
+    </div>
 
     <script>
       const route = document.getElementById("route");
       const device = document.getElementById("device");
+      const safe = document.getElementById("safe");
       const frame = document.getElementById("frame");
+      const screen = document.getElementById("screen");
+      const reloadBtn = document.getElementById("reload");
+      const phoneLink = document.getElementById("phone-link");
+
+      function phoneUrl() {
+        const host = location.hostname === "localhost" ? location.hostname : location.hostname;
+        return `http://${host}:5173${route.value}`;
+      }
 
       function apply() {
         const [w, h] = device.value.split(",").map(Number);
-        frame.width = w;
-        frame.height = h;
+        const sim = safe.value === "1";
+        screen.classList.toggle("sim-safe-area", sim);
+        screen.style.width = `${w}px`;
+        screen.style.height = `${h}px`;
+        frame.removeAttribute("width");
+        frame.removeAttribute("height");
         frame.src = route.value;
+        phoneLink.href = phoneUrl();
+        phoneLink.textContent = phoneUrl();
       }
 
       route.addEventListener("change", apply);
       device.addEventListener("change", apply);
+      safe.addEventListener("change", apply);
+      reloadBtn.addEventListener("click", () => {
+        frame.src = route.value;
+      });
       apply();
     </script>
   </body>

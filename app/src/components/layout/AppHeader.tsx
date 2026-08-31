@@ -1,57 +1,147 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Icon } from "../ui/Icon";
 import { cn } from "../../design-system/cn";
 import { SyncStatusChip } from "./SyncStatusChip";
+import { ProfileAvatarBadge } from "../access/ProfileAvatarPicker";
+import { useAccess } from "../../hooks/useAccess";
+import { useWeddingState } from "../../hooks/useWeddingState";
+import { PEOPLE_TABS } from "../../domain/navigation";
+import { PeopleTabBar } from "../ui/PeopleTabBar";
 
-const HEADER_TABS = [
-  { to: "/coming-soon", label: "Dashboard" },
-  { to: "/coming-soon", label: "Vendors" },
-  { to: "/menu", label: "Menu" },
-  { to: "/guests", label: "Guests" },
-];
-
-const AVATAR_URL =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuByYAeEZ-ZTqtbjcLCAOCBzSN_hR_qSPXh-pNL1RkwPaZj525_Grtc2StdALZtvpWY-DMzV5FaZfCo9ItM8sf0nkPteExNVaZJKKso8m6xR8xJEaInZyCINYiIuRWYYPZyBAVNItrYlL08MlLfz8RJLtLEjbKrC__L1Z9S7W0JoZFfZ9yM78MJQXsT1LtAqB1_hILylzDdZ87UKomIabfjRTThhOfQirC8_JcCDTxbwbriXCy-foRKgqU6z-5D3nC73_GPWR7V1nE0";
-
+/**
+ * Mobile chrome (iOS PWA):
+ * - Surface paints under the Dynamic Island (edge-to-edge)
+ * - Only interactive content is inset by env(safe-area-inset-top)
+ * - One dense row — no blank band, no clipped icons
+ */
 export function AppHeader() {
-  return (
-    <header className="flex justify-between items-center w-full px-3 sm:px-margin-mobile md:px-margin-desktop py-2.5 lg:py-2.5 border-b border-outline-variant bg-surface shrink-0 z-40">
-      <div className="lg:hidden flex items-center gap-2 min-w-0">
-        <span className="font-headline-md text-lg sm:text-headline-md font-bold text-primary truncate">
-          BiyeFlow
-        </span>
-      </div>
+  const location = useLocation();
+  const { profile, deviceCount, isGuest, canAccessModule } = useAccess();
+  const { setNewEventModalOpen } = useWeddingState();
 
-      <div className="hidden lg:flex gap-8">
-        {HEADER_TABS.map((tab) => (
+  const onPeopleRoute = location.pathname.startsWith("/people");
+  const peopleTabs = PEOPLE_TABS.filter((tab) => canAccessModule(tab.module, "view"));
+  const showPeopleSegments = onPeopleRoute && peopleTabs.length >= 2;
+
+  const utilities = (
+    <div className="flex items-center gap-0.5 shrink-0 self-center">
+      <SyncStatusChip deviceCount={deviceCount} compact />
+      <NavLink
+        to="/buzz"
+        aria-label="Notifications"
+        data-testid="header-notifications"
+        className={({ isActive }) =>
+          cn(
+            "relative flex h-9 w-9 items-center justify-center rounded-full shrink-0 text-secondary",
+            "lg:hover:text-primary lg:hover:bg-surface-container-low lg:transition-colors",
+            isActive && "text-primary bg-primary-container/40",
+          )
+        }
+      >
+        <Icon name="notifications" className="text-[20px] max-lg:text-[18px]" />
+      </NavLink>
+      <NavLink
+        to="/profile"
+        aria-label="Profile"
+        data-testid="header-profile"
+        className="rounded-full overflow-hidden shrink-0 flex items-center justify-center"
+      >
+        {profile ? (
+          <ProfileAvatarBadge avatarId={profile.avatarId} size={28} />
+        ) : (
+          <span className="w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-primary">
+            <Icon name="person" className="text-[15px]" />
+          </span>
+        )}
+      </NavLink>
+    </div>
+  );
+
+  return (
+    <header
+      data-testid="app-header"
+      className={cn(
+        "app-header-mobile w-full shrink-0 z-40 bg-surface",
+        "max-lg:sticky max-lg:top-0 max-lg:border-b max-lg:border-outline-variant/70",
+        "max-lg:pt-[env(safe-area-inset-top,0px)]",
+        "lg:border-b lg:border-outline-variant",
+      )}
+    >
+      {/* Desktop */}
+      <div className="hidden lg:flex items-center w-full gap-3 px-margin-desktop pt-2.5 pb-2.5">
+        {showPeopleSegments ? (
+          <PeopleTabBar items={peopleTabs} variant="header" />
+        ) : (
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <NavLink
+              to={isGuest ? "/buzz" : "/command-center"}
+              className="font-headline-md text-lg font-bold text-primary truncate"
+            >
+              BiyeFlow
+            </NavLink>
+          </div>
+        )}
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          <SyncStatusChip deviceCount={deviceCount} />
           <NavLink
-            key={tab.label}
-            to={tab.to}
+            to="/buzz"
+            aria-label="Notifications"
+            data-testid="header-notifications"
             className={({ isActive }) =>
               cn(
-                "font-label-caps text-label-caps transition-colors",
-                isActive
-                  ? "text-primary font-bold border-b-2 border-primary pb-1"
-                  : "text-secondary-fixed-dim hover:text-primary",
+                "relative flex h-9 w-9 items-center justify-center rounded-full shrink-0",
+                "text-secondary hover:text-primary hover:bg-surface-container-low transition-colors",
+                isActive && "text-primary bg-primary-container/40",
               )
             }
           >
-            {tab.label}
+            <Icon name="notifications" className="text-[20px]" />
           </NavLink>
-        ))}
+          <NavLink
+            to="/profile"
+            aria-label="Profile"
+            data-testid="header-profile"
+            className="rounded-full overflow-hidden shrink-0"
+          >
+            {profile ? (
+              <ProfileAvatarBadge avatarId={profile.avatarId} size={32} />
+            ) : (
+              <span className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-primary">
+                <Icon name="person" className="text-[18px]" />
+              </span>
+            )}
+          </NavLink>
+        </div>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-        <SyncStatusChip />
-        <button
-          type="button"
-          className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full text-secondary hover:bg-surface-container-high hover:text-primary transition-colors"
-          aria-label="Notifications"
-        >
-          <Icon name="notifications" className="text-[22px]" />
-        </button>
-        <div className="w-8 h-8 rounded-full bg-secondary-container overflow-hidden shrink-0 ml-1">
-          <img className="w-full h-full object-cover" src={AVATAR_URL} alt="Profile" />
+      {/* Mobile: cream fills under Dynamic Island; content below safe top */}
+      <div className="lg:hidden w-full bg-surface">
+        <div className="flex items-center gap-2 px-2.5 min-h-10 py-0.5">
+          {showPeopleSegments ? (
+            <div className="min-w-0 flex-1">
+              <PeopleTabBar items={peopleTabs} variant="segmented" />
+            </div>
+          ) : (
+            <>
+              <NavLink
+                to={isGuest ? "/buzz" : "/command-center"}
+                className="font-headline-md text-[16px] font-bold text-primary truncate tracking-[-0.01em] mr-auto"
+              >
+                BiyeFlow
+              </NavLink>
+              {!isGuest ? (
+                <button
+                  type="button"
+                  onClick={() => setNewEventModalOpen(true)}
+                  className="flex h-8 items-center gap-0.5 px-2.5 rounded-full bg-primary-container text-on-primary font-button text-[10px]"
+                >
+                  <Icon name="add" className="text-[16px]" />
+                  Event
+                </button>
+              ) : null}
+            </>
+          )}
+          {utilities}
         </div>
       </div>
     </header>

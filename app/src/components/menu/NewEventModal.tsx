@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { addWeddingFunction } from "../../domain/functions";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import { Icon } from "../ui/Icon";
+import { MAX_MOBILE_EVENTS } from "../ui/MobileEventButtons";
 
 type NewEventModalProps = {
   open: boolean;
@@ -32,8 +33,13 @@ export function NewEventModal({ open, onClose, onCreated }: NewEventModalProps) 
 
   const previewName = name.trim() || "New event";
   const previewDate = formatPreviewDate(date);
+  const atCap = state.functions.length >= MAX_MOBILE_EVENTS;
 
   const handleCreate = () => {
+    if (atCap) {
+      showToast(`Maximum ${MAX_MOBILE_EVENTS} events`);
+      return;
+    }
     const trimmed = name.trim();
     if (!trimmed) {
       showToast("Enter an event name");
@@ -135,9 +141,10 @@ export function NewEventModal({ open, onClose, onCreated }: NewEventModalProps) 
           <button
             type="button"
             onClick={handleCreate}
-            className="h-11 px-6 rounded-xl bg-primary text-on-primary font-headline-md text-[15px] shadow-[0_12px_24px_-10px_rgba(128,0,32,0.55)] hover:brightness-110"
+            disabled={atCap}
+            className="h-11 px-6 rounded-xl bg-primary text-on-primary font-headline-md text-[15px] shadow-[0_12px_24px_-10px_rgba(128,0,32,0.55)] hover:brightness-110 disabled:opacity-50"
           >
-            Add to events
+            {atCap ? `Max ${MAX_MOBILE_EVENTS}` : "Add to events"}
           </button>
         </div>
       </div>

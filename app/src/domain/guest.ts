@@ -8,6 +8,14 @@ export const GUEST_FUNCTION_DIALS: GuestFunctionDay[] = ["1", "2", "4", "3"];
 export const RECEPTION_DAY: GuestFunctionDay = "3";
 export const MAX_GUEST_GROUPS = 10;
 export const GROUP_CARD_NAME_SLOTS = 5;
+
+/** How many family names fit on a group tile without crowding. */
+export function groupCardNameSlots(groupCount: number, compact: boolean): number {
+  if (compact) return groupCount >= 3 ? 3 : 4;
+  if (groupCount === 1) return 5;
+  if (groupCount === 2) return 4;
+  return 4;
+}
 export const GROUP_MEMBER_BOARD_MAX = 40;
 
 export function groupBoardLayout(groupCount: number): { cols: number; rows: number; gapPx: number } {
@@ -39,8 +47,65 @@ export function groupMemberBoardLayout(memberCount: number): { cols: number; row
   return { cols: 8, rows: 5, gapPx: 4 };
 }
 
+/** Bento grid for the group panel — tiles fill all space, no empty tail. */
+export function groupPanelGrid(count: number): {
+  cols: number;
+  rows: number;
+  gapPx: number;
+  /** Per-tile grid placement (index order). */
+  spans: Array<{ colSpan?: number; rowSpan?: number }>;
+  fillHeight: boolean;
+} {
+  const n = Math.min(Math.max(count, 1), MAX_GUEST_GROUPS);
+  if (n === 1) {
+    return { cols: 1, rows: 1, gapPx: 12, spans: [{}], fillHeight: true };
+  }
+  if (n === 2) {
+    return { cols: 1, rows: 2, gapPx: 12, spans: [{}, {}], fillHeight: true };
+  }
+  if (n === 3) {
+    return {
+      cols: 2,
+      rows: 2,
+      gapPx: 10,
+      spans: [{}, {}, { colSpan: 2 }],
+      fillHeight: true,
+    };
+  }
+  if (n === 4) {
+    return {
+      cols: 2,
+      rows: 2,
+      gapPx: 10,
+      spans: [{}, {}, {}, {}],
+      fillHeight: true,
+    };
+  }
+  const layout = groupBoardLayout(n);
+  return {
+    cols: layout.cols,
+    rows: layout.rows,
+    gapPx: layout.gapPx,
+    spans: Array.from({ length: n }, () => ({})),
+    fillHeight: false,
+  };
+}
+
+/** Mobile group panel height — compact so tiles + list + dock fit without bulk. */
+export function groupPanelMobileHeight(count: number): string | undefined {
+  const n = Math.min(Math.max(count, 1), 4);
+  if (n === 1) return "min(32dvh, 260px)";
+  if (n === 2) return "min(36dvh, 300px)";
+  if (n === 3) return "min(38dvh, 320px)";
+  if (n === 4) return "min(40dvh, 340px)";
+  return undefined;
+}
+
+/** Desktop 12-col split: guest list vs group tiles — scales with group count. */
 export function guestBoardSplit(groupCount: number): { listCols: number; groupCols: number } {
   if (groupCount <= 0) return { listCols: 12, groupCols: 0 };
+  if (groupCount === 1) return { listCols: 7, groupCols: 5 };
+  if (groupCount === 2) return { listCols: 6, groupCols: 6 };
   if (groupCount <= 4) return { listCols: 6, groupCols: 6 };
   if (groupCount <= 6) return { listCols: 5, groupCols: 7 };
   return { listCols: 4, groupCols: 8 };
@@ -48,7 +113,7 @@ export function guestBoardSplit(groupCount: number): { listCols: number; groupCo
 
 /** How many guest-row columns to use. Follows group count, never the Add tile. */
 export function guestListColumnCount(groupCount: number): 1 | 2 | 3 {
-  if (groupCount <= 0) return 3;
+  if (groupCount <= 0) return 1;
   if (groupCount <= 4) return 2;
   return 1;
 }
@@ -107,6 +172,17 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
   const rooms = row.rooms || (needsStay ? estimateRooms(effectiveStayCount) : "0");
   const invitationSent =
     Boolean(row.invitationSent) || normalizeInviteStatus(row.inviteStatus) === "Sent";
+  const groupId = String(row.groupId || "").trim();
+  const totalPeople = parseCount(count);
+  let groupCount = "0";
+  if (groupId) {
+    if (row.groupCount == null || row.groupCount === "") {
+      /* Legacy assigned rows had no groupCount — treat as full family. */
+      groupCount = String(Math.max(1, totalPeople));
+    } else {
+      groupCount = String(Math.min(totalPeople, Math.max(1, parseCount(row.groupCount))));
+    }
+  }
 
   return {
     id: row.id || createId("g"),
@@ -123,8 +199,15 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
     rooms,
     invitationSent,
     inviteStatus: invitationSent ? "Sent" : "Pending",
-    groupId: String(row.groupId || "").trim(),
+    groupId,
+    groupCount,
+    updatedAt: Number(row.updatedAt) || 0,
   };
+}
+
+/** Stamp a guest row so conflict merge can prefer the newer edit. */
+export function touchGuestRow(row: Partial<GuestRow>): GuestRow {
+  return normalizeGuestRow({ ...row, updatedAt: Date.now() });
 }
 
 export function guestCountForFunction(row: GuestRow, day: string | number): number {
@@ -148,6 +231,9 @@ export function syncGuestEventCounts(row: GuestRow): GuestRow {
       if (parseCount(next[field]) > max) next[field] = String(max);
     },
   );
+  if (next.groupId && parseCount(next.groupCount) > max) {
+    next.groupCount = String(Math.max(1, max));
+  }
   return next;
 }
 
@@ -174,7 +260,7 @@ export function inferCheckInFromEventCounts(row: Pick<GuestRow, "receptionCount"
 
 export function applyStayToggle(row: GuestRow, needsStay: boolean): GuestRow {
   if (!needsStay) {
-    return normalizeGuestRow({
+    return touchGuestRow({
       ...row,
       needsStay: false,
       stayCount: "0",
@@ -183,7 +269,7 @@ export function applyStayToggle(row: GuestRow, needsStay: boolean): GuestRow {
     });
   }
   const stayCount = parseCount(row.stayCount) > 0 ? row.stayCount : row.count;
-  return normalizeGuestRow({
+  return touchGuestRow({
     ...row,
     needsStay: true,
     stayCount,
@@ -194,7 +280,7 @@ export function applyStayToggle(row: GuestRow, needsStay: boolean): GuestRow {
 
 export function applyStayCountChange(row: GuestRow, stayCount: string): GuestRow {
   const needsStay = parseCount(stayCount) > 0;
-  return normalizeGuestRow({
+  return touchGuestRow({
     ...row,
     stayCount,
     needsStay,
@@ -211,7 +297,7 @@ export function applyTotalCountChange(row: GuestRow, count: string): GuestRow {
   const total = Math.max(1, parseCount(count) || 1);
   // Total and Reception stay in sync; other event/stay counts clamp to the new total.
   return syncGuestEventCounts(
-    normalizeGuestRow({
+    touchGuestRow({
       ...row,
       count: String(total),
       receptionCount: String(total),
@@ -232,9 +318,9 @@ export function applyFieldCountChange(
     return applyTotalCountChange(row, value);
   }
   if (field === "stayCount") {
-    return applyStayCountChange(normalizeGuestRow({ ...row, stayCount: value }), value);
+    return applyStayCountChange(row, value);
   }
-  const next = normalizeGuestRow({ ...row, [field]: value });
+  const next = touchGuestRow({ ...row, [field]: value });
   return syncGuestEventCounts(keepTotalAtLeastEventCounts(next));
 }
 
@@ -266,6 +352,7 @@ export function createGuestFromDraft(draft: {
       sangeetCount: draft.sangeetCount,
       biyebariCount: draft.biyebariCount,
     }),
+    updatedAt: Date.now(),
   };
   return syncGuestEventCounts(keepTotalAtLeastEventCounts(normalizeGuestRow(raw)));
 }
@@ -380,11 +467,16 @@ export function normalizeGuestGroup(row: Partial<GuestGroup>): GuestGroup {
   return {
     id: row.id || createId("gg"),
     name: String(row.name || "").trim() || "Untitled group",
+    updatedAt: Number(row.updatedAt) || 0,
   };
 }
 
 export function createGuestGroup(name: string): GuestGroup {
-  return normalizeGuestGroup({ name });
+  return normalizeGuestGroup({ name, updatedAt: Date.now() });
+}
+
+export function touchGuestGroup(row: Partial<GuestGroup>): GuestGroup {
+  return normalizeGuestGroup({ ...row, updatedAt: Date.now() });
 }
 
 export function guestsInGroup(guests: GuestRow[], groupId: string): GuestRow[] {
@@ -392,19 +484,61 @@ export function guestsInGroup(guests: GuestRow[], groupId: string): GuestRow[] {
 }
 
 export function groupPeopleCount(guests: GuestRow[], groupId: string): number {
-  return guestsInGroup(guests, groupId).reduce((sum, row) => sum + parseCount(row.count), 0);
+  return guestsInGroup(guests, groupId).reduce((sum, row) => sum + parseCount(row.groupCount), 0);
 }
 
-export function assignGuestToGroup(row: GuestRow, groupId: string): GuestRow {
-  if (!groupId) return { ...row, groupId: "" };
-  const total = String(Math.max(1, parseCount(row.count)));
-  return syncGuestEventCounts({
+/**
+ * Suggest how many from a family to put in a group.
+ * Prefers the smallest partial event invite when the family is larger than that.
+ */
+export function suggestGroupHeadcount(row: GuestRow): number {
+  const total = Math.max(1, parseCount(row.count));
+  if (total <= 1) return 1;
+
+  const events = [
+    parseCount(row.sangeetCount),
+    parseCount(row.biyebariCount),
+    parseCount(row.borjatriCount),
+    parseCount(row.receptionCount || row.count),
+  ];
+  if (row.needsStay) {
+    events.push(parseCount(row.stayCount));
+  }
+
+  const positive = events.filter((n) => n > 0);
+  const partial = positive.filter((n) => n < total);
+  if (partial.length) {
+    return Math.min(...partial);
+  }
+  return total;
+}
+
+export function formatGroupMemberLabel(row: GuestRow): string {
+  const total = parseCount(row.count);
+  const inGroup = parseCount(row.groupCount);
+  if (row.groupId && inGroup > 0 && inGroup < total) {
+    return `${inGroup} of ${total}`;
+  }
+  return `${total}`;
+}
+
+export function assignGuestToGroup(
+  row: GuestRow,
+  groupId: string,
+  people?: number,
+): GuestRow {
+  if (!groupId) {
+    return touchGuestRow({ ...row, groupId: "", groupCount: "0" });
+  }
+  const total = Math.max(1, parseCount(row.count));
+  const headcount =
+    people != null
+      ? Math.min(total, Math.max(1, Math.floor(people)))
+      : suggestGroupHeadcount(row);
+  return touchGuestRow({
     ...row,
     groupId,
-    sangeetCount: parseCount(row.sangeetCount) > 0 ? row.sangeetCount : total,
-    biyebariCount: parseCount(row.biyebariCount) > 0 ? row.biyebariCount : total,
-    borjatriCount: parseCount(row.borjatriCount) > 0 ? row.borjatriCount : total,
-    receptionCount: parseCount(row.receptionCount) > 0 ? row.receptionCount : total,
+    groupCount: String(headcount),
   });
 }
 
@@ -413,7 +547,9 @@ export function removeGuestGroup(state: WeddingState, groupId: string): WeddingS
     ...state,
     guestGroups: (state.guestGroups || []).filter((group) => group.id !== groupId),
     guests: state.guests.map((row) =>
-      row.groupId === groupId ? { ...row, groupId: "" } : row,
+      row.groupId === groupId
+        ? touchGuestRow({ ...row, groupId: "", groupCount: "0" })
+        : row,
     ),
   };
 }
@@ -426,7 +562,11 @@ export function reconcileGuestGroups(
   const ids = new Set(guestGroups.map((group) => group.id));
   return {
     guestGroups,
-    guests: guests.map((row) => (row.groupId && !ids.has(row.groupId) ? { ...row, groupId: "" } : row)),
+    guests: guests.map((row) =>
+      row.groupId && !ids.has(row.groupId)
+        ? { ...row, groupId: "", groupCount: "0" }
+        : row,
+    ),
   };
 }
 

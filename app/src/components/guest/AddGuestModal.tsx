@@ -232,8 +232,7 @@ export function AddGuestModal({ open, onClose, onAdd }: AddGuestModalProps) {
       payload[row.key] = eventOn[row.key] ? draft[row.key] : "0";
     });
     onAdd(payload);
-    setDraft((prev) => ({ ...prev, name: "" }));
-    requestAnimationFrame(() => nameRef.current?.focus());
+    onClose();
   };
 
   return (
@@ -364,9 +363,6 @@ export function AddGuestModal({ open, onClose, onAdd }: AddGuestModalProps) {
           >
             <span className="relative z-[1]">Confirm &amp; Add Guest</span>
           </button>
-          <p className="text-center text-[10px] text-primary/45 mt-2">
-            Stays open so you can add the next family
-          </p>
         </div>
       </div>
     </div>

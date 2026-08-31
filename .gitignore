@@ -8,7 +8,26 @@ chrome-profile-*/
 
 # Tooling caches
 .agents/
+.design-md-ref/
 outputs/
+
+# Cloudflare / Wrangler local state
+app/.wrangler/
+.wrangler/
+
+# Deploy snapshots (keep current.json / last-known-good.json tracked)
+app/deployments/artifacts/
+app/deployments/history.json
+
+# Test / screenshot output
+app/test-results/
+app/playwright-report/
+app/screenshots/
+test-results/
+playwright-report/
+
+# Cursor local / generated (skills live under .cursor/skills — opt-in later)
+.cursor/
 
 # Logs & env
 *.log

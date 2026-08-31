@@ -38,7 +38,7 @@ export function InstallHint() {
   return (
     <div
       className={cn(
-        "fixed inset-x-4 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[70]",
+        "fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[70]",
         "lg:bottom-6 lg:left-auto lg:right-6 lg:max-w-sm lg:inset-x-auto",
         "rounded-2xl border border-outline-variant bg-surface-container-lowest p-4 shadow-lg",
       )}

@@ -22,8 +22,8 @@ export function GuestStatDial({
 
   if (compact) {
     return (
-      <div className="flex w-[132px] flex-col items-center gap-2 rounded-xl border border-outline-variant bg-surface p-3 text-center shrink-0">
-        <div className="relative h-12 w-12">
+      <div className="flex w-[108px] flex-col items-center gap-1.5 rounded-xl border border-outline-variant bg-surface p-2 text-center shrink-0">
+        <div className="relative h-10 w-10">
           <svg className="h-full w-full dial-ring" viewBox="0 0 36 36">
             <circle className="stroke-surface-container-highest" cx="18" cy="18" fill="none" r="16" strokeWidth="3" />
             <circle
@@ -38,13 +38,13 @@ export function GuestStatDial({
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Icon name={icon} className="text-primary text-[14px]" />
+            <Icon name={icon} className="text-primary text-[13px]" />
           </div>
         </div>
         <div className="min-w-0 w-full">
-          <p className="font-label-caps text-[9px] text-secondary truncate">{label}</p>
-          <p className="font-body-md text-xs font-bold leading-tight tabular-nums">{value}</p>
-          <p className="text-[9px] text-on-surface-variant truncate">{hint}</p>
+          <p className="font-label-caps text-[8px] tracking-[0.06em] text-secondary truncate">{label}</p>
+          <p className="font-body-md text-[11px] font-bold leading-tight tabular-nums">{value}</p>
+          <p className="text-[8px] text-on-surface-variant truncate">{hint}</p>
         </div>
       </div>
     );

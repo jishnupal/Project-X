@@ -16,11 +16,21 @@ export function GrandMealSwitcher({
 }: GrandMealSwitcherProps) {
   const other = toggleGrandMealCourse(value);
 
+  const optionClass = (active: boolean) =>
+    cn(
+      "h-6 min-w-[2.75rem] px-2 rounded-full font-button text-[9px] tracking-[0.1em] uppercase leading-none",
+      "transition-colors duration-200",
+      "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
+      active
+        ? "bg-white/14 text-white/92"
+        : "text-white/38 hover:text-white/62 active:scale-[0.98]",
+    );
+
   return (
     <div
       role="group"
-      aria-label="Grand meal"
-      className="grand-meal-switcher inline-flex items-center gap-px shrink-0 select-none"
+      aria-label="Switch grand meal between Lunch and Dinner"
+      className="grand-meal-switcher inline-flex items-center gap-0.5 p-0.5 rounded-full shrink-0 select-none bg-white/[0.06] border border-white/10"
     >
       <button
         type="button"
@@ -28,27 +38,24 @@ export function GrandMealSwitcher({
         onClick={() => {
           if (value !== "Lunch") onChange("Lunch");
         }}
-        className={cn(
-          "h-5 px-1 text-[8px] font-semibold tracking-[0.2em] uppercase leading-none",
-          "transition-colors duration-200",
-          value === "Lunch" ? "text-white/90" : "text-white/28 hover:text-white/55",
-        )}
+        className={optionClass(value === "Lunch")}
       >
         Lunch
       </button>
       <button
         type="button"
-        aria-label={`Make ${other} the grand meal`}
-        title={`Make ${other} grand`}
+        aria-label={`Swap to ${other}`}
+        title={`Swap to ${other}`}
         onClick={() => onChange(other)}
         className={cn(
-          "grand-meal-swap w-5 h-5 rounded-full flex items-center justify-center",
-          "text-white/40 hover:text-white hover:bg-white/10",
-          "transition-colors duration-200",
+          "grand-meal-swap h-6 w-6 rounded-full flex items-center justify-center shrink-0",
+          "text-white/42 hover:text-white/78 hover:bg-white/[0.08]",
+          "transition-colors duration-200 active:scale-95",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30",
           swapping && "grand-meal-swap--spinning",
         )}
       >
-        <Icon name="swap_horiz" className="text-[13px]" />
+        <Icon name="swap_horiz" className="text-[14px]" />
       </button>
       <button
         type="button"
@@ -56,11 +63,7 @@ export function GrandMealSwitcher({
         onClick={() => {
           if (value !== "Dinner") onChange("Dinner");
         }}
-        className={cn(
-          "h-5 px-1 text-[8px] font-semibold tracking-[0.2em] uppercase leading-none",
-          "transition-colors duration-200",
-          value === "Dinner" ? "text-white/90" : "text-white/28 hover:text-white/55",
-        )}
+        className={optionClass(value === "Dinner")}
       >
         Dinner
       </button>

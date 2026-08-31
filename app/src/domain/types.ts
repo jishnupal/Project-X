@@ -34,6 +34,8 @@ export interface EventInfo {
   city: string;
   startDate: string;
   guests: string;
+  /** User confirmed the wedding schedule in the dates editor. */
+  scheduleConfirmed?: boolean;
 }
 
 export type GuestInviteStatus = "Sent" | "Pending";
@@ -54,11 +56,17 @@ export interface GuestRow {
   invitationSent: boolean;
   inviteStatus: GuestInviteStatus;
   groupId: string;
+  /** People from this family counted in the assigned group (0 when unassigned). */
+  groupCount: string;
+  /** Row clock for cross-device merge (client-local ms). */
+  updatedAt: number;
 }
 
 export interface GuestGroup {
   id: string;
   name: string;
+  /** Row clock for cross-device merge (client-local ms). */
+  updatedAt: number;
 }
 
 export interface WeddingFunction {
@@ -66,6 +74,15 @@ export interface WeddingFunction {
   name: string;
   date: string;
   custom?: boolean;
+}
+
+export interface BuzzContent {
+  welcomeTitle: string;
+  welcomeMessage: string;
+  invitationNote: string;
+  venueName: string;
+  venueAddress: string;
+  venueMapUrl: string;
 }
 
 export interface WeddingState {
@@ -79,6 +96,7 @@ export interface WeddingState {
   menu: MenuRow[];
   theme: Record<string, string>;
   grandMealByDay: Record<string, GrandMealCourse>;
+  buzz: BuzzContent;
 }
 
 export interface MenuAddOn {

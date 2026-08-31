@@ -2,12 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { readFileSync } from "node:fs";
 
 const buildId = `${Date.now().toString(36)}`;
+const appVersion = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
 
 export default defineConfig({
   define: {
     __BIYEFLOW_BUILD_ID__: JSON.stringify(buildId),
+  },
+  server: {
+    host: true,
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8788",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [
     react(),
@@ -18,12 +30,13 @@ export default defineConfig({
         this.emitFile({
           type: "asset",
           fileName: "version.json",
-          source: `${JSON.stringify({ buildId, builtAt: new Date().toISOString() })}\n`,
+          source: `${JSON.stringify({ appVersion, buildId, builtAt: new Date().toISOString() })}\n`,
         });
       },
     },
     VitePWA({
       registerType: "autoUpdate",
+      showMaximumFileSizeToCacheInBytesWarning: true,
       includeAssets: [
         "favicon.svg",
         "apple-touch-icon.svg",
@@ -35,11 +48,11 @@ export default defineConfig({
         name: "BiyeFlow",
         short_name: "BiyeFlow",
         description: "Premium Wedding OS",
-        theme_color: "#570013",
+        theme_color: "#fff8f5",
         background_color: "#fff8f5",
         display: "standalone",
         orientation: "portrait-primary",
-        start_url: "/",
+        start_url: "/command-center",
         icons: [
           {
             src: "icons/icon-192.png",
@@ -68,12 +81,13 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: "biyeflow-shell-5",
+        cacheId: "biyeflow-shell-7",
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        globIgnores: ["**/version.json"],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,ico,png,svg}", "**/manrope*.woff2", "**/playfair*.woff2"],
+        globIgnores: ["**/version.json", "**/*material-symbols*", "**/index.html"],
         navigateFallback: undefined,
         runtimeCaching: [
           {
@@ -91,6 +105,14 @@ export default defineConfig({
           {
             urlPattern: /\/api\//,
             handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /material-symbols.*\.woff2$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "biyeflow-icon-font",
+              expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
           },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

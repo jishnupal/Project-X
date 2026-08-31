@@ -6,3 +6,8 @@ pages_build_output_dir = "dist"
 binding = "BIYEFLOW_SYNC"
 id = "0190f8f704f64e01968ab605d62f26c5"
 preview_id = "73485bfd41e2408882a9f4f0aa5f3379"
+
+[[d1_databases]]
+binding = "BIYEFLOW_DB"
+database_name = "biyeflow-sync"
+database_id = "b4b829d2-17bf-4fc8-9cef-68ded2ef87da"

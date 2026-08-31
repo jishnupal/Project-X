@@ -2,6 +2,9 @@ import type { EventInfo, MenuCourse, MenuRow, WeddingFunction, WeddingState } fr
 import { createId } from "./event";
 import { MENU_COURSES, emptyMenuCategoryDraft, normalizeMenuRow } from "./menu";
 
+/** Default seed date — replace via the wedding dates editor. */
+export const PLACEHOLDER_START_DATE = "2027-03-07";
+
 /** Always present. Cannot be removed. */
 export const CORE_FUNCTION_IDS = [1, 2, 3] as const;
 
@@ -182,4 +185,175 @@ export function swapMenuCourses(
   menu[indexB] = swapPayload(rowA, toCourse, rowB.id);
 
   return { ...state, menu };
+}
+
+export function formatFunctionDateFull(iso: string): string {
+  if (!iso?.trim()) return "Not set";
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function weddingScheduleNeedsSetup(state: WeddingState): boolean {
+  return !state.event.scheduleConfirmed;
+}
+
+function parseIsoDate(iso: string): Date | null {
+  if (!iso?.trim()) return null;
+  const date = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatShortDate(date: Date, withYear = false): string {
+  const month = date.toLocaleDateString("en-US", { month: "short" });
+  const base = `${month} ${date.getDate()}`;
+  if (!withYear) return base;
+  return `${base}, ${date.getFullYear()}`;
+}
+
+function formatCelebrationSpan(first: Date, last: Date): string {
+  const sameDay =
+    first.getFullYear() === last.getFullYear() &&
+    first.getMonth() === last.getMonth() &&
+    first.getDate() === last.getDate();
+  if (sameDay) return formatShortDate(first, true);
+
+  const sameMonth =
+    first.getFullYear() === last.getFullYear() && first.getMonth() === last.getMonth();
+  const sameYear = first.getFullYear() === last.getFullYear();
+
+  if (sameMonth) {
+    const month = first.toLocaleDateString("en-US", { month: "short" });
+    return `${month} ${first.getDate()} – ${last.getDate()}, ${first.getFullYear()}`;
+  }
+  if (sameYear) {
+    return `${formatShortDate(first)} – ${formatShortDate(last)}, ${first.getFullYear()}`;
+  }
+  return `${formatShortDate(first, true)} – ${formatShortDate(last, true)}`;
+}
+
+export type WeddingScheduleHomeCopy = {
+  label: string;
+  headline: string;
+  detail: string;
+};
+
+/** Copy for Home hero — range + function names, or a clear setup prompt. */
+export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleHomeCopy {
+  const sorted = [...state.functions].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (weddingScheduleNeedsSetup(state)) {
+    const names = sorted
+      .slice(0, 3)
+      .map((fn) => fn.name)
+      .filter(Boolean)
+      .join(" · ");
+    return {
+      label: "Celebration dates",
+      headline: "When is your wedding week?",
+      detail: names ? `${names} — tap to set dates` : "Tap to set Sangeet, Marriage & Reception",
+    };
+  }
+
+  if (!sorted.length) {
+    return {
+      label: "Celebration dates",
+      headline: "No functions yet",
+      detail: "Tap to add your celebration dates",
+    };
+  }
+
+  const first = parseIsoDate(sorted[0].date);
+  const last = parseIsoDate(sorted[sorted.length - 1].date);
+  const headline =
+    first && last ? formatCelebrationSpan(first, last) : "Dates saved";
+
+  const dayCount = sorted.length;
+  const names = sorted.map((fn) => fn.name).join(" · ");
+
+  return {
+    label: dayCount === 1 ? "Celebration date" : "Celebration dates",
+    headline,
+    detail: `${dayCount} ${dayCount === 1 ? "day" : "days"} · ${names}`,
+  };
+}
+
+export function formatWeddingScheduleSummary(state: WeddingState): string {
+  const ids = functionIds(state);
+  if (!ids.length) return "Dates not set";
+  return ids
+    .map((id) => {
+      const label = resolveFunctionDateLabel(state, id);
+      return label ? `${resolveDayName(state, id)} ${label}` : resolveDayName(state, id);
+    })
+    .join(" · ");
+}
+
+export type FunctionScheduleDraft = Pick<WeddingFunction, "id" | "name" | "date" | "custom">;
+
+export function buildFunctionScheduleDraft(state: WeddingState): FunctionScheduleDraft[] {
+  return [...state.functions]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((fn) => ({
+      id: fn.id,
+      name: fn.name,
+      date: fn.date,
+      custom: fn.custom,
+    }));
+}
+
+export function proposeCoreDatesForStart(
+  functions: FunctionScheduleDraft[],
+  previousStart: string,
+  nextStart: string,
+): FunctionScheduleDraft[] {
+  if (!nextStart.trim()) return functions;
+  const prevEvent = { startDate: previousStart || PLACEHOLDER_START_DATE } as EventInfo;
+  const nextEvent = { startDate: nextStart } as EventInfo;
+  return functions.map((fn) => {
+    if (fn.custom || !isCoreWeddingFunction(fn.id)) return fn;
+    if (fn.date === defaultFunctionDate(prevEvent, fn.id)) {
+      return { ...fn, date: defaultFunctionDate(nextEvent, fn.id) };
+    }
+    return fn;
+  });
+}
+
+export function applyWeddingSchedule(
+  state: WeddingState,
+  startDate: string,
+  functions: FunctionScheduleDraft[],
+): WeddingState {
+  const trimmedStart = startDate.trim();
+  if (!trimmedStart) return state;
+
+  const byId = new Map(functions.map((fn) => [fn.id, fn]));
+  const nextFunctions = state.functions
+    .map((fn) => {
+      const draft = byId.get(fn.id);
+      if (!draft?.date?.trim()) return fn;
+      return {
+        ...fn,
+        name: draft.name.trim() || fn.name,
+        date: draft.date,
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const sangeetDate = nextFunctions.find((fn) => fn.id === 1)?.date?.trim() || trimmedStart;
+
+  return {
+    ...state,
+    event: {
+      ...state.event,
+      startDate: sangeetDate,
+      scheduleConfirmed: true,
+    },
+    functions: nextFunctions,
+  };
 }

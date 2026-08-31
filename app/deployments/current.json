@@ -1,8 +1,11 @@
 {
-  "deploymentId": "1bbbe83f-75c6-48e1-97c8-9aa157dc9cd2",
-  "url": "https://1bbbe83f.biyeflow.pages.dev",
+  "deploymentId": "9fab9049-3d56-444d-baf5-cc968279a48f",
+  "url": "https://9fab9049.biyeflow.pages.dev",
   "productionUrl": "https://biyeflow.pages.dev",
-  "deployedAt": "2026-08-23T09:23:14.688Z",
-  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/1bbbe83f-75c6-48e1-97c8-9aa157dc9cd2",
-  "rollbackTarget": "475a8f35-a6e7-481b-9959-21b707f4416f"
+  "deployedAt": "2026-08-30T22:31:26.018Z",
+  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/9fab9049-3d56-444d-baf5-cc968279a48f",
+  "rollbackTarget": "682ac113-1c81-4c76-9b3a-7475bd0006dd",
+  "appVersion": "1.1.1",
+  "deployLabel": "v1.1.1-20260830",
+  "buildId": "mtgdvmw0"
 }

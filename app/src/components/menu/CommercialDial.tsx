@@ -28,12 +28,12 @@ export function CommercialDial({ row, plates, estimate, onClick, compact = false
         type="button"
         onClick={onClick}
         className={cn(
-          "flex w-[132px] flex-col items-center gap-2 rounded-xl border border-outline-variant bg-surface p-3 text-center",
+          "flex w-full flex-col items-center gap-1.5 rounded-xl border border-outline-variant bg-surface p-2 text-center",
           "hover:border-primary transition-colors",
           isEmpty && "opacity-70",
         )}
       >
-        <div className="relative h-12 w-12 shrink-0">
+        <div className="relative h-9 w-9 shrink-0">
           <svg className="h-full w-full dial-ring" viewBox="0 0 36 36">
             <circle
               className="stroke-surface-container-highest"
@@ -62,13 +62,24 @@ export function CommercialDial({ row, plates, estimate, onClick, compact = false
           </div>
         </div>
         <div className="min-w-0 w-full">
-          <p className="font-label-caps text-[9px] text-secondary truncate">
+          <p className="font-label-caps text-[8px] tracking-[0.06em] text-secondary truncate">
             {dialCourseLabel(row.course as MenuCourse)}
           </p>
-          <p className="font-body-md text-xs font-bold leading-tight truncate">
+          <p
+            className={cn(
+              "mt-0.5 inline-flex items-center gap-1 text-[7px] font-bold uppercase tracking-[0.12em] truncate max-w-full",
+              row.status === "Confirmed" ? "text-emerald-600" : "text-secondary/65",
+            )}
+          >
+            {row.status === "Confirmed" ? (
+              <span className="h-1 w-1 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+            ) : null}
+            {row.status === "Confirmed" ? "Confirmed" : "In discussion"}
+          </p>
+          <p className="font-body-md text-[11px] font-bold leading-tight truncate mt-0.5">
             {rate > 0 ? formatRupee(rate) : "Rate TBD"}
           </p>
-          <p className="text-[9px] text-on-surface-variant truncate">
+          <p className="text-[8px] text-on-surface-variant truncate">
             {plates > 0 ? `${plates} plates` : "Headcount TBD"}
           </p>
         </div>

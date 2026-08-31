@@ -1,5 +1,5 @@
-import { estimateRooms, normalizeGuestRow } from "./guest";
-import type { GuestRow } from "./types";
+import { estimateRooms, normalizeGuestRow, syncEventGuestCount } from "./guest";
+import type { GuestRow, WeddingState } from "./types";
 
 const FIRST = [
   "Ananya", "Arjun", "Ritika", "Soham", "Debjani", "Kunal", "Isha", "Ayan",
@@ -110,3 +110,29 @@ export function buildDemoGuests(count = 100, seed = 20260307): GuestRow[] {
 
   return rows;
 }
+
+/** Seeded preview rows (`demo-g-*`) — local only, never authority for a live wedding. */
+export function isDemoGuestId(id: string | undefined): boolean {
+  return String(id || "").startsWith("demo-g-");
+}
+
+export function isDemoHeavyGuestList(guests: GuestRow[] | undefined): boolean {
+  const rows = guests || [];
+  if (rows.length < 20) return false;
+  const demoCount = rows.filter((row) => isDemoGuestId(row.id)).length;
+  return demoCount >= 20 && demoCount / rows.length >= 0.7;
+}
+
+export function stripDemoGuests(guests: GuestRow[] | undefined): GuestRow[] {
+  return (guests || []).filter((row) => !isDemoGuestId(row.id));
+}
+
+export function withoutDemoGuests(state: WeddingState): WeddingState {
+  const guests = stripDemoGuests(state.guests);
+  return {
+    ...state,
+    guests,
+    event: { ...state.event, guests: syncEventGuestCount(guests) },
+  };
+}
+

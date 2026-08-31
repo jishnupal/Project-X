@@ -1,4 +1,4 @@
-import { DEFAULT_WEDDING_STATE, STORAGE_KEY } from "../defaults";
+import { DEFAULT_BUZZ, DEFAULT_WEDDING_STATE, STORAGE_KEY } from "../defaults";
 import { normalizeFunctions } from "../functions";
 import { normalizeGuestRow, reconcileGuestGroups, syncEventGuestCount } from "../guest";
 import { menuItemsArray, normalizeMenu, normalizeMenuRow } from "../menu";
@@ -21,6 +21,7 @@ function normalizeEvent(event: Partial<EventInfo> = {}): EventInfo {
     ...DEFAULT_WEDDING_STATE.event,
     ...event,
     startDate: event.startDate || DEFAULT_WEDDING_STATE.event.startDate,
+    scheduleConfirmed: Boolean(event.scheduleConfirmed),
   };
 }
 
@@ -59,7 +60,7 @@ export function hydrateWeddingState(parsed: Partial<WeddingState> | null | undef
   const event = normalizeEvent(parsed?.event);
   const guests = Array.isArray(parsed?.guests)
     ? parsed.guests.map(normalizeGuestRow)
-    : DEFAULT_WEDDING_STATE.guests;
+    : [];
   const grouped = reconcileGuestGroups(parsed?.guestGroups, guests);
   return applyReceptionDinnerSeed(
     recoverIntactWedding({
@@ -73,6 +74,7 @@ export function hydrateWeddingState(parsed: Partial<WeddingState> | null | undef
       menu: normalizeMenu(parsed?.menu as MenuRow[] | undefined, DEFAULT_WEDDING_STATE.menu),
       theme: { ...DEFAULT_WEDDING_STATE.theme, ...(parsed?.theme || {}) },
       grandMealByDay: normalizeGrandMealByDay(parsed?.grandMealByDay),
+      buzz: { ...DEFAULT_BUZZ, ...(parsed?.buzz || {}) },
     }),
   );
 }
@@ -87,7 +89,7 @@ export function recoverIntactWedding(state: WeddingState): WeddingState {
   return {
     ...state,
     menu: [...demoMenu, ...extraDays],
-    guests: state.guests.length ? state.guests : structuredClone(DEFAULT_WEDDING_STATE.guests),
+    guests: state.guests,
     functions: state.functions.length
       ? state.functions
       : structuredClone(DEFAULT_WEDDING_STATE.functions),
@@ -138,6 +140,11 @@ export function applyReceptionDinnerSeed(state: WeddingState): WeddingState {
 export function applyGuestDemoSeed(state: WeddingState): WeddingState {
   try {
     if (localStorage.getItem(GUEST_DEMO_SEED_KEY) === GUEST_DEMO_SEED_VERSION) return state;
+    /* Never inject demos onto a device that is already live on a wedding code. */
+    if (localStorage.getItem("biyeflow.syncActive") === "1") {
+      localStorage.setItem(GUEST_DEMO_SEED_KEY, GUEST_DEMO_SEED_VERSION);
+      return state;
+    }
   } catch {
     /* ignore */
   }

@@ -1,19 +1,24 @@
 {
   "name": "biyeflow",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:api": "wrangler pages dev --proxy 5173 --kv BIYEFLOW_SYNC --compatibility-date=2026-01-01",
+    "dev:api": "wrangler pages dev --proxy 5173 --d1 BIYEFLOW_DB --kv BIYEFLOW_SYNC --compatibility-date=2026-01-01",
+    "dev:api:5174": "wrangler pages dev --proxy 5174 --d1 BIYEFLOW_DB --kv BIYEFLOW_SYNC --compatibility-date=2026-01-01",
     "dev:mobile": "vite --host --open /mobile-preview.html",
+    "dev:phone": "node scripts/print-phone-url.mjs && vite --host 0.0.0.0 --port 5173",
+    "preview:phone": "npm run build && vite preview --host 0.0.0.0 --port 4173",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "icons": "node scripts/generate-icons.mjs",
     "deploy": "node scripts/pages-deploy.mjs",
     "deploy:rollback": "node scripts/pages-rollback.mjs",
-    "deploy:direct": "npm run icons && npm run build && npx wrangler pages deploy dist --project-name=biyeflow"
+    "deploy:direct": "npm run icons && npm run build && npx wrangler pages deploy dist --project-name=biyeflow",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@fontsource-variable/material-symbols-outlined": "^5.3.3",
@@ -21,6 +26,7 @@
     "@fontsource/playfair-display": "^5.3.0",
     "clsx": "^2.1.1",
     "dexie": "^4.4.4",
+    "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
@@ -28,8 +34,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.3.2",
     "@types/node": "^24.13.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
@@ -39,6 +47,7 @@
     "tailwindcss": "^4.3.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
-    "vite-plugin-pwa": "^1.3.0"
+    "vite-plugin-pwa": "^1.3.0",
+    "wrangler": "^4.127.1"
   }
 }

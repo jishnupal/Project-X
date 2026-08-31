@@ -1,47 +1,84 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Icon } from "../ui/Icon";
 import { cn } from "../../design-system/cn";
+import { useAccess } from "../../hooks/useAccess";
+import { PRIMARY_NAV, type AppNavItem } from "../../domain/navigation";
+import { navChildActive, navItemVisible } from "../../domain/navVisibility";
+import { useMemo } from "react";
 
-const MOBILE_NAV = [
-  { to: "/coming-soon", icon: "home", label: "Home", pill: false },
-  { to: "/menu", icon: "restaurant_menu", label: "Menu", pill: true },
-  { to: "/guests", icon: "group", label: "Guests", pill: false },
-  { to: "/coming-soon", icon: "menu", label: "More", pill: false },
+const MOBILE_EXTRA = [
+  { id: "profile", to: "/profile", icon: "person", label: "Profile" },
 ];
 
 export function MobileBottomNav() {
+  const { canAccessModule, isGuest, canManage } = useAccess();
+  const location = useLocation();
+
+  const ctx = useMemo(
+    () => ({ isGuest, canManage, canAccessModule }),
+    [isGuest, canManage, canAccessModule],
+  );
+
+  const items = useMemo((): Array<{
+    id: string;
+    to: string;
+    icon: string;
+    label: string;
+    navItem?: AppNavItem;
+  }> => {
+    const main = PRIMARY_NAV.filter((item) => navItemVisible(item, ctx)).map((item) => ({
+      id: item.id,
+      to: item.to,
+      icon: item.icon,
+      label: item.shortLabel || item.label,
+      navItem: item,
+    }));
+    return [...main, ...MOBILE_EXTRA];
+  }, [ctx]);
+
+  if (!items.length) return null;
+
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-2 bg-surface shadow-[0px_-4px_20px_rgba(128,0,32,0.06)] border-t border-outline-variant">
-      {MOBILE_NAV.map((item) => (
-        <NavLink
-          key={item.label}
-          to={item.to}
-          className={({ isActive }) =>
-            cn(
-              "flex flex-col items-center justify-center",
-              item.pill
-                ? isActive
-                  ? "bg-primary-container text-on-primary-container rounded-full px-6 py-2"
-                  : "text-secondary px-3 py-1"
-                : "text-secondary py-1 px-3",
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Icon name={item.icon} />
+    <nav
+      data-testid="mobile-bottom-nav"
+      className={cn(
+        "lg:hidden fixed bottom-0 left-0 w-full z-50",
+        "mobile-bottom-nav border-t border-outline-variant",
+        "shadow-[0px_-4px_20px_rgba(128,0,32,0.06)]",
+      )}
+    >
+      <div
+        className="mobile-bottom-nav-grid grid px-0.5 pt-0.5 pb-0"
+        style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}
+      >
+        {items.map((item) => {
+          const active = item.navItem
+            ? navChildActive(location.pathname, item.navItem)
+            : location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+
+          return (
+            <NavLink
+              key={item.id}
+              to={item.to}
+              className={cn(
+                "mobile-bottom-nav-item flex flex-col items-center justify-start gap-0.5 min-w-0 px-0.5",
+                active ? "is-active text-primary" : "text-secondary",
+              )}
+            >
               <span
                 className={cn(
-                  "font-label-caps text-[10px]",
-                  item.pill && isActive ? "mt-0.5" : "mt-1",
+                  "mobile-nav-icon-wrap flex h-8 w-8 items-center justify-center rounded-full transition-colors shrink-0",
                 )}
               >
+                <Icon name={item.icon} className="text-[21px]" filled={active} />
+              </span>
+              <span className="font-label-caps text-[10px] tracking-[0.01em] leading-none text-center w-full pb-0.5">
                 {item.label}
               </span>
-            </>
-          )}
-        </NavLink>
-      ))}
+            </NavLink>
+          );
+        })}
+      </div>
     </nav>
   );
 }

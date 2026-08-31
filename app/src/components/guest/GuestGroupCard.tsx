@@ -1,74 +1,48 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  GROUP_CARD_NAME_SLOTS,
-  GROUP_MEMBER_BOARD_MAX,
-  groupBoardLayout,
-  groupMemberBoardLayout,
+  formatGroupMemberLabel,
+  groupPanelGrid,
   groupPeopleCount,
   guestsInGroup,
-  MAX_GUEST_GROUPS,
   parseCount,
 } from "../../domain/guest";
 import type { GuestGroup, GuestRow } from "../../domain/types";
 import { Icon } from "../ui/Icon";
 import { cn } from "../../design-system/cn";
+import { ConfirmDangerDialog } from "../ui/ConfirmDangerDialog";
+import { GroupHeadcountConfirm } from "./GroupHeadcountConfirm";
 
 type GuestGroupColumnProps = {
   groups: GuestGroup[];
   guests: GuestRow[];
   editId: string;
-  creating: boolean;
+  activeGroupId?: string;
+  readOnly?: boolean;
   onOpen: (id: string) => void;
-  onEdit: (id: string) => void;
   onCloseEdit: () => void;
-  onStartCreate: () => void;
-  onCancelCreate: () => void;
-  onCreate: (name: string) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
-  onAssignGuest: (guestId: string, groupId: string) => void;
+  onAssignGuest: (guestId: string, groupId: string, people?: number) => void;
 };
 
-function GroupNameRows({ members, compact }: { members: GuestRow[]; compact?: boolean }) {
-  const visible = members.slice(0, GROUP_CARD_NAME_SLOTS);
-  const extra = Math.max(0, members.length - GROUP_CARD_NAME_SLOTS);
-  const slots = Array.from({ length: GROUP_CARD_NAME_SLOTS }, (_, index) => visible[index] ?? null);
+function memberInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ""}${parts[parts.length - 1][0] || ""}`.toUpperCase();
+}
 
-  return (
-    <section className="min-w-0 min-h-0 flex flex-col">
-      <p
-        className={cn(
-          "font-label-caps tracking-[0.18em] text-white/45 mb-2",
-          compact ? "text-[8px]" : "text-[10px]",
-        )}
-      >
-        Families
-      </p>
-      <ul className={compact ? "space-y-[4px]" : "space-y-[6px]"}>
-        {slots.map((row, index) => (
-          <li
-            key={row?.id ?? `slot-${index}`}
-            className={cn(
-              "leading-[1.4] font-medium tracking-[0.01em] truncate",
-              compact ? "text-[12px]" : "text-[13px]",
-              row ? "text-white/[0.92]" : "text-white/18",
-            )}
-          >
-            {row ? row.name || "Guest not set" : "—"}
-          </li>
-        ))}
-        <li
-          className={cn(
-            "pt-0.5 font-label-caps tracking-[0.14em]",
-            compact ? "text-[8px]" : "text-[10px]",
-            extra > 0 ? "text-white/55" : "text-white/18",
-          )}
-        >
-          {extra > 0 ? `+${extra} more` : "+ more"}
-        </li>
-      </ul>
-    </section>
-  );
+function memberAvatarTone(seed: string): string {
+  const tones = [
+    "bg-[#f3e0e4] text-primary",
+    "bg-[#f5edd8] text-[#8a6a12]",
+    "bg-[#e8efe8] text-[#2f5d3a]",
+    "bg-[#e8eaf4] text-[#3a4580]",
+  ];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = (hash + seed.charCodeAt(i) * (i + 1)) % 97;
+  return tones[hash % tones.length];
 }
 
 function GroupOpenPanel({
@@ -82,9 +56,11 @@ function GroupOpenPanel({
   guests: GuestRow[];
   onClose: () => void;
   onRename: (id: string, name: string) => void;
-  onAssignGuest: (guestId: string, groupId: string) => void;
+  onAssignGuest: (guestId: string, groupId: string, people?: number) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [pendingAdd, setPendingAdd] = useState<GuestRow | null>(null);
+  const [mobileTab, setMobileTab] = useState<"members" | "add">("members");
   const members = guestsInGroup(guests, group.id);
   const people = groupPeopleCount(guests, group.id);
   const directory = useMemo(() => {
@@ -95,194 +71,343 @@ function GroupOpenPanel({
       .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
   }, [guests, query, group.id]);
 
-  return (
+  const requestAdd = (row: GuestRow) => {
+    if (parseCount(row.count) <= 1) {
+      onAssignGuest(row.id, group.id, 1);
+      return;
+    }
+    setPendingAdd(row);
+  };
+
+  const membersList = (
+    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+      {members.length ? (
+        <ul className="divide-y divide-[rgba(128,0,32,0.07)]">
+          {members.map((row) => {
+            const label = row.name || "Guest not set";
+            return (
+              <li key={row.id}>
+                <button
+                  type="button"
+                  onClick={() => onAssignGuest(row.id, "")}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[rgba(128,0,32,0.04)]"
+                >
+                  <span
+                    className={cn(
+                      "h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-[12px] font-headline-md",
+                      memberAvatarTone(row.id + label),
+                    )}
+                    aria-hidden
+                  >
+                    {memberInitials(label)}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[13px] text-primary truncate">{label}</span>
+                  <span className="text-[10px] tabular-nums text-secondary shrink-0">
+                    {formatGroupMemberLabel(row)}
+                  </span>
+                  <span className="text-[10px] text-primary/50 shrink-0">Remove</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="px-4 py-10 text-center text-[13px] text-secondary">No families in this group yet</p>
+      )}
+    </div>
+  );
+
+  const addList = (
+    <div className="min-h-0 flex flex-col flex-1">
+      <div className="shrink-0 px-3 pt-2 pb-2">
+        <div className="relative">
+          <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-[16px]" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search guests to add"
+            autoComplete="off"
+            className="w-full h-9 pl-9 pr-3 rounded-xl border border-[rgba(128,0,32,0.12)] bg-white text-[13px] outline-none focus:border-primary/35"
+          />
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {directory.length ? (
+          <ul className="divide-y divide-[rgba(128,0,32,0.07)]">
+            {directory.map((row) => {
+              const label = row.name || "Guest not set";
+              return (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    onClick={() => requestAdd(row)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-[rgba(204,167,48,0.08)]"
+                  >
+                    <span
+                      className={cn(
+                        "h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-[12px] font-headline-md",
+                        memberAvatarTone(row.id + label),
+                      )}
+                      aria-hidden
+                    >
+                      {memberInitials(label)}
+                    </span>
+                    <span className="min-w-0 flex-1 text-[13px] text-on-surface truncate">{label}</span>
+                    <span className="text-[10px] tabular-nums text-secondary shrink-0">
+                      {parseCount(row.count)}
+                    </span>
+                    <span className="h-7 px-2.5 rounded-full bg-primary text-on-primary text-[10px] font-button flex items-center">
+                      Add
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="px-4 py-10 text-center text-[13px] text-secondary">
+            {query.trim() ? "No match" : "Everyone is already in this group"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  /* Portal so Edit still works when the group strip is `hidden` on mobile. */
+  return createPortal(
     <div
-      className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/40"
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 group-sheet-backdrop"
       role="dialog"
       aria-modal
       aria-labelledby="group-open-title"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[560px] h-[min(72vh,560px)] rounded-2xl bg-surface shadow-2xl border border-[rgba(128,0,32,0.18)] overflow-hidden flex flex-col"
+        className={cn(
+          "group-sheet-panel w-full max-w-[560px]",
+          "h-[min(72dvh,580px)] sm:h-[min(72vh,560px)]",
+          "rounded-t-[24px] sm:rounded-2xl overflow-hidden flex flex-col",
+          "bg-[#fff8f5] shadow-[0_-18px_48px_-16px_rgba(87,0,19,0.3)]",
+          "border border-[rgba(128,0,32,0.14)] sm:border-b",
+        )}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="hero-meal-card hero-group-card shrink-0 rounded-none px-4 py-3.5">
-          <div className="relative z-[3] flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="font-label-caps text-[9px] tracking-[0.16em] text-[#f3d58a]/80">
-                Assign families
-              </p>
-              <input
-                id="group-open-title"
-                value={group.name}
-                onChange={(e) => onRename(group.id, e.target.value)}
-                className="w-full bg-transparent font-headline-md text-[18px] text-white outline-none"
-              />
-              <p className="text-[11px] text-white/55 tabular-nums mt-0.5">
-                {members.length} families · {people} people
-              </p>
-            </div>
+        <div className="sm:hidden shrink-0 flex justify-center pt-2.5 pb-1" aria-hidden>
+          <span className="h-1 w-9 rounded-full bg-[rgba(128,0,32,0.18)]" />
+        </div>
+
+        <header className="shrink-0 px-4 pb-3 flex items-start gap-3 border-b border-[rgba(128,0,32,0.08)]">
+          <div className="min-w-0 flex-1">
+            <p className="font-label-caps text-[9px] tracking-[0.16em] text-secondary">Edit group</p>
+            <input
+              id="group-open-title"
+              value={group.name}
+              onChange={(e) => onRename(group.id, e.target.value)}
+              className="w-full bg-transparent font-headline-md text-[20px] text-primary outline-none"
+            />
+            <p className="text-[12px] text-secondary tabular-nums mt-0.5">
+              {members.length} families · {people} people
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-9 px-3.5 rounded-full bg-primary text-on-primary text-[11px] font-button shrink-0"
+          >
+            Done
+          </button>
+        </header>
+
+        {/* Mobile: tab so Add never starves the member list */}
+        <div className="sm:hidden shrink-0 px-3 pt-2">
+          <div className="grid grid-cols-2 gap-0.5 p-0.5 rounded-[10px] bg-[rgba(128,0,32,0.07)]" role="tablist">
             <button
               type="button"
-              onClick={onClose}
-              className="h-8 w-8 rounded-full bg-black/20 text-white/80 hover:text-white flex items-center justify-center"
-              aria-label="Close"
+              role="tab"
+              aria-selected={mobileTab === "members"}
+              onClick={() => setMobileTab("members")}
+              className={cn(
+                "min-h-9 rounded-lg text-[12px] font-button",
+                mobileTab === "members" ? "bg-primary text-on-primary" : "text-secondary",
+              )}
             >
-              <Icon name="close" className="text-[18px]" />
+              In group ({members.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileTab === "add"}
+              onClick={() => setMobileTab("add")}
+              className={cn(
+                "min-h-9 rounded-lg text-[12px] font-button",
+                mobileTab === "add" ? "bg-primary text-on-primary" : "text-secondary",
+              )}
+            >
+              Add
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 min-h-0 flex-1 divide-x divide-[rgba(128,0,32,0.12)]">
-          <section className="min-h-0 flex flex-col bg-[rgba(128,0,32,0.03)]">
-            <p className="shrink-0 px-3 py-2 font-label-caps text-[9px] tracking-[0.14em] text-primary">
+        <div className="sm:hidden flex-1 min-h-0 flex flex-col mt-1">
+          {mobileTab === "members" ? membersList : addList}
+        </div>
+
+        <div className="hidden sm:grid sm:grid-cols-2 min-h-0 flex-1 divide-x divide-[rgba(128,0,32,0.1)]">
+          <section className="min-h-0 flex flex-col">
+            <p className="shrink-0 px-3 py-2 font-label-caps text-[9px] tracking-[0.14em] text-secondary">
               In group
             </p>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
-              {members.length ? (
-                <ul>
-                  {members.map((row) => (
-                    <li key={row.id}>
-                      <button
-                        type="button"
-                        onClick={() => onAssignGuest(row.id, "")}
-                        className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[rgba(128,0,32,0.06)]"
-                      >
-                        <span className="min-w-0 flex-1 text-[13px] text-primary truncate">
-                          {row.name || "Guest not set"}
-                        </span>
-                        <span className="text-[10px] tabular-nums text-[#a67c00] shrink-0">
-                          {parseCount(row.count)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-2 py-6 text-[12px] text-on-surface-variant">Empty</p>
-              )}
-            </div>
+            {membersList}
           </section>
-
           <section className="min-h-0 flex flex-col">
-            <div className="shrink-0 px-2 pt-2 pb-1">
-              <p className="px-1 mb-1.5 font-label-caps text-[9px] tracking-[0.14em] text-[#a67c00]">
-                Add
-              </p>
-              <div className="relative">
-                <Icon name="search" className="absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-[16px]" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search"
-                  autoComplete="off"
-                  className="w-full h-8 pl-8 pr-2 rounded-lg border border-[rgba(204,167,48,0.45)] bg-surface text-[12px] outline-none focus:border-primary/40"
-                />
-              </div>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-3">
-              {directory.length ? (
-                <ul>
-                  {directory.map((row) => (
-                    <li key={row.id}>
-                      <button
-                        type="button"
-                        onClick={() => onAssignGuest(row.id, group.id)}
-                        className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[rgba(204,167,48,0.1)]"
-                      >
-                        <span className="min-w-0 flex-1 text-[13px] text-on-surface truncate">
-                          {row.name || "Guest not set"}
-                        </span>
-                        <span className="text-[10px] tabular-nums text-on-surface-variant shrink-0">
-                          {parseCount(row.count)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-2 py-6 text-[12px] text-on-surface-variant">
-                  {query.trim() ? "No match" : "All in"}
-                </p>
-              )}
-            </div>
+            <p className="shrink-0 px-3 pt-2 font-label-caps text-[9px] tracking-[0.14em] text-secondary">
+              Add
+            </p>
+            {addList}
           </section>
         </div>
       </div>
-    </div>
+
+      {pendingAdd ? (
+        <GroupHeadcountConfirm
+          row={pendingAdd}
+          groupName={group.name}
+          onCancel={() => setPendingAdd(null)}
+          onConfirm={(headcount) => {
+            onAssignGuest(pendingAdd.id, group.id, headcount);
+            setPendingAdd(null);
+          }}
+        />
+      ) : null}
+    </div>,
+    document.body,
   );
 }
 
-function GroupCard({
+export function GuestGroupTile({
   group,
   members,
   people,
   compact,
+  active,
+  readOnly,
+  groupCount,
   onOpen,
-  onDelete,
+  onRequestDelete,
 }: {
   group: GuestGroup;
   members: GuestRow[];
   people: number;
   compact: boolean;
+  active?: boolean;
+  readOnly?: boolean;
+  groupCount: number;
   onOpen: () => void;
-  onDelete: () => void;
+  onRequestDelete: () => void;
 }) {
+  const solo = groupCount === 1;
+  const preview = members.slice(0, solo ? 5 : 4);
+  const extra = Math.max(0, members.length - preview.length);
+
   return (
-    <article className="hero-meal-card hero-group-card rounded-[24px] overflow-hidden min-h-0 h-full flex flex-col relative">
-      <div className={cn("shrink-0", compact ? "px-3.5 pt-3.5 pb-2" : "px-5 pt-5 pb-3")}>
+    <article
+      data-testid="group-tile"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      className={cn(
+        "hero-meal-card hero-group-card rounded-[24px] overflow-hidden flex flex-col relative min-h-0 h-full",
+        "cursor-pointer select-none transition-[transform,filter,box-shadow] duration-200 ease-out",
+        "hover:brightness-[1.03] active:scale-[0.985]",
+        active && "ring-2 ring-[rgba(243,213,138,0.65)] brightness-[1.04]",
+      )}
+    >
+      <div
+        className={cn(
+          "relative z-[3] flex flex-col flex-1 min-h-0",
+          compact ? "px-3.5 pt-3.5 pb-3" : solo ? "px-5 pt-6 pb-5" : "px-5 pt-5 pb-4",
+          solo && "justify-between",
+        )}
+      >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="inline-flex items-center h-6 px-2.5 rounded-full text-[9px] font-bold tracking-[0.16em] uppercase border border-white/15 bg-white/10 text-white">
-                Group
-              </span>
-              <span className="text-[11px] text-white/40 tabular-nums">
-                {members.length} · {people} people
-              </span>
-            </div>
             <p
               className={cn(
-                "font-headline-xl text-white leading-none tracking-[-0.02em] truncate",
-                compact ? "text-[20px]" : "text-[26px]",
+                "font-headline-xl text-white leading-[1.05] tracking-[-0.02em]",
+                compact ? "text-[20px]" : solo ? "text-[30px]" : "text-[26px]",
+                compact ? "line-clamp-2" : "truncate",
               )}
             >
               {group.name}
             </p>
-            <p className="mt-1.5 text-[12px] text-white/45 flex items-center gap-1.5">
-              <Icon name="groups" className="text-[15px] text-white/35" />
-              All functions
+            <p
+              className={cn(
+                "mt-2.5 font-label-caps tracking-[0.14em] uppercase text-white/45 tabular-nums",
+                compact ? "text-[9px]" : "text-[11px]",
+              )}
+            >
+              {members.length} {members.length === 1 ? "family" : "families"}
+              <span className="text-white/25 mx-1.5">·</span>
+              {people} people
             </p>
           </div>
-          <button
-            type="button"
-            aria-label={`Remove ${group.name}`}
-            onClick={onDelete}
-            className="h-7 w-7 rounded-full bg-black/20 text-white/80 hover:text-white hover:bg-black/35 flex items-center justify-center shrink-0"
-          >
-            <Icon name="close" className="text-[16px]" />
-          </button>
+          {!readOnly ? (
+            <button
+              type="button"
+              aria-label={`Remove ${group.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRequestDelete();
+              }}
+              className="pointer-events-auto h-7 w-7 rounded-full bg-black/20 text-white/80 hover:text-white hover:bg-black/35 flex items-center justify-center shrink-0 transition-colors"
+            >
+              <Icon name="close" className="text-[16px]" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className={cn("flex items-end justify-between gap-2", compact ? "pt-3 mt-auto" : "pt-6 mt-auto")}>
+          <div className="flex items-center pl-0.5" aria-hidden>
+            {preview.length ? (
+              preview.map((row, index) => {
+                const label = row.name || "?";
+                return (
+                  <span
+                    key={row.id}
+                    className={cn(
+                      "rounded-full flex items-center justify-center font-headline-md ring-2 ring-[rgba(87,0,19,0.55)]",
+                      compact ? "h-7 w-7 text-[9px] -ml-1.5 first:ml-0" : "h-9 w-9 text-[11px] -ml-2 first:ml-0",
+                      memberAvatarTone(row.id + label),
+                    )}
+                    style={{ zIndex: preview.length - index }}
+                  >
+                    {memberInitials(label)}
+                  </span>
+                );
+              })
+            ) : (
+              <span className="text-[11px] text-white/30">Tap to assign</span>
+            )}
+            {extra > 0 ? (
+              <span
+                className={cn(
+                  "rounded-full bg-black/35 text-white/80 font-medium ring-2 ring-[rgba(87,0,19,0.55)] flex items-center justify-center tabular-nums",
+                  compact ? "h-7 w-7 text-[9px] -ml-1.5" : "h-9 w-9 text-[10px] -ml-2",
+                )}
+              >
+                +{extra}
+              </span>
+            ) : null}
+          </div>
+          <Icon name="north_east" className={cn("text-white/50 shrink-0", compact ? "text-[16px]" : "text-[18px]")} />
         </div>
       </div>
-      <button
-        type="button"
-        onClick={onOpen}
-        className={cn("flex-1 min-h-0 text-left", compact ? "px-3.5 pb-2" : "px-5 pb-3")}
-      >
-        <GroupNameRows members={members} compact={compact} />
-      </button>
-      <button
-        type="button"
-        onClick={onOpen}
-        className={cn(
-          "flex items-center justify-between border-t border-white/10 bg-black/[0.12] shrink-0 text-left",
-          compact ? "px-3.5 py-2.5" : "px-5 py-3",
-        )}
-      >
-        <span className="text-[10px] font-label-caps tracking-[0.18em] uppercase text-white/40">Families</span>
-        <span className="text-[10px] font-label-caps tracking-[0.16em] uppercase text-white/70">Open</span>
-      </button>
     </article>
   );
 }
@@ -308,25 +433,19 @@ function CreateGroupHero({
       }}
       className="hero-meal-card hero-group-card rounded-[24px] overflow-hidden min-h-0 h-full flex flex-col"
     >
-      <div className="px-5 pt-5 pb-3 shrink-0">
+      <div className="relative z-[3] flex flex-col flex-1 min-h-0 px-5 pt-5 pb-4">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="inline-flex items-center h-6 px-2.5 rounded-full text-[9px] font-bold tracking-[0.16em] uppercase border border-white/15 bg-white/10 text-white">
-                Group
-              </span>
-            </div>
             <input
               value={draftName}
               onChange={(e) => onDraftName(e.target.value)}
               placeholder="Name this party"
               autoComplete="off"
               autoFocus
-              className="w-full bg-transparent font-headline-xl text-[26px] text-white leading-none outline-none placeholder:text-white/30"
+              className="w-full bg-transparent font-headline-xl text-[28px] text-white leading-[1.05] outline-none placeholder:text-white/30"
             />
-            <p className="mt-1.5 text-[12px] text-white/45 flex items-center gap-1.5">
-              <Icon name="groups" className="text-[15px] text-white/35" />
-              All functions
+            <p className="mt-2 font-label-caps text-[10px] tracking-[0.14em] uppercase text-white/40">
+              New group
             </p>
           </div>
           <button
@@ -338,79 +457,16 @@ function CreateGroupHero({
             <Icon name="close" className="text-[16px]" />
           </button>
         </div>
-      </div>
-      <div className="flex-1 min-h-0 px-5 pb-3">
-        <GroupNameRows members={[]} />
-      </div>
-      <div className="flex items-center justify-between px-5 py-3 border-t border-white/10 bg-black/[0.12] shrink-0">
-        <button type="button" onClick={onCancel} className="text-[10px] font-label-caps tracking-[0.16em] uppercase text-white/40">
-          Cancel
-        </button>
-        <button type="submit" className="text-[10px] font-label-caps tracking-[0.16em] uppercase text-white">
-          Create
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function AddGroupChip({
-  creating,
-  draftName,
-  onDraftName,
-  onStartCreate,
-  onCancelCreate,
-  onCreate,
-}: {
-  creating: boolean;
-  draftName: string;
-  onDraftName: (value: string) => void;
-  onStartCreate: () => void;
-  onCancelCreate: () => void;
-  onCreate: (name: string) => void;
-}) {
-  if (creating) {
-    return (
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          const name = draftName.trim();
-          if (!name) return;
-          onCreate(name);
-        }}
-        className="mini-meal-card w-full shrink-0 rounded-2xl p-3"
-      >
-        <p className="relative z-[1] font-label-caps text-[9px] text-secondary">New group</p>
-        <input
-          value={draftName}
-          onChange={(e) => onDraftName(e.target.value)}
-          placeholder="Name this party"
-          autoComplete="off"
-          autoFocus
-          className="relative z-[1] mt-2 w-full h-9 px-2 rounded-lg border border-outline-variant text-sm outline-none bg-white"
-        />
-        <div className="relative z-[1] mt-2 flex items-center justify-between">
-          <button type="button" onClick={onCancelCreate} className="text-[11px] text-secondary">
+        <div className="mt-auto pt-6 flex items-center justify-between">
+          <button type="button" onClick={onCancel} className="text-[10px] font-label-caps tracking-[0.16em] uppercase text-white/40">
             Cancel
           </button>
-          <button type="submit" className="text-[11px] text-primary font-semibold">
+          <button type="submit" className="h-9 px-4 rounded-full bg-white/15 text-[10px] font-label-caps tracking-[0.16em] uppercase text-white border border-white/20">
             Create
           </button>
         </div>
-      </form>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onStartCreate}
-      aria-label="Add group"
-      className="mini-meal-card h-14 w-full shrink-0 rounded-2xl flex items-center justify-center gap-1.5 text-secondary hover:text-primary"
-    >
-      <Icon name="add" className="relative z-[1] text-[20px]" />
-      <span className="relative z-[1] text-[9px] font-label-caps">Add group</span>
-    </button>
+      </div>
+    </form>
   );
 }
 
@@ -419,26 +475,25 @@ export function GroupMemberBoard({
   guests,
   onBack,
   onEdit,
+  flush = false,
 }: {
   group: GuestGroup;
   guests: GuestRow[];
   onBack: () => void;
   onEdit: () => void;
+  /** Fill a sheet without outer radius / card chrome */
+  flush?: boolean;
 }) {
   const members = guestsInGroup(guests, group.id);
   const people = groupPeopleCount(guests, group.id);
-  const visible = members.slice(0, GROUP_MEMBER_BOARD_MAX);
-  const extra = Math.max(0, members.length - GROUP_MEMBER_BOARD_MAX);
-  const layout = groupMemberBoardLayout(visible.length || 4);
-  const compact = visible.length > 12;
-  const dense = visible.length > 24;
-  const slots =
-    visible.length > 0
-      ? visible
-      : Array.from({ length: 4 }, () => null);
 
   return (
-    <article className="hero-meal-card hero-group-card h-full min-h-0 rounded-[24px] overflow-hidden flex flex-col">
+    <article
+      className={cn(
+        "hero-meal-card hero-group-card h-full max-h-full min-h-0 overflow-hidden flex flex-col",
+        flush ? "rounded-none" : "rounded-[24px]",
+      )}
+    >
       <div className="relative z-[3] shrink-0 px-4 pt-4 pb-3 flex items-start gap-2">
         <button
           type="button"
@@ -457,48 +512,89 @@ export function GroupMemberBoard({
         </div>
         <button
           type="button"
-          onClick={onEdit}
-          className="h-8 px-3 rounded-full border border-[rgba(255,215,140,0.4)] bg-black/20 text-[10px] font-label-caps tracking-[0.14em] uppercase text-[#f3d58a]"
+          onClick={(event) => {
+            event.stopPropagation();
+            onEdit();
+          }}
+          className="relative z-10 h-9 px-3.5 rounded-full border border-[rgba(255,215,140,0.4)] bg-black/25 text-[10px] font-label-caps tracking-[0.14em] uppercase text-[#f3d58a] active:scale-95"
         >
           Edit
         </button>
       </div>
-      <div
-        className="relative z-[3] flex-1 min-h-0 p-3 pt-0 grid"
-        style={{
-          gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
-          gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-          gap: layout.gapPx,
-        }}
-      >
-        {slots.map((row, index) => (
-          <div key={row?.id ?? `empty-${index}`} className="group-member-tile flex flex-col justify-end p-2.5">
-            {row ? (
-              <>
-                <p
-                  className={cn(
-                    "font-medium leading-tight truncate",
-                    dense ? "text-[11px]" : compact ? "text-[12px]" : "text-[14px]",
-                  )}
-                >
+      <div className="relative z-[3] flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-0">
+        {members.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 auto-rows-[minmax(4.25rem,auto)] content-start">
+            {members.map((row) => (
+              <div key={row.id} className="group-member-tile flex flex-col justify-end p-2.5 min-h-[4.25rem] max-h-[5.5rem]">
+                <p className="font-medium text-[12px] lg:text-[13px] leading-tight line-clamp-2">
                   {row.name || "Guest not set"}
                 </p>
-                <p className={cn("text-white/55 tabular-nums mt-0.5", dense ? "text-[9px]" : "text-[10px]")}>
-                  {parseCount(row.count)} people
+                <p className="text-[10px] text-white/55 tabular-nums mt-0.5 truncate">
+                  {parseCount(row.groupCount) > 0 &&
+                  parseCount(row.groupCount) < parseCount(row.count)
+                    ? formatGroupMemberLabel(row)
+                    : `${parseCount(row.count)} people`}
                 </p>
-              </>
-            ) : (
-              <p className="text-[11px] text-white/25">Empty</p>
-            )}
+              </div>
+            ))}
           </div>
-        ))}
-        {extra > 0 ? (
-          <div className="group-member-tile flex items-center justify-center">
-            <p className="text-[12px] font-label-caps tracking-[0.12em] text-[#f3d58a]">+{extra} more</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`empty-${index}`}
+                className="group-member-tile flex items-center justify-center min-h-[4.25rem] p-2"
+              >
+                <p className="text-[11px] text-white/25">Empty</p>
+              </div>
+            ))}
           </div>
-        ) : null}
+        )}
       </div>
     </article>
+  );
+}
+
+export function CreateGroupModal({
+  open,
+  onCancel,
+  onCreate,
+}: {
+  open: boolean;
+  onCancel: () => void;
+  onCreate: (name: string) => void;
+}) {
+  const [draftName, setDraftName] = useState("");
+
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/45"
+      role="dialog"
+      aria-modal
+      aria-labelledby="create-group-title"
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-[420px] sm:rounded-2xl overflow-hidden"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <CreateGroupHero
+          draftName={draftName}
+          onDraftName={setDraftName}
+          onCancel={() => {
+            setDraftName("");
+            onCancel();
+          }}
+          onCreate={(name) => {
+            onCreate(name);
+            setDraftName("");
+          }}
+        />
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -506,53 +602,65 @@ export function GuestGroupColumn({
   groups,
   guests,
   editId,
-  creating,
+  activeGroupId = "",
+  readOnly = false,
   onOpen,
-  onEdit,
   onCloseEdit,
-  onStartCreate,
-  onCancelCreate,
-  onCreate,
   onRename,
   onDelete,
   onAssignGuest,
 }: GuestGroupColumnProps) {
-  const [draftName, setDraftName] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<GuestGroup | null>(null);
   const count = groups.length;
-  const canAdd = count < MAX_GUEST_GROUPS;
-  const layout = groupBoardLayout(count || 1);
+  const panel = groupPanelGrid(count);
   const compact = count >= 3;
   const editGroup = groups.find((group) => group.id === editId) || null;
-  const add = canAdd || creating ? (
-    <AddGroupChip
-      creating={creating}
-      draftName={draftName}
-      onDraftName={setDraftName}
-      onStartCreate={onStartCreate}
-      onCancelCreate={() => {
-        setDraftName("");
-        onCancelCreate();
-      }}
-      onCreate={(name) => {
-        onCreate(name);
-        setDraftName("");
+
+  const deleteDialog = pendingDelete ? (
+    <ConfirmDangerDialog
+      title={`Delete “${pendingDelete.name}”?`}
+      message={
+        guestsInGroup(guests, pendingDelete.id).length
+          ? "Families in this group stay on your guest list. Only the group is removed."
+          : "This group will be removed. You can create it again anytime."
+      }
+      confirmLabel="Delete group"
+      cancelLabel="Keep group"
+      onCancel={() => setPendingDelete(null)}
+      onConfirm={() => {
+        onDelete(pendingDelete.id);
+        setPendingDelete(null);
       }}
     />
   ) : null;
 
-  const cards = groups.map((group) => (
-    <GroupCard
-      key={group.id}
-      group={group}
-      members={guestsInGroup(guests, group.id)}
-      people={groupPeopleCount(guests, group.id)}
-      compact={compact}
-      onOpen={() => onOpen(group.id)}
-      onDelete={() => onDelete(group.id)}
-    />
-  ));
+  const cards = groups.map((group, index) => {
+    const span = panel.spans[index] || {};
+    return (
+      <div
+        key={group.id}
+        className="min-h-0 min-w-0 h-full"
+        style={{
+          gridColumn: span.colSpan ? `span ${span.colSpan}` : undefined,
+          gridRow: span.rowSpan ? `span ${span.rowSpan}` : undefined,
+        }}
+      >
+        <GuestGroupTile
+          group={group}
+          members={guestsInGroup(guests, group.id)}
+          people={groupPeopleCount(guests, group.id)}
+          compact={compact}
+          active={activeGroupId === group.id}
+          readOnly={readOnly}
+          groupCount={count}
+          onOpen={() => onOpen(group.id)}
+          onRequestDelete={() => setPendingDelete(group)}
+        />
+      </div>
+    );
+  });
 
-  const panel = editGroup ? (
+  const editPanel = !readOnly && editGroup ? (
     <GroupOpenPanel
       group={editGroup}
       guests={guests}
@@ -562,56 +670,27 @@ export function GuestGroupColumn({
     />
   ) : null;
 
-  if (!count && creating) {
-    return (
-      <>
-        <div className="h-full min-h-0">
-          <CreateGroupHero
-            draftName={draftName}
-            onDraftName={setDraftName}
-            onCancel={() => {
-              setDraftName("");
-              onCancelCreate();
-            }}
-            onCreate={(name) => {
-              onCreate(name);
-              setDraftName("");
-            }}
-          />
-        </div>
-        {panel}
-      </>
-    );
-  }
-
-  if (count === 1) {
-    return (
-      <>
-        <div className="h-full min-h-0 flex flex-col gap-3">
-          <div className="flex-1 min-h-0">{cards}</div>
-          {add}
-        </div>
-        {panel}
-      </>
-    );
-  }
-
   return (
     <>
-      <div className="h-full min-h-0 flex flex-col gap-3">
+      <div className="h-full min-h-0 flex flex-col">
         <div
-          className="flex-1 min-h-0 grid"
+          className={cn(
+            "flex-1 min-h-0",
+            panel.fillHeight ? "grid h-full" : "grid overflow-y-auto overscroll-contain auto-rows-[minmax(140px,auto)]",
+          )}
           style={{
-            gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
-            gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-            gap: layout.gapPx,
+            gridTemplateColumns: `repeat(${panel.cols}, minmax(0, 1fr))`,
+            gridTemplateRows: panel.fillHeight
+              ? `repeat(${panel.rows}, minmax(0, 1fr))`
+              : undefined,
+            gap: panel.gapPx,
           }}
         >
           {cards}
         </div>
-        {add}
       </div>
-      {panel}
+      {editPanel}
+      {deleteDialog}
     </>
   );
 }

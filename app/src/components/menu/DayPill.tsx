@@ -52,14 +52,14 @@ export function DayPill({
         aria-pressed={isActive}
         className={cn(
           "relative inline-flex items-center justify-between gap-3 rounded-xl overflow-hidden text-white transition-[box-shadow,transform]",
-          compact ? "h-11 min-w-[148px] px-4" : "h-12 min-w-[168px] px-5",
+          compact ? "h-9 min-w-[128px] px-3" : "h-12 min-w-[168px] px-5",
           isActive ? "day-pill-selected" : "day-pill-idle hover:brightness-110",
         )}
       >
         <span
           className={cn(
             "relative z-[1] font-headline-md text-white whitespace-nowrap leading-none",
-            compact ? "text-[15px]" : "text-[16px]",
+            compact ? "text-[13px]" : "text-[16px]",
           )}
         >
           {name}
@@ -67,7 +67,7 @@ export function DayPill({
         <span
           className={cn(
             "relative z-[1] font-label-caps tracking-[0.06em] text-[#f3d58a] tabular-nums whitespace-nowrap leading-none",
-            compact ? "text-[11px]" : "text-[12px]",
+            compact ? "text-[10px]" : "text-[12px]",
           )}
         >
           {dateLabel || "—"}

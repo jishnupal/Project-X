@@ -3,10 +3,13 @@ import { useAccess } from "../hooks/useAccess";
 import { useWeddingState } from "../hooks/useWeddingState";
 import { CommandCenterWidget } from "../components/command-center/CommandCenterWidget";
 import { HomeLandingHeader } from "../components/command-center/HomeLandingHeader";
+import { HomeInviteProgressCard } from "../components/command-center/HomeInviteProgressCard";
+import { HomeLiveCard } from "../components/command-center/HomeLiveCard";
 import { Icon } from "../components/ui/Icon";
 import {
   buildBuddyOverviewWidget,
   buildCoreOverviewWidgets,
+  buildHomeLiveCards,
   buildSetupTasks,
   setupProgress,
 } from "../domain/commandCenterSummary";
@@ -36,7 +39,9 @@ export function CommandCenterPage() {
   const tasks = buildSetupTasks(state, snapshot, canManage);
   const progress = setupProgress(tasks);
   const coreWidgets = buildCoreOverviewWidgets(state, snapshot, canManage);
+  const liveCards = buildHomeLiveCards(state, snapshot, canManage);
   const buddyWidget = canManage ? buildBuddyOverviewWidget(state, snapshot) : null;
+  const menuWidget = coreWidgets.find((w) => w.id === "menu");
   const setupComplete = progress.pct >= 100;
   const attentionCount = coreWidgets.filter((w) => w.status === "attention").length;
   const scheduleHome = formatWeddingScheduleHome(state);
@@ -57,16 +62,128 @@ export function CommandCenterPage() {
       >
         <div
           className={cn(
-            "home-page-scroll max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overscroll-contain",
-            "max-lg:px-0 max-lg:pt-0 max-lg:pb-3",
+            "home-page-scroll max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overflow-x-hidden max-lg:overscroll-contain",
+            "max-lg:px-3.5 max-lg:pt-1 max-lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
             "space-y-0 lg:space-y-4 lg:px-0 lg:pb-0 lg:overflow-visible",
           )}
         >
+          <section aria-label="Home overview" className="lg:hidden">
+            <HomeLandingHeader
+              eventName={state.event.name}
+              syncCode={syncCode}
+              syncLive={syncLive}
+              attentionCount={attentionCount}
+              scheduleHome={scheduleHome}
+              datesNeedSetup={datesNeedSetup}
+              canEdit={canEdit}
+              onEditDates={openScheduleEditor}
+            />
+            <HomeInviteProgressCard guests={state.guests} />
+            <div className="mb-1.5 mt-1 flex items-center justify-between">
+              <h3 className="text-[0.72rem] font-extrabold uppercase tracking-[0.1em] text-[#7a6f62]">
+                Your modules
+              </h3>
+            </div>
+            <div className="home-live-rail" aria-label="Module cards">
+              {liveCards.map((card) => (
+                <HomeLiveCard key={card.id} card={card} />
+              ))}
+            </div>
+
+            {!setupComplete ? (
+              <section className="home-setup-block mt-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-[0.9rem] font-extrabold text-[#2c2419]">Getting started</h3>
+                  <span className="text-[0.68rem] font-bold tabular-nums text-[#7a6f62]">
+                    {progress.done}/{progress.total}
+                  </span>
+                </div>
+                <div className="home-setup-bar">
+                  <i style={{ width: `${progress.pct}%` }} />
+                </div>
+                <div className="home-task-glass">
+                  {tasks.map((task) => {
+                    const inner = (
+                      <>
+                        <span className={cn("home-task-check", task.done && "on")}>
+                          {task.done ? "✓" : ""}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[0.84rem] font-extrabold text-[#2c2419]">
+                            {task.label}
+                          </span>
+                          <span className="block text-[0.68rem] font-semibold text-[#7a6f62]">
+                            {task.done ? "Done" : task.hint}
+                          </span>
+                        </span>
+                        {task.done ? null : (
+                          <Icon name="chevron_right" className="shrink-0 text-[18px] text-[#7a6f62]" />
+                        )}
+                      </>
+                    );
+
+                    if (task.id === "dates") {
+                      return (
+                        <button
+                          key={task.id}
+                          type="button"
+                          onClick={openScheduleEditor}
+                          disabled={!canEdit || task.done}
+                          className="home-task"
+                        >
+                          {inner}
+                        </button>
+                      );
+                    }
+
+                    if (task.done) {
+                      return (
+                        <div key={task.id} className="home-task">
+                          {inner}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Link key={task.id} to={task.to} className="home-task">
+                        {inner}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : menuWidget ? (
+              <section className="mt-2">
+                <div className="mb-2">
+                  <h3 className="text-[0.9rem] font-extrabold text-[#2c2419]">Menu</h3>
+                </div>
+                <Link to={menuWidget.to} className="home-team-card" aria-label="Open menu">
+                  <span className="home-team-card__av">
+                    <Icon name="restaurant" className="text-[18px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[0.9rem] font-extrabold text-[#2c2419]">
+                        {menuWidget.detail}
+                      </span>
+                      {menuWidget.status === "attention" ? (
+                        <span className="home-team-card__badge">Review</span>
+                      ) : null}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[0.68rem] font-semibold text-[#7a6f62]">
+                      {menuWidget.alert || "Tap to plan courses"}
+                    </span>
+                  </span>
+                  <Icon name="chevron_right" className="shrink-0 text-[18px] text-[#7a6f62]" />
+                </Link>
+              </section>
+            ) : null}
+          </section>
+
           <section
             aria-label="Home overview"
             className={cn(
-              "home-landing-frame bento-card flex flex-col overflow-hidden bg-white",
-              "max-lg:rounded-none max-lg:border-0 max-lg:shadow-none",
+              "hidden lg:flex home-landing-frame bento-card flex-col overflow-hidden bg-white",
               "lg:mx-auto lg:w-full lg:rounded-2xl lg:border",
             )}
           >
@@ -82,6 +199,7 @@ export function CommandCenterPage() {
             />
 
             <div className="home-glass-stage p-3 pb-3.5 lg:p-4">
+              <HomeInviteProgressCard guests={state.guests} />
               <div className="home-widget-grid grid grid-cols-2 gap-2.5 lg:gap-3">
                 {coreWidgets.map((widget) => (
                   <CommandCenterWidget key={widget.id} widget={widget} compact />
@@ -93,8 +211,7 @@ export function CommandCenterPage() {
           {!setupComplete ? (
             <section
               className={cn(
-                "bento-card space-y-3 bg-white p-4",
-                "max-lg:rounded-none max-lg:border-0 max-lg:border-t max-lg:border-[rgba(128,0,32,0.08)] max-lg:shadow-none",
+                "hidden lg:block bento-card space-y-3 bg-white p-4",
                 "lg:rounded-2xl lg:border lg:border-[rgba(128,0,32,0.12)]",
               )}
             >
@@ -154,8 +271,7 @@ export function CommandCenterPage() {
           {buddyWidget ? (
             <section
               className={cn(
-                "bento-card bg-white p-4",
-                "max-lg:rounded-none max-lg:border-0 max-lg:border-t max-lg:border-[rgba(128,0,32,0.08)] max-lg:shadow-none",
+                "hidden lg:block bento-card bg-white p-4",
                 "lg:rounded-2xl lg:border lg:border-[rgba(128,0,32,0.12)]",
               )}
             >

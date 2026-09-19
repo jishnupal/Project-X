@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../design-system/cn";
-import { Icon } from "./Icon";
 
 export type MobileSheetHeight = "content" | "tall" | "full";
 
@@ -14,8 +13,11 @@ type MobileSheetProps = {
   zIndexClass?: string;
   height?: MobileSheetHeight;
   showHandle?: boolean;
+  /** Close control: X (default) or back chevron */
+  headerAction?: "close" | "back";
   className?: string;
   panelClassName?: string;
+  bodyClassName?: string;
   labelledBy?: string;
 };
 
@@ -33,8 +35,10 @@ export function MobileSheet({
   zIndexClass = "z-[70]",
   height = "tall",
   showHandle = true,
+  headerAction = "close",
   className,
   panelClassName,
+  bodyClassName,
   labelledBy,
 }: MobileSheetProps) {
   const titleId = useId();
@@ -104,24 +108,48 @@ export function MobileSheet({
           </div>
         ) : null}
         {title ? (
-          <div className="shrink-0 px-4 pb-2 flex items-center justify-between gap-3">
+          <div className="shrink-0 px-3 pb-2.5 flex items-center gap-2 border-b border-[rgba(26,16,12,0.06)]">
+            {headerAction === "back" ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-10 pl-2.5 pr-3.5 rounded-full bg-[#1a100c] text-white flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a100c]/40"
+                aria-label="Back"
+              >
+                <span className="text-[18px] leading-none font-bold" aria-hidden>
+                  ←
+                </span>
+                <span className="text-[13px] font-extrabold tracking-[-0.01em]">Back</span>
+              </button>
+            ) : null}
             <h2
               id={titleId}
-              className="font-headline-md text-primary text-[20px] leading-tight truncate"
+              className="flex-1 min-w-0 text-[17px] font-extrabold tracking-[-0.02em] text-[#1a100c] leading-tight truncate"
             >
               {title}
             </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-9 w-9 rounded-full border border-[rgba(128,0,32,0.14)] bg-white text-primary flex items-center justify-center shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              aria-label="Close"
-            >
-              <Icon name="close" className="text-[20px]" />
-            </button>
+            {headerAction === "close" ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-10 w-10 rounded-full bg-[#1a100c] text-white flex items-center justify-center shrink-0 cursor-pointer active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a100c]/40"
+                aria-label="Close"
+              >
+                <span className="text-[18px] font-bold leading-none" aria-hidden>
+                  ×
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain touch-pan-y [-webkit-overflow-scrolling:touch]",
+            bodyClassName,
+          )}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

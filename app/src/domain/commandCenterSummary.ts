@@ -3,6 +3,7 @@ import { DEFAULT_BUZZ } from "./defaults";
 import { guestMetrics } from "./guest";
 import { menuItemsArray } from "./menu";
 import { buildSetupTasks, setupProgress } from "./onboardingProgress";
+import { roomMetrics } from "./rooms";
 import type { WeddingState } from "./types";
 
 export type WidgetStatus = "ok" | "attention" | "empty";
@@ -122,15 +123,21 @@ export function buildCommandCenterWidgets(
       alert: "Set up after guests",
     });
   } else {
+    const rm = roomMetrics(state);
+    const allAssigned = rm.unassignedGuests === 0 && rm.totalRooms > 0;
     widgets.push({
       id: "stay",
       title: "Stay",
       icon: "hotel",
       to: "/people/rooms",
-      status: "attention",
+      status: allAssigned ? "ok" : "attention",
       value: String(metrics.stayTotal),
-      detail: "Need rooms",
-      alert: "Tap to map",
+      detail: rm.totalRooms > 0
+        ? `${rm.occupiedRooms}/${rm.totalRooms} rooms · ${rm.assignedGuests} mapped`
+        : "Need rooms",
+      alert: allAssigned ? undefined : rm.totalRooms > 0
+        ? `${rm.unassignedGuests} unmapped`
+        : "Tap to map",
     });
   }
 
@@ -224,6 +231,161 @@ export function buildBuddyOverviewWidget(
     detail: buddyCount === 1 ? "1 helper" : `${buddyCount} helpers`,
     alert: !guestLink ? "Share guest invite link" : buddyCount === 0 ? "Optional — invite helpers" : undefined,
   };
+}
+
+export type HomeLiveTagTone = "ok" | "review" | "setup";
+
+export type HomeLiveCardData = {
+  id: "guests" | "stay" | "buzz" | "buddies";
+  to: string;
+  title: string;
+  icon: string;
+  tag: string;
+  tagTone: HomeLiveTagTone;
+  needsAction: boolean;
+  isOk: boolean;
+  actionLine: string;
+  headline: string;
+  meta: string[];
+  cta: string;
+  parkChrome?: boolean;
+};
+
+function liveTone(status: WidgetStatus): {
+  tag: string;
+  tagTone: HomeLiveTagTone;
+  needsAction: boolean;
+  isOk: boolean;
+  cta: string;
+} {
+  if (status === "ok") {
+    return { tag: "Ready", tagTone: "ok", needsAction: false, isOk: true, cta: "View" };
+  }
+  if (status === "attention") {
+    return { tag: "Review", tagTone: "review", needsAction: true, isOk: false, cta: "Open" };
+  }
+  return { tag: "Setup", tagTone: "setup", needsAction: true, isOk: false, cta: "Open" };
+}
+
+/** Moodboard live-rail: Guests, Stay, Buzz, Buddies. */
+export function buildHomeLiveCards(
+  state: WeddingState,
+  snapshot: AccessSnapshot | null,
+  canManage: boolean,
+): HomeLiveCardData[] {
+  const widgets = buildCommandCenterWidgets(state, snapshot, canManage);
+  const guests = state.guests || [];
+  const metrics = guestMetrics(guests);
+  const guestIssues = guestAlerts(guests);
+  const buzz = { ...DEFAULT_BUZZ, ...state.buzz };
+  const rm = roomMetrics(state);
+
+  const byId = (id: string) => widgets.find((w) => w.id === id);
+
+  const cards: HomeLiveCardData[] = [];
+
+  const guestsWidget = byId("guests");
+  if (guestsWidget) {
+    const tone = liveTone(guestsWidget.status);
+    const pending = guestIssues.pendingInvites;
+    cards.push({
+      id: "guests",
+      to: guestsWidget.to,
+      title: "Guests",
+      icon: "groups",
+      tag: pending > 0 ? `${pending} left` : tone.tag,
+      tagTone: pending > 0 ? "review" : tone.tagTone,
+      needsAction: guestsWidget.status !== "ok",
+      isOk: guestsWidget.status === "ok",
+      actionLine:
+        guests.length === 0
+          ? "Add your guest list"
+          : pending > 0
+            ? "Invites pending"
+            : "Looking good",
+      headline: guests.length === 0 ? "Add guests" : `${metrics.headTotal} people`,
+      meta: guests.length
+        ? [
+            `${metrics.inviteSentTotal} / ${metrics.familyCount} sent`,
+            ...(metrics.stayTotal > 0 ? [`${metrics.stayTotal} stay`] : []),
+          ]
+        : [],
+      cta: tone.cta,
+    });
+  }
+
+  const stayWidget = byId("stay");
+  if (stayWidget) {
+    const tone = liveTone(stayWidget.status);
+    const unmapped = rm.unassignedGuests;
+    cards.push({
+      id: "stay",
+      to: stayWidget.to,
+      title: "Stay",
+      icon: "hotel",
+      tag: stayWidget.status === "attention" ? "Setup" : tone.tag,
+      tagTone: stayWidget.status === "attention" ? "setup" : tone.tagTone,
+      needsAction: stayWidget.status !== "ok",
+      isOk: stayWidget.status === "ok",
+      actionLine:
+        metrics.stayTotal === 0
+          ? stayWidget.alert || stayWidget.detail
+          : rm.totalRooms === 0
+            ? "Need rooms"
+            : unmapped > 0
+              ? `Map ${metrics.stayTotal} rooms`
+              : "Rooms mapped",
+      headline:
+        metrics.stayTotal === 0
+          ? guests.length === 0
+            ? "Set up stay"
+            : "No stay needed"
+          : `${metrics.stayTotal} need stay`,
+      meta: ["Rooms"],
+      cta: "Open",
+    });
+  }
+
+  const buzzWidget = byId("buzz");
+  if (buzzWidget) {
+    const tone = liveTone(buzzWidget.status);
+    const venueSet = Boolean(buzz.venueName?.trim());
+    const mapsSet = Boolean(buzz.venueMapUrl?.trim());
+    cards.push({
+      id: "buzz",
+      to: buzzWidget.to,
+      title: "Buzz",
+      icon: "campaign",
+      tag: tone.tag,
+      tagTone: tone.tagTone,
+      needsAction: buzzWidget.status !== "ok",
+      isOk: buzzWidget.status === "ok",
+      actionLine: buzzWidget.status === "ok" ? "Looking good" : "Finish content",
+      headline: buzz.welcomeTitle?.trim() || "You're invited",
+      meta: [venueSet ? "Venue set" : "Add venue", ...(mapsSet ? ["Maps"] : [])],
+      cta: buzzWidget.status === "ok" ? "View" : "Open",
+    });
+  }
+
+  if (canManage) {
+    cards.push({
+      id: "buddies",
+      to: "/buddies",
+      title: "Buddies",
+      icon: "handshake",
+      tag: "Ready",
+      tagTone: "ok",
+      needsAction: false,
+      isOk: true,
+      actionLine: "Team access",
+      headline: "Buddies",
+      meta: [],
+      cta: "Open",
+      parkChrome: true,
+    });
+  }
+
+  return cards;
 }
 
 export { buildSetupTasks, setupProgress };

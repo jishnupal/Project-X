@@ -1,0 +1,26 @@
+/**
+ * BiyeFlow mobile theme (< lg / 1024px)
+ * Source of truth: DESIGN.mobile.md — warm beige glass
+ * Desktop DESIGN.md tokens remain default outside this scope.
+ */
+@media (max-width: 1023px) {
+  :root {
+    --mobile-bg: #fff8f5;
+    --mobile-bg-2: #f5ece7;
+    --mobile-card: rgba(255, 255, 255, 0.72);
+    --mobile-glass: rgba(255, 255, 255, 0.72);
+    --mobile-ink: #2c2419;
+    --mobile-muted: #7a6f62;
+    --mobile-accent: #ff6a1a;
+    --mobile-accent-2: #ff3d81;
+    --mobile-accent-3: #ffb020;
+    --mobile-accent-soft: rgba(255, 106, 26, 0.14);
+    --mobile-line: rgba(87, 0, 19, 0.1);
+    --mobile-ok: #059669;
+    --mobile-warn: #d97706;
+    --mobile-nav-height: 72px;
+    --mobile-gutter: 16px;
+    --mobile-radius-card: 24px;
+    --mobile-radius-pill: 999px;
+  }
+}

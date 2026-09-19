@@ -241,11 +241,30 @@ export type WeddingScheduleHomeCopy = {
   label: string;
   headline: string;
   detail: string;
+  shortRange: string;
+  eventsLine: string;
 };
+
+function formatHeroRange(first: Date, last: Date): string {
+  const month = first.toLocaleDateString("en-US", { month: "short" });
+  if (
+    first.getFullYear() === last.getFullYear() &&
+    first.getMonth() === last.getMonth() &&
+    first.getDate() === last.getDate()
+  ) {
+    return `${first.getDate()} ${month}`;
+  }
+  if (first.getFullYear() === last.getFullYear() && first.getMonth() === last.getMonth()) {
+    return `${first.getDate()}–${last.getDate()} ${month}`;
+  }
+  const lastMonth = last.toLocaleDateString("en-US", { month: "short" });
+  return `${first.getDate()} ${month} – ${last.getDate()} ${lastMonth}`;
+}
 
 /** Copy for Home hero — range + function names, or a clear setup prompt. */
 export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleHomeCopy {
   const sorted = [...state.functions].sort((a, b) => a.date.localeCompare(b.date));
+  const eventsLine = sorted.map((fn) => fn.name).filter(Boolean).join(" · ");
 
   if (weddingScheduleNeedsSetup(state)) {
     const names = sorted
@@ -254,17 +273,21 @@ export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleH
       .filter(Boolean)
       .join(" · ");
     return {
-      label: "Celebration dates",
+      label: "Dates & events",
       headline: "When is your wedding week?",
       detail: names ? `${names} — tap to set dates` : "Tap to set Sangeet, Marriage & Reception",
+      shortRange: "Dates",
+      eventsLine: names,
     };
   }
 
   if (!sorted.length) {
     return {
-      label: "Celebration dates",
+      label: "Dates & events",
       headline: "No functions yet",
       detail: "Tap to add your celebration dates",
+      shortRange: "Dates",
+      eventsLine: "",
     };
   }
 
@@ -272,14 +295,16 @@ export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleH
   const last = parseIsoDate(sorted[sorted.length - 1].date);
   const headline =
     first && last ? formatCelebrationSpan(first, last) : "Dates saved";
+  const shortRange = first && last ? formatHeroRange(first, last) : "Dates";
 
   const dayCount = sorted.length;
-  const names = sorted.map((fn) => fn.name).join(" · ");
 
   return {
-    label: dayCount === 1 ? "Celebration date" : "Celebration dates",
+    label: "Dates & events",
     headline,
-    detail: `${dayCount} ${dayCount === 1 ? "day" : "days"} · ${names}`,
+    detail: `${dayCount} ${dayCount === 1 ? "day" : "days"} · ${eventsLine}`,
+    shortRange,
+    eventsLine,
   };
 }
 

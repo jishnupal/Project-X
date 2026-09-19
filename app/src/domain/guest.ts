@@ -332,6 +332,7 @@ export function createGuestFromDraft(draft: {
   biyebariCount: string;
   borjatriCount: string;
   stayCount: string;
+  groupId?: string;
 }): GuestRow {
   const totalCount = Math.max(1, parseCount(draft.count) || 1);
   const receptionCount =
@@ -354,7 +355,9 @@ export function createGuestFromDraft(draft: {
     }),
     updatedAt: Date.now(),
   };
-  return syncGuestEventCounts(keepTotalAtLeastEventCounts(normalizeGuestRow(raw)));
+  const row = syncGuestEventCounts(keepTotalAtLeastEventCounts(normalizeGuestRow(raw)));
+  const groupId = String(draft.groupId || "").trim();
+  return groupId ? assignGuestToGroup(row, groupId) : row;
 }
 
 export function guestEventLabelList(row: GuestRow, state: WeddingState): string {
@@ -584,6 +587,8 @@ export function emptyGuestDraft() {
     biyebariCount: "0",
     borjatriCount: "0",
     stayCount: "0",
+    groupId: "",
+    newGroupName: "",
   };
 }
 

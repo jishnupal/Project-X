@@ -41,6 +41,8 @@ npm run deploy:rollback # revert to previous production build
 
 Check live version: `https://biyeflow.pages.dev/version.json`
 
+**Agent note:** Always run deploy with unsandboxed shell (`required_permissions: ["all"]`). If the sandbox proxy blocks Cloudflare (OAuth / fetch failed / API token errors), retry immediately with smart-mode approval — do not start interactive `wrangler login`. See [`.cursor/rules/deploy-cloudflare.mdc`](../.cursor/rules/deploy-cloudflare.mdc).
+
 ## Don't
 
 - Don't edit `DESIGN.md` format randomly — follow awesome-design-md YAML + sections.

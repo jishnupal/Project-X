@@ -1,20 +1,23 @@
 import { useMemo } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import { useAccess } from "../../hooks/useAccess";
 import { Icon } from "../ui/Icon";
+import { SceneIcon } from "../ui/SceneIcon";
 import { cn } from "../../design-system/cn";
 import { PRIMARY_NAV } from "../../domain/navigation";
 import { navChildActive, navItemVisible } from "../../domain/navVisibility";
+import { useNavigateInsideEvent } from "../../navigation/eventHistory";
 
 export function AppSidebar() {
   const { setNewEventModalOpen } = useWeddingState();
-  const { canAccessModule, isGuest, canManage } = useAccess();
+  const { canAccessModule, isGuest, isBuddy, canManage } = useAccess();
   const location = useLocation();
+  const go = useNavigateInsideEvent();
 
   const ctx = useMemo(
-    () => ({ isGuest, canManage, canAccessModule }),
-    [isGuest, canManage, canAccessModule],
+    () => ({ isGuest, isBuddy, canManage, canAccessModule }),
+    [isGuest, isBuddy, canManage, canAccessModule],
   );
 
   const items = useMemo(
@@ -33,7 +36,7 @@ export function AppSidebar() {
         <div>
           <h1 className="font-headline-md text-headline-md text-primary leading-none">BiyeFlow</h1>
           <p className="font-label-caps text-[10px] text-secondary tracking-widest uppercase">
-            Premium Wedding OS
+            Premium Event OS
           </p>
         </div>
       </div>
@@ -42,35 +45,35 @@ export function AppSidebar() {
         {items.map((item) => {
           const active = navChildActive(location.pathname, item);
           return (
-            <NavLink
+            <button
               key={item.id}
-              to={item.to}
+              type="button"
+              onClick={() => go(item.to)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                "flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-left",
                 active
                   ? "bg-secondary-container text-on-secondary-container font-semibold"
                   : "text-secondary hover:bg-surface-container-high",
               )}
             >
-              <Icon name={item.icon} />
+              {item.id === "schedule" ? <SceneIcon className="h-6 w-6 shrink-0" /> : <Icon name={item.icon} />}
               <span className="font-label-caps text-label-caps">{item.label}</span>
-            </NavLink>
+            </button>
           );
         })}
-        <NavLink
-          to="/profile"
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mt-2",
-              isActive
-                ? "bg-secondary-container text-on-secondary-container font-semibold"
-                : "text-secondary hover:bg-surface-container-high",
-            )
-          }
+        <button
+          type="button"
+          onClick={() => go("/event")}
+          className={cn(
+            "flex w-full items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mt-2 text-left",
+            location.pathname === "/event"
+              ? "bg-secondary-container text-on-secondary-container font-semibold"
+              : "text-secondary hover:bg-surface-container-high",
+          )}
         >
-          <Icon name="person" />
-          <span className="font-label-caps text-label-caps">Profile</span>
-        </NavLink>
+          <Icon name="tune" />
+          <span className="font-label-caps text-label-caps">Event</span>
+        </button>
       </nav>
 
       {!isGuest ? (

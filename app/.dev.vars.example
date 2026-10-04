@@ -1,0 +1,12 @@
+# Copy this to .dev.vars and fill in your Google OAuth credentials
+# Get them from: https://console.cloud.google.com/apis/credentials
+#
+# GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+# GOOGLE_CLIENT_SECRET=GOCSPX-your-secret
+# GOOGLE_REDIRECT_URI=http://localhost:8788/api/auth/callback
+
+# Web Push (VAPID) — generate with: npx @pushforge/builder vapid
+# Or use these local-dev keys (replace in production secrets)
+# VAPID_PUBLIC_KEY=BJOiGwCGLGI-IS7Y2c8d9RZIwabNeGSU0xw9R_zsBVBkjbvEaFKyE9WrZhr-MYZJOxADsNaeebEqFNHk0-PEZp8
+# VAPID_PRIVATE_KEY=PX1rhvgXnZ1AqJmKHEGoNkAkC_SRFw89sDtt5spjJB8
+# VAPID_SUBJECT=mailto:hello@biyeflow.app

@@ -1,14 +1,9 @@
 import type { EventInfo } from "./types";
 
-const DAY_NAMES: Record<number, string> = {
-  1: "Sangeet",
-  2: "Marriage",
-  3: "Reception",
-  4: "Borjatri",
-};
+const DAY_NAMES: Record<number, string> = {};
 
 export function dayName(day: number): string {
-  return DAY_NAMES[Number(day)] ?? "Wedding";
+  return DAY_NAMES[Number(day)] ?? "Event";
 }
 
 export function functionOffset(day: number): number {

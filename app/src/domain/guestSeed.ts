@@ -111,7 +111,7 @@ export function buildDemoGuests(count = 100, seed = 20260307): GuestRow[] {
   return rows;
 }
 
-/** Seeded preview rows (`demo-g-*`) — local only, never authority for a live wedding. */
+/** Seeded preview rows (`demo-g-*`) — local only, never authority for a live event. */
 export function isDemoGuestId(id: string | undefined): boolean {
   return String(id || "").startsWith("demo-g-");
 }

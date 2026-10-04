@@ -24,7 +24,7 @@ export function DevApiBanner() {
   return (
     <div
       className={cn(
-        "fixed top-0 inset-x-0 z-[100] px-3 py-2 text-center text-[11px]",
+        "fixed top-0 inset-x-0 z-[45] px-3 py-2 text-center text-[11px]",
         "bg-[#570013] text-white font-button",
       )}
       role="status"

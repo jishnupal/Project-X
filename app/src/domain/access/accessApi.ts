@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 function apiUrl(code: string): string {
-  return `/api/wedding/${encodeURIComponent(code)}/access`;
+  return `/api/event/${encodeURIComponent(code)}/access`;
 }
 
 async function readError(response: Response): Promise<string> {
@@ -91,6 +91,20 @@ export async function provisionWedding(
   return result.snapshot;
 }
 
+export async function openAsHost(
+  code: string,
+  input: { deviceId: string; deviceLabel: string },
+): Promise<{ profile: WeddingProfile; adminToken: string; snapshot: AccessSnapshot }> {
+  return postAccess(code, { action: "openAsHost", ...input });
+}
+
+export async function openAsMember(
+  code: string,
+  input: { deviceId: string; deviceLabel: string },
+): Promise<{ profile: WeddingProfile; adminToken: string; snapshot: AccessSnapshot }> {
+  return postAccess(code, { action: "openAsMember", ...input });
+}
+
 export async function bootstrapAdminProfile(
   code: string,
   input: {
@@ -125,7 +139,7 @@ export async function joinAsBuddy(
     deviceLabel: string;
     name: string;
     avatarId: ProfileAvatarId;
-    pin: string;
+    pin?: string;
   },
 ): Promise<{ profile: WeddingProfile; adminToken: string; snapshot: AccessSnapshot }> {
   return postAccess(code, { action: "joinAsBuddy", ...input });

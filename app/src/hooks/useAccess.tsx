@@ -14,6 +14,8 @@ import {
   heartbeatDevice,
   joinAsBuddy,
   joinAsGuest,
+  openAsHost,
+  openAsMember,
   provisionWedding,
   restoreProfileSession,
   revokeDevice,
@@ -68,6 +70,9 @@ type AccessContextValue = {
     avatarId: ProfileAvatarId;
     pin: string;
   }) => Promise<void>;
+  /** Google host opens an event with no extra passcode. */
+  enterAsHost: (code: string) => Promise<void>;
+  enterAsMember: (code: string) => Promise<void>;
   joinGuest: (input: {
     inviteToken?: string;
     name: string;
@@ -77,7 +82,7 @@ type AccessContextValue = {
     inviteToken: string;
     name: string;
     avatarId: ProfileAvatarId;
-    pin: string;
+    pin?: string;
   }) => Promise<void>;
   unlockProfile: (profileId: string, pin?: string) => Promise<void>;
   resetForgottenPin: (input: { pin: string; confirmPin: string }) => Promise<void>;
@@ -189,7 +194,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const setupAdmin = useCallback(
     async (input: { name: string; avatarId: ProfileAvatarId; pin: string }) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Connect a wedding first.");
+      if (!code) throw new Error("Connect an event first.");
       const deviceId = getOrCreateDeviceId();
       const result = await bootstrapAdminProfile(code, {
         ...input,
@@ -213,10 +218,58 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     [syncCode, persistSession, showToast],
   );
 
+  const enterAsHost = useCallback(
+    async (code: string) => {
+      const weddingCode = code.toUpperCase();
+      const deviceId = getOrCreateDeviceId();
+      const result = await openAsHost(weddingCode, {
+        deviceId,
+        deviceLabel: getDeviceLabel(),
+      });
+      setSnapshot(result.snapshot);
+      persistSession(
+        {
+          weddingCode,
+          profileId: result.profile.id,
+          role: result.profile.role,
+          moduleGrants: result.profile.moduleGrants,
+          adminToken: result.adminToken,
+          deviceId,
+        },
+        result.profile,
+      );
+    },
+    [persistSession],
+  );
+
+  const enterAsMember = useCallback(
+    async (code: string) => {
+      const weddingCode = code.toUpperCase();
+      const deviceId = getOrCreateDeviceId();
+      const result = await openAsMember(weddingCode, {
+        deviceId,
+        deviceLabel: getDeviceLabel(),
+      });
+      setSnapshot(result.snapshot);
+      persistSession(
+        {
+          weddingCode,
+          profileId: result.profile.id,
+          role: result.profile.role,
+          moduleGrants: result.profile.moduleGrants,
+          adminToken: result.adminToken,
+          deviceId,
+        },
+        result.profile,
+      );
+    },
+    [persistSession],
+  );
+
   const joinGuest = useCallback(
     async (input: { inviteToken?: string; name: string; avatarId: ProfileAvatarId }) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Wedding not linked.");
+      if (!code) throw new Error("Event not linked.");
       const deviceId = getOrCreateDeviceId();
       const result = await joinAsGuest(code, {
         ...input,
@@ -245,10 +298,10 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       inviteToken: string;
       name: string;
       avatarId: ProfileAvatarId;
-      pin: string;
+      pin?: string;
     }) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Wedding not linked.");
+      if (!code) throw new Error("Event not linked.");
       const deviceId = getOrCreateDeviceId();
       const result = await joinAsBuddy(code, {
         ...input,
@@ -275,7 +328,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const unlockProfile = useCallback(
     async (profileId: string, pin?: string) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Connect a wedding first.");
+      if (!code) throw new Error("Connect an event first.");
       const deviceId = getOrCreateDeviceId();
       const result = await selectExistingProfile(code, {
         profileId,
@@ -303,7 +356,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const resetForgottenPin = useCallback(
     async (input: { pin: string; confirmPin: string }) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Connect a wedding first.");
+      if (!code) throw new Error("Connect an event first.");
       const deviceId = getOrCreateDeviceId();
       const result = await resetAdminPin(code, {
         pin: input.pin,
@@ -431,10 +484,10 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const provisionWeddingAsSuperAdmin = useCallback(
     async (input: { provisionSecret: string; enabledModules?: ModuleId[] }) => {
       const code = syncCode || getStoredSyncCode();
-      if (!code) throw new Error("Connect a wedding code first.");
+      if (!code) throw new Error("Connect an event code first.");
       const next = await provisionWedding(code, input);
       setSnapshot(next);
-      showToast("Wedding provisioned");
+      showToast("Event provisioned");
     },
     [syncCode, showToast],
   );
@@ -465,6 +518,8 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       canAccessModule,
       refreshAccess,
       setupAdmin,
+      enterAsHost,
+      enterAsMember,
       joinGuest,
       joinBuddy,
       unlockProfile,
@@ -485,6 +540,8 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       canAccessModule,
       refreshAccess,
       setupAdmin,
+      enterAsHost,
+      enterAsMember,
       joinGuest,
       joinBuddy,
       unlockProfile,

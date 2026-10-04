@@ -1,202 +1,292 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type InputHTMLAttributes } from "react";
 import { useAccess } from "../../hooks/useAccess";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import { DEFAULT_BUZZ } from "../../domain/defaults";
 import type { BuzzContent } from "../../domain/types";
-import { Icon } from "../ui/Icon";
-import { cn } from "../../design-system/cn";
+import { BuzzPlayBoard } from "./BuzzPlayBoard";
+import { appendActivity, createActivityItem } from "../../domain/activity";
+import { dispatchPushNotify } from "../../domain/pushClient";
+import { useAuth } from "../../hooks/useAuth";
 
 function BuzzField({
+  id,
   label,
   value,
   onChange,
   multiline,
-  editing,
+  rows = 1,
+  tone = "body",
+  type = "text",
+  inputMode,
+  placeholder,
 }: {
+  id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
-  editing: boolean;
+  rows?: number;
+  tone?: "display" | "body" | "venue" | "quiet";
+  type?: string;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  placeholder?: string;
 }) {
-  if (!editing) {
-    return (
-      <div>
-        <p className="font-label-caps text-[9px] tracking-[0.14em] text-secondary">{label}</p>
-        <p className="text-[14px] text-primary mt-1 whitespace-pre-wrap leading-relaxed">{value}</p>
-      </div>
-    );
-  }
-  const className =
-    "mt-1.5 w-full rounded-xl border border-[rgba(128,0,32,0.14)] bg-white px-3.5 py-2.5 text-primary outline-none focus:border-[#cca730]";
+  const fieldClass = [
+    "buzz-field",
+    tone === "display" && "buzz-field--display",
+    tone === "venue" && "buzz-field--venue",
+    tone === "quiet" && "buzz-field--quiet",
+    multiline && "buzz-field--area",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <label className="block">
-      <span className="font-label-caps text-[9px] tracking-[0.14em] text-primary">{label}</span>
+    <label className="buzz-field-wrap" htmlFor={id}>
+      <span className="sr-only">{label}</span>
       {multiline ? (
         <textarea
+          id={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          className={cn(className, "resize-y min-h-[96px]")}
+          rows={rows}
+          placeholder={placeholder}
+          className={fieldClass}
         />
       ) : (
-        <input value={value} onChange={(e) => onChange(e.target.value)} className={className} />
+        <input
+          id={id}
+          type={type}
+          inputMode={inputMode}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={fieldClass}
+        />
       )}
     </label>
   );
 }
 
+const STALE_VENUE_HINT = "Add venue address in BUZZ edit mode";
+
+function withLiveBuzz(buzz: BuzzContent): BuzzContent {
+  return {
+    ...DEFAULT_BUZZ,
+    ...buzz,
+    venueAddress:
+      !buzz.venueAddress || buzz.venueAddress === STALE_VENUE_HINT
+        ? ""
+        : buzz.venueAddress,
+  };
+}
+
 export function BuzzBoard() {
-  const { state, saveState, showToast } = useWeddingState();
+  const { state, saveState, showToast, syncCode } = useWeddingState();
   const { canAccessModule } = useAccess();
+  const { memberships } = useAuth();
   const canEdit = canAccessModule("buzz", "edit");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<BuzzContent>(() => ({
-    ...DEFAULT_BUZZ,
-    ...state.buzz,
-  }));
+  const [draft, setDraft] = useState<BuzzContent>(() => withLiveBuzz(state.buzz));
+  const [publishing, setPublishing] = useState(false);
 
-  const buzz = useMemo(
-    () => ({ ...DEFAULT_BUZZ, ...state.buzz }),
-    [state.buzz],
+  const buzz = useMemo(() => withLiveBuzz(state.buzz), [state.buzz]);
+  const membership = memberships.find(
+    (m) => m.eventCode.toUpperCase() === (syncCode || "").toUpperCase(),
   );
+  const viewerName = useMemo(() => {
+    try {
+      return sessionStorage.getItem("biyeflow.viewerName") || "";
+    } catch {
+      return "";
+    }
+  }, [state.buzz]);
 
-  const onSave = () => {
+  const onSaveDraft = () => {
     saveState({ ...state, buzz: draft });
     setEditing(false);
-    showToast("BUZZ updated");
+    showToast("Saved");
+  };
+
+  const onPublish = async () => {
+    if (publishing) return;
+    setPublishing(true);
+    try {
+      const item = createActivityItem({
+        type: "buzz.published",
+        title: "New Buzz update",
+        body: draft.welcomeTitle?.trim() || "The host shared a fresh invite note",
+        href: "/buzz",
+        audience: "guest",
+      });
+      const next = appendActivity({ ...state, buzz: draft }, item);
+      saveState(next);
+      setEditing(false);
+      showToast("Buzz published");
+      await dispatchPushNotify({
+        eventId: membership?.eventId,
+        eventCode: syncCode,
+        type: item.type,
+        title: item.title,
+        body: item.body,
+        href: "/command-center",
+        audience: "guest",
+      });
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const content = editing ? draft : buzz;
 
   return (
-    <div className="max-w-lg mx-auto py-3 lg:py-4 px-1 space-y-4 lg:space-y-5">
-      <div className="rounded-2xl lg:rounded-3xl overflow-hidden border border-[rgba(128,0,32,0.12)] bg-gradient-to-br from-[#fff8f0] to-white">
-        <div className="px-4 py-5 lg:px-5 lg:py-6">
-          <p className="font-label-caps text-[8px] lg:text-[9px] tracking-[0.18em] text-[#a67c00]">BUZZ</p>
-          <h1 className="font-headline-md text-primary text-[22px] lg:text-[28px] mt-1.5 lg:mt-2 leading-tight tracking-[-0.01em]">
-            {content.welcomeTitle}
-          </h1>
-          <p className="text-[13px] lg:text-[14px] text-secondary mt-2 lg:mt-3 leading-relaxed whitespace-pre-wrap">
-            {content.welcomeMessage}
-          </p>
-        </div>
-      </div>
+    <div className={editing ? "buzz-page is-editing" : "buzz-page"}>
+      <div className="buzz-page__scroll">
+        <div className="buzz-stage">
+          <div className="buzz-stage__bg" aria-hidden>
+            <img src="/moodboards/assets/buzz-crowd.jpg" alt="" />
+          </div>
+          <div className="buzz-stage__scrim" aria-hidden />
 
-      <section className="rounded-2xl border border-[rgba(128,0,32,0.12)] bg-white p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Icon name="mail" className="text-primary text-[20px]" />
-          <p className="font-headline-md text-primary text-[18px]">Invitation</p>
-        </div>
-        {editing ? (
-          <>
-            <BuzzField
-              label="Welcome title"
-              value={draft.welcomeTitle}
-              onChange={(welcomeTitle) => setDraft({ ...draft, welcomeTitle })}
-              editing
-            />
-            <BuzzField
-              label="Welcome message"
-              value={draft.welcomeMessage}
-              onChange={(welcomeMessage) => setDraft({ ...draft, welcomeMessage })}
-              editing
-              multiline
-            />
-            <BuzzField
-              label="Invitation note"
-              value={draft.invitationNote}
-              onChange={(invitationNote) => setDraft({ ...draft, invitationNote })}
-              editing
-              multiline
-            />
-          </>
-        ) : (
-          <p className="text-[14px] text-primary leading-relaxed whitespace-pre-wrap">
-            {content.invitationNote}
-          </p>
-        )}
-      </section>
-
-      <section className="rounded-2xl border border-[rgba(128,0,32,0.12)] bg-white p-4 space-y-4">
-        <div className="flex items-center gap-2">
-          <Icon name="location_on" className="text-primary text-[20px]" />
-          <p className="font-headline-md text-primary text-[18px]">Venue</p>
-        </div>
-        {editing ? (
-          <>
-            <BuzzField
-              label="Venue name"
-              value={draft.venueName}
-              onChange={(venueName) => setDraft({ ...draft, venueName })}
-              editing
-            />
-            <BuzzField
-              label="Address"
-              value={draft.venueAddress}
-              onChange={(venueAddress) => setDraft({ ...draft, venueAddress })}
-              editing
-              multiline
-            />
-            <BuzzField
-              label="Map link"
-              value={draft.venueMapUrl}
-              onChange={(venueMapUrl) => setDraft({ ...draft, venueMapUrl })}
-              editing
-            />
-          </>
-        ) : (
-          <>
-            <p className="font-headline-md text-primary text-[16px]">{content.venueName}</p>
-            <p className="text-[14px] text-secondary whitespace-pre-wrap">{content.venueAddress}</p>
-            {content.venueMapUrl ? (
-              <a
-                href={content.venueMapUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-[13px] text-primary font-button"
-              >
-                Open in Maps
-                <Icon name="open_in_new" className="text-[16px]" />
-              </a>
-            ) : null}
-          </>
-        )}
-      </section>
-
-      {canEdit ? (
-        <div className="grid gap-2">
           {editing ? (
-            <>
-              <button
-                type="button"
-                onClick={onSave}
-                className="h-11 rounded-full bg-primary text-on-primary font-button text-[13px]"
-              >
-                Save BUZZ
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft({ ...DEFAULT_BUZZ, ...state.buzz });
-                  setEditing(false);
-                }}
-                className="h-11 rounded-full border border-[rgba(128,0,32,0.18)] text-primary font-button text-[13px]"
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="h-11 rounded-full bg-tertiary-container text-on-tertiary-container font-button text-[13px]"
+            <form
+              className="buzz-editor"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void onPublish();
+              }}
             >
-              Edit BUZZ
-            </button>
+              <p className="buzz-kicker">Edit invite</p>
+
+              <BuzzField
+                id="buzz-title"
+                label="Headline"
+                value={draft.welcomeTitle}
+                onChange={(welcomeTitle) => setDraft({ ...draft, welcomeTitle })}
+                tone="display"
+                multiline
+                placeholder="Tonight we celebrate"
+              />
+              <BuzzField
+                id="buzz-message"
+                label="Welcome note"
+                value={draft.welcomeMessage}
+                onChange={(welcomeMessage) => setDraft({ ...draft, welcomeMessage })}
+                multiline
+                placeholder="A line for the people walking in"
+              />
+
+              <div className="buzz-set">
+                <p className="buzz-set__name">The invite</p>
+                <BuzzField
+                  id="buzz-invitation"
+                  label="Invitation line"
+                  value={draft.invitationNote}
+                  onChange={(invitationNote) => setDraft({ ...draft, invitationNote })}
+                  multiline
+                  placeholder="Your presence is the gift"
+                />
+              </div>
+
+              <div className="buzz-set">
+                <p className="buzz-set__name">The place</p>
+                <BuzzField
+                  id="buzz-venue"
+                  label="Venue"
+                  value={draft.venueName}
+                  onChange={(venueName) => setDraft({ ...draft, venueName })}
+                  tone="venue"
+                  placeholder="The house"
+                />
+                <BuzzField
+                  id="buzz-address"
+                  label="Address"
+                  value={draft.venueAddress}
+                  onChange={(venueAddress) => setDraft({ ...draft, venueAddress })}
+                  multiline
+                  placeholder="Street, city"
+                />
+                <BuzzField
+                  id="buzz-map"
+                  label="Maps"
+                  value={draft.venueMapUrl}
+                  onChange={(venueMapUrl) => setDraft({ ...draft, venueMapUrl })}
+                  type="url"
+                  inputMode="url"
+                  tone="quiet"
+                  placeholder="Paste a maps link"
+                />
+              </div>
+
+              <div className="buzz-editor__bar">
+                <button type="submit" className="buzz-cta" disabled={publishing}>
+                  {publishing ? "Sending…" : "Send update"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onSaveDraft}
+                  disabled={publishing}
+                  className="buzz-cta ghost"
+                >
+                  Save only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft(withLiveBuzz(state.buzz));
+                    setEditing(false);
+                  }}
+                  disabled={publishing}
+                  className="buzz-cta ghost"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <section className="buzz-hero">
+                <p className="buzz-kicker">{viewerName || "You're invited"}</p>
+                <h1 className="buzz-display">{content.welcomeTitle}</h1>
+                <p className="buzz-lede">{content.welcomeMessage}</p>
+              </section>
+
+              <section className="buzz-details">
+                <BuzzPlayBoard />
+
+                <div className="buzz-block">
+                  <p className="buzz-lab">Invitation</p>
+                  <p className="buzz-copy">{content.invitationNote}</p>
+                </div>
+
+                <div className="buzz-block">
+                  <p className="buzz-lab">Venue</p>
+                  <p className="buzz-venue">{content.venueName}</p>
+                  {content.venueAddress ? <p className="buzz-addr">{content.venueAddress}</p> : null}
+                  {content.venueMapUrl ? (
+                    <a
+                      href={content.venueMapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="buzz-map"
+                    >
+                      Open in Maps
+                    </a>
+                  ) : null}
+                </div>
+
+                {canEdit ? (
+                  <div className="buzz-actions">
+                    <button type="button" onClick={() => setEditing(true)} className="buzz-cta">
+                      Edit invite
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+            </>
           )}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

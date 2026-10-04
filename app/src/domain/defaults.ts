@@ -1,5 +1,4 @@
 import type { BuzzContent, MenuAddOn, MenuRow, WeddingState } from "./types";
-import { buildDefaultFunctions, PLACEHOLDER_START_DATE } from "./functions";
 import { buildDemoGuests } from "./guestSeed";
 
 export const STORAGE_KEY = "biyeflow.v1";
@@ -27,29 +26,24 @@ export const MENU_ADD_ON_ITEMS: MenuAddOn[] = [
 ];
 
 export const DEFAULT_BUZZ: BuzzContent = {
-  welcomeTitle: "Welcome to our wedding",
+  welcomeTitle: "Welcome to our event",
   welcomeMessage:
     "We are so happy you are here. This page has your invitation details, venue, and everything you need for the celebrations.",
   invitationNote: "Your presence is our greatest gift.",
   venueName: "Main venue",
-  venueAddress: "Add venue address in BUZZ edit mode",
+  venueAddress: "",
   venueMapUrl: "",
 };
 
 export const DEFAULT_WEDDING_STATE: WeddingState = {
   event: {
-    name: "Bengali wedding",
+    name: "Your event",
     city: "",
-    startDate: PLACEHOLDER_START_DATE,
+    startDate: "",
     guests: "",
     scheduleConfirmed: false,
   },
-  functions: buildDefaultFunctions({
-    name: "Bengali wedding",
-    city: "",
-    startDate: PLACEHOLDER_START_DATE,
-    guests: "",
-  }),
+  functions: [],
   tasks: [],
   research: [],
   reminders: [],
@@ -80,7 +74,7 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
       day: 1,
       course: "Evening Snacks",
       items: "Tea\nMocktail\nFish fry\nVeg chop",
-      notes: "Serve near Sangeet entry.",
+      notes: "Serve near the main entry.",
       plateCount: "",
       rate: "",
       status: "Discuss",
@@ -134,7 +128,7 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
         Dessert: ["Mishti Doi", "Rosogolla", "Ice Cream", "Sandesh", "Rabri", "Paan"],
         "Live Counter": ["Radhaballavi", "Hing Aloor Dom"],
       },
-      notes: "Marriage day family meal.",
+      notes: "Main day family meal.",
       plateCount: "800",
       rate: "300",
       status: "Confirmed",
@@ -226,14 +220,15 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
           "Matka Chai",
         ],
       },
-      notes: "Reception main spread.",
+      notes: "Evening main spread.",
       plateCount: "",
       rate: "500",
       status: "Confirmed",
     },
   ].map((row) => ({ ...row, estimate: "" })) as MenuRow[],
+  rooms: [],
   theme: {
-    name: "Classic Bengali elegance",
+    name: "Classic warm elegance",
     palette: "Maroon, ivory, gold, jasmine green",
     mood: "Elegant",
     mustHave: "",
@@ -243,4 +238,7 @@ export const DEFAULT_WEDDING_STATE: WeddingState = {
   grandMealByDay: {},
   guestGroups: [],
   buzz: { ...DEFAULT_BUZZ },
+  modules: { stay: false, menu: false, asked: false },
+  activity: [],
+  dayPlans: {},
 };

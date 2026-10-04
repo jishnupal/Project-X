@@ -8,6 +8,7 @@ type MiniMealCardProps = {
   onOpen: () => void;
   onMakeGrand?: () => void;
   swapping?: boolean;
+  surface?: "default" | "clay";
 };
 
 function MiniMealStatusBadge({ confirmed, empty }: { confirmed: boolean; empty: boolean }) {
@@ -35,7 +36,13 @@ function MiniMealStatusBadge({ confirmed, empty }: { confirmed: boolean; empty: 
   );
 }
 
-export function MiniMealCard({ row, onOpen, onMakeGrand, swapping = false }: MiniMealCardProps) {
+export function MiniMealCard({
+  row,
+  onOpen,
+  onMakeGrand,
+  swapping = false,
+  surface = "default",
+}: MiniMealCardProps) {
   const items = menuItemsArray(row);
   const isEmpty = items.length === 0;
   const icon = mealCourseIcon(row.course as MenuCourse);
@@ -43,6 +50,39 @@ export function MiniMealCard({ row, onOpen, onMakeGrand, swapping = false }: Min
   const isConfirmed = row.status === "Confirmed";
   const courseLabel = row.course === "Evening Snacks" ? "Evening Snacks" : row.course;
   const canPromote = Boolean(onMakeGrand) && isGrandMealCourse(row.course);
+  const thumbClass =
+    row.course === "Breakfast"
+      ? "breakfast"
+      : row.course === "Lunch"
+        ? "lunch"
+        : row.course === "Dinner"
+          ? "dinner"
+          : "snacks";
+
+  if (surface === "clay") {
+    return (
+      <article className="clay-mini-meal">
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+            <span className={cn("clay-mini-meal__thumb", thumbClass)} aria-hidden />
+            <h4 className="m-0 truncate text-[0.88rem] font-extrabold text-[#2c2419]">{courseLabel}</h4>
+          </button>
+          {canPromote ? (
+            <button
+              type="button"
+              onClick={onMakeGrand}
+              className="shrink-0 px-1 py-1.5 text-[0.65rem] font-bold text-[#ffb070]"
+            >
+              Make grand
+            </button>
+          ) : null}
+        </div>
+        <button type="button" onClick={onOpen} className="w-full pl-[46px] text-left text-[0.7rem] font-semibold leading-snug text-[#7a6f62]">
+          {isEmpty ? "Not set" : items.slice(0, 4).join(" · ")}
+        </button>
+      </article>
+    );
+  }
 
   return (
     <article

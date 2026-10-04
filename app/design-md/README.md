@@ -6,7 +6,7 @@ BiyeFlow uses the [DESIGN.md](../DESIGN.md) format from [VoltAgent/awesome-desig
 
 | File | Purpose |
 |------|---------|
-| [`../DESIGN.md`](../DESIGN.md) | **BiyeFlow source of truth** — maroon/gold wedding OS |
+| [`../DESIGN.md`](../DESIGN.md) | **BiyeFlow source of truth** — maroon/gold event OS |
 | [`../AGENTS.md`](../AGENTS.md) | How agents should build in this repo |
 
 ## Local references (inspiration only)

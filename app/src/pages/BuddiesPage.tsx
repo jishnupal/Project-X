@@ -1,259 +1,255 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAccess } from "../hooks/useAccess";
+import { useAuth } from "../hooks/useAuth";
 import { useWeddingState } from "../hooks/useWeddingState";
 import {
-  buddyInviteUrl,
-  guestInviteUrl,
-} from "../domain/access/accessApi";
-import { MODULE_IDS, MODULE_LABELS } from "../domain/access/permissions";
-import {
-  type ModuleGrants,
-  type ModuleId,
-} from "../domain/access/types";
-import { getOrCreateDeviceId } from "../domain/access/deviceLocal";
-import { ProfileAvatarBadge } from "../components/access/ProfileAvatarPicker";
-import { Icon } from "../components/ui/Icon";
+  buddyTaskProgress,
+  createBuddyTask,
+  listBuddies,
+  touchBuddyTask,
+} from "../domain/buddies";
+import { appendActivity, createActivityItem } from "../domain/activity";
+import { dispatchPushNotify } from "../domain/pushClient";
+import { touchGuestRow } from "../domain/guest";
+import type { BuddyTask } from "../domain/types";
+import { BuddyHelperCard } from "../components/access/BuddyHelperCard";
+import { BuddyTaskCard } from "../components/access/BuddyTaskCard";
+import { AddBuddySheet } from "../components/access/AddBuddySheet";
+import { BuddyEditSheet } from "../components/access/BuddyEditSheet";
+import { CreateBuddyTaskSheet } from "../components/access/CreateBuddyTaskSheet";
 import { ConfirmDangerDialog } from "../components/ui/ConfirmDangerDialog";
+import { HelperTaskBoard } from "../components/access/HelperTaskBoard";
 import { SessionLoading } from "../components/layout/SessionLoading";
-
-function PinInput({
-  value,
-  onChange,
-  label,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  label: string;
-}) {
-  return (
-    <label className="block">
-      <span className="font-label-caps text-[9px] tracking-[0.14em] text-primary">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-        inputMode="numeric"
-        maxLength={4}
-        placeholder="••••"
-        className="mt-1.5 w-full h-12 rounded-xl border border-[rgba(128,0,32,0.14)] bg-white px-4 text-center tracking-[0.5em] text-lg text-primary outline-none focus:border-[#cca730]"
-      />
-    </label>
-  );
-}
+import { Icon } from "../components/ui/Icon";
 
 export function BuddiesPage() {
-  const { syncCode, showToast } = useWeddingState();
-  const {
-    snapshot,
-    profile,
-    session,
-    isAdmin,
-    adminUnlocked,
-    unlockProfile,
-    saveBuddyGrants,
-    loadInviteLinks,
-    removeDevice,
-    canManage,
-  } = useAccess();
+  const { state, setState, showToast, syncCode } = useWeddingState();
+  const { session, canManage } = useAccess();
+  const { memberships } = useAuth();
 
-  const [unlockPin, setUnlockPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [pendingRevoke, setPendingRevoke] = useState<string | null>(null);
-  const [guestLink, setGuestLink] = useState("");
-  const [buddyLink, setBuddyLink] = useState("");
-  const [buddyDrafts, setBuddyDrafts] = useState<Record<string, ModuleGrants>>({});
+  const [addOpen, setAddOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<BuddyTask | null>(null);
+  const [editBuddyId, setEditBuddyId] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<string | null>(null);
 
-  const thisDeviceId = useMemo(() => getOrCreateDeviceId(), []);
-
-  useEffect(() => {
-    if (!isAdmin || !adminUnlocked) return;
-    void loadInviteLinks()
-      .then((links) => {
-        setGuestLink(guestInviteUrl(links.guest));
-        setBuddyLink(buddyInviteUrl(links.buddy));
-      })
-      .catch(() => undefined);
-  }, [isAdmin, adminUnlocked, loadInviteLinks]);
-
-  const buddies = useMemo(
-    () => (snapshot?.profiles || []).filter((p) => p.role === "buddy"),
-    [snapshot],
+  const buddies = useMemo(() => listBuddies(state.guests), [state.guests]);
+  const tasks = state.tasks || [];
+  const progress = buddyTaskProgress(tasks);
+  const editingBuddy = buddies.find((row) => row.id === editBuddyId) || null;
+  const membership = memberships.find(
+    (m) => m.eventCode.toUpperCase() === (syncCode || "").toUpperCase(),
   );
 
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    try {
-      await fn();
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
+  if (!syncCode || !session) return <SessionLoading />;
+  if (session.role === "buddy") return <HelperTaskBoard />;
+  if (!canManage) return <Navigate to="/command-center" replace />;
+
+  const addHelper = (guestId: string) => {
+    setState((prev) => ({
+      ...prev,
+      guests: prev.guests.map((row) =>
+        row.id === guestId ? touchGuestRow({ ...row, isBuddy: true }) : row,
+      ),
+    }));
+    showToast("Buddy added");
   };
 
-  if (!syncCode || !session) return <SessionLoading />;
+  const removeHelper = (guestId: string) => {
+    setState((prev) => ({
+      ...prev,
+      guests: prev.guests.map((row) =>
+        row.id === guestId ? touchGuestRow({ ...row, isBuddy: false }) : row,
+      ),
+    }));
+    showToast("Buddy removed");
+  };
 
-  if (!canManage) {
-    return <Navigate to="/command-center" replace />;
-  }
+  const saveTask = (title: string, guestId: string) => {
+    const isEdit = Boolean(editingTask);
+    const buddyName =
+      state.guests.find((row) => row.id === guestId)?.name?.trim() || "Buddy";
+    const item = createActivityItem({
+      type: "task.assigned",
+      title: isEdit ? "Task updated" : "New task for you",
+      body: title.trim(),
+      href: "/buddies",
+      audience: "buddy",
+      targetGuestId: guestId,
+    });
+
+    setState((prev) => {
+      const withTasks = isEdit
+        ? {
+            ...prev,
+            tasks: prev.tasks.map((row) =>
+              row.id === editingTask!.id ? touchBuddyTask(row, { title, guestId }) : row,
+            ),
+          }
+        : { ...prev, tasks: [createBuddyTask(title, guestId), ...prev.tasks] };
+      return appendActivity(withTasks, item);
+    });
+    showToast(isEdit ? "Task saved" : "Task added");
+    setEditingTask(null);
+    void dispatchPushNotify({
+      eventId: membership?.eventId,
+      eventCode: syncCode,
+      type: item.type,
+      title: item.title,
+      body: `${buddyName}: ${title.trim()}`,
+      href: "/command-center",
+      audience: "buddy",
+      targetGuestId: guestId,
+    });
+  };
+
+  const toggleTask = (taskId: string) => {
+    setState((prev) => ({
+      ...prev,
+      tasks: prev.tasks.map((row) =>
+        row.id === taskId ? touchBuddyTask(row, { done: !row.done }) : row,
+      ),
+    }));
+  };
+
+  const deleteTask = (taskId: string) => {
+    setState((prev) => ({
+      ...prev,
+      tasks: prev.tasks.filter((row) => row.id !== taskId),
+    }));
+    showToast("Task deleted");
+  };
+
+  const openNewTask = () => {
+    if (buddies.length === 0) {
+      setAddOpen(true);
+      showToast("Add a buddy first");
+      return;
+    }
+    setEditingTask(null);
+    setTaskOpen(true);
+  };
+
+  const helperWord = buddies.length === 1 ? "buddy" : "buddies";
+  const progressLine =
+    tasks.length === 0
+      ? `${buddies.length} ${helperWord}`
+      : `${progress.done} of ${progress.total} done · ${buddies.length} ${helperWord}`;
 
   return (
-    <div className="max-w-lg mx-auto py-4 lg:py-6 px-1 space-y-4 lg:space-y-6">
-      <div>
-        <p className="font-label-caps text-[9px] tracking-[0.16em] text-secondary">People</p>
-        <h1 className="font-headline-md text-primary text-[26px] mt-1">Buddies</h1>
-        <p className="text-[13px] text-secondary mt-2">
-          Invite helpers and choose what each Buddy can edit.
-        </p>
+    <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain overflow-x-clip px-5 pt-3 pb-[calc(8.8rem+env(safe-area-inset-bottom))] people-stage-touch mx-auto w-full max-w-lg">
+        <header className="buddies-head">
+          <h1 className="buddies-title">Buddies</h1>
+          <p className="buddies-progress">
+            {buddies.length === 0 ? "Pick people from the guest list." : progressLine}
+          </p>
+        </header>
+
+        {buddies.length === 0 ? (
+          <button type="button" className="buddies-invite" onClick={() => setAddOpen(true)}>
+            <Icon name="add" className="text-[22px]" />
+            <span className="buddies-invite__copy">
+              <span className="buddies-invite__title">Pick someone from the guest list</span>
+              <span className="buddies-invite__meta">They become your crew for the event.</span>
+            </span>
+          </button>
+        ) : (
+          <div className="buddies-crew">
+            {buddies.map((buddy, index) => (
+              <BuddyHelperCard
+                key={buddy.id}
+                buddy={buddy}
+                tasks={tasks}
+                tone={index}
+                onOpen={() => setEditBuddyId(buddy.id)}
+              />
+            ))}
+            <button type="button" className="buddies-person is-add" onClick={() => setAddOpen(true)}>
+              <span className="buddies-person__face is-add-face">
+                <Icon name="add" className="text-[18px]" />
+              </span>
+              <span className="buddies-person__name">Add buddy</span>
+              <span className="buddies-person__meta">From guests</span>
+            </button>
+          </div>
+        )}
+
+        {buddies.length > 0 ? (
+          <>
+            <p className="buddies-kicker">Tasks</p>
+            {tasks.length === 0 ? (
+              <p className="buddies-empty">Nothing assigned yet.</p>
+            ) : (
+              <div className="buddies-task-list">
+                {tasks.map((task) => (
+                  <BuddyTaskCard
+                    key={task.id}
+                    task={task}
+                    buddy={state.guests.find((row) => row.id === task.guestId)}
+                    onToggle={() => toggleTask(task.id)}
+                    onEdit={() => {
+                      setEditingTask(task);
+                      setTaskOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <button type="button" onClick={openNewTask} className="buddies-cta">
+              Add task
+            </button>
+          </>
+        ) : null}
       </div>
 
-      {isAdmin && !adminUnlocked ? (
-        <section className="space-y-3 rounded-2xl border border-[rgba(128,0,32,0.12)] bg-[#fff8f0] p-4">
-          <p className="font-headline-md text-primary text-[16px]">Unlock Admin</p>
-          <p className="text-[12px] text-secondary">Enter your PIN to manage Buddies and invite links.</p>
-          <PinInput value={unlockPin} onChange={setUnlockPin} label="4-digit PIN" />
-          <button
-            type="button"
-            disabled={busy || unlockPin.length !== 4 || !profile}
-            onClick={() => void run(() => unlockProfile(profile!.id, unlockPin))}
-            className="w-full h-11 rounded-full bg-primary text-on-primary font-button text-[13px] disabled:opacity-40"
-          >
-            Unlock
-          </button>
-        </section>
-      ) : null}
-
-      {isAdmin && adminUnlocked ? (
-        <>
-          <section className="space-y-3 rounded-2xl border border-[rgba(128,0,32,0.12)] bg-white p-4">
-            <p className="font-label-caps text-[9px] tracking-[0.14em] text-primary">Invite links</p>
-            <p className="text-[12px] text-secondary">
-              Guest link opens BUZZ (view-only). Buddy link lets helpers join with a PIN.
-            </p>
-            {guestLink ? (
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-secondary font-label-caps tracking-wider">Guest · BUZZ</p>
-                <button
-                  type="button"
-                  onClick={() => void navigator.clipboard.writeText(guestLink).then(() => showToast("Guest link copied"))}
-                  className="w-full text-left rounded-xl border border-[rgba(128,0,32,0.12)] px-3 py-2 text-[11px] text-primary break-all"
-                >
-                  {guestLink}
-                </button>
-              </div>
-            ) : null}
-            {buddyLink ? (
-              <div className="space-y-1.5">
-                <p className="text-[10px] text-secondary font-label-caps tracking-wider">Buddy</p>
-                <button
-                  type="button"
-                  onClick={() => void navigator.clipboard.writeText(buddyLink).then(() => showToast("Buddy link copied"))}
-                  className="w-full text-left rounded-xl border border-[rgba(128,0,32,0.12)] px-3 py-2 text-[11px] text-primary break-all"
-                >
-                  {buddyLink}
-                </button>
-              </div>
-            ) : null}
-          </section>
-
-          <section className="space-y-3 rounded-2xl border border-[rgba(128,0,32,0.12)] bg-white p-4">
-            <p className="font-label-caps text-[9px] tracking-[0.14em] text-primary">Your Buddies</p>
-            {buddies.length === 0 ? (
-              <p className="text-[12px] text-secondary">No Buddies yet. Share the Buddy invite link.</p>
-            ) : (
-              <ul className="space-y-3">
-                {buddies.map((buddy) => {
-                  const draft = buddyDrafts[buddy.id] ?? buddy.moduleGrants;
-                  return (
-                    <li key={buddy.id} className="rounded-xl bg-[rgba(128,0,32,0.04)] p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <ProfileAvatarBadge avatarId={buddy.avatarId} size={36} />
-                        <p className="text-[14px] text-primary font-medium">{buddy.name}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {MODULE_IDS.filter((m) => m !== "access").map((moduleId) => (
-                          <label key={moduleId} className="flex items-center gap-2 text-[11px] text-secondary">
-                            <input
-                              type="checkbox"
-                              checked={(draft[moduleId] || "none") === "edit" || (draft[moduleId] || "none") === "view"}
-                              onChange={(e) => {
-                                const next: ModuleGrants = {
-                                  ...draft,
-                                  [moduleId]: e.target.checked ? "edit" : "none",
-                                };
-                                setBuddyDrafts((prev) => ({ ...prev, [buddy.id]: next }));
-                              }}
-                            />
-                            {MODULE_LABELS[moduleId as ModuleId]}
-                          </label>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          void run(() => saveBuddyGrants(buddy.id, buddyDrafts[buddy.id] ?? buddy.moduleGrants))
-                        }
-                        className="h-9 px-3 rounded-full border border-[rgba(128,0,32,0.18)] text-[11px] text-primary font-button"
-                      >
-                        Save access
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-
-          <section className="space-y-3 rounded-2xl border border-[rgba(128,0,32,0.12)] bg-white p-4">
-            <p className="font-label-caps text-[9px] tracking-[0.14em] text-primary">Devices (24h)</p>
-            <ul className="space-y-2">
-              {(snapshot?.devices || []).map((device) => {
-                const owner = snapshot?.profiles.find((p) => p.id === device.profileId);
-                const mine = device.deviceId === thisDeviceId;
-                return (
-                  <li
-                    key={device.deviceId}
-                    className="flex items-center gap-3 rounded-xl bg-[rgba(128,0,32,0.04)] px-3 py-2.5"
-                  >
-                    <Icon name="smartphone" className="text-primary text-[20px]" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] text-primary font-medium truncate">
-                        {device.label}
-                        {mine ? " · this device" : ""}
-                      </p>
-                      <p className="text-[11px] text-secondary truncate">
-                        {owner?.name || "Unknown"} · {new Date(device.lastSeenAt).toLocaleString()}
-                      </p>
-                    </div>
-                    {!mine ? (
-                      <button
-                        type="button"
-                        onClick={() => setPendingRevoke(device.deviceId)}
-                        className="text-[11px] text-error font-button"
-                      >
-                        Remove
-                      </button>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        </>
-      ) : null}
-
-      {pendingRevoke ? (
+      <AddBuddySheet
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        guests={state.guests}
+        onAdd={addHelper}
+      />
+      <CreateBuddyTaskSheet
+        open={taskOpen}
+        onClose={() => {
+          setTaskOpen(false);
+          setEditingTask(null);
+        }}
+        buddies={buddies}
+        editing={editingTask}
+        onSave={saveTask}
+        onDelete={
+          editingTask
+            ? () => {
+                deleteTask(editingTask.id);
+                setEditingTask(null);
+              }
+            : undefined
+        }
+      />
+      <BuddyEditSheet
+        open={Boolean(editingBuddy)}
+        onClose={() => setEditBuddyId(null)}
+        buddy={editingBuddy}
+        tasks={tasks}
+        onToggleTask={toggleTask}
+        onRemove={() => {
+          if (!editingBuddy) return;
+          setPendingRemove(editingBuddy.id);
+        }}
+      />
+      {pendingRemove ? (
         <ConfirmDangerDialog
-          title="Remove this device?"
-          message="It will stop syncing until someone joins again."
-          confirmLabel="Remove device"
+          title="Remove this buddy?"
+          message="They stay on the guest list. Tasks already assigned to them stay in the list."
+          confirmLabel="Remove buddy"
           cancelLabel="Keep"
-          onCancel={() => setPendingRevoke(null)}
+          onCancel={() => setPendingRemove(null)}
           onConfirm={() => {
-            const id = pendingRevoke;
-            setPendingRevoke(null);
-            void run(() => removeDevice(id));
+            removeHelper(pendingRemove);
+            setPendingRemove(null);
+            setEditBuddyId(null);
           }}
         />
       ) : null}

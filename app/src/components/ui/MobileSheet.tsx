@@ -15,6 +15,7 @@ type MobileSheetProps = {
   showHandle?: boolean;
   /** Close control: X (default) or back chevron */
   headerAction?: "close" | "back";
+  headerExtra?: ReactNode;
   className?: string;
   panelClassName?: string;
   bodyClassName?: string;
@@ -36,6 +37,7 @@ export function MobileSheet({
   height = "tall",
   showHandle = true,
   headerAction = "close",
+  headerExtra,
   className,
   panelClassName,
   bodyClassName,
@@ -128,6 +130,7 @@ export function MobileSheet({
             >
               {title}
             </h2>
+            {headerExtra}
             {headerAction === "close" ? (
               <button
                 type="button"

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BiyeFlow — Local Rooms preview</title>
+  </head>
+  <body>
+    <p style="font-family: system-ui; padding: 24px">Opening Rooms with sample stay guests…</p>
+    <script>
+      // Offline UI preview — skips cloud API. Hard-resets session so you always see latest Rooms UI.
+      const STORAGE_KEY = "biyeflow.v1";
+
+      localStorage.setItem("biyeflow.syncCode", "LOCALPRE");
+      localStorage.setItem("biyeflow.accountCode", "LOCALPRE");
+      localStorage.setItem(
+        "biyeflow.accessSession",
+        JSON.stringify({
+          weddingCode: "LOCALPRE",
+          profileId: "admin-local",
+          role: "admin",
+          moduleGrants: {},
+          adminToken: "local",
+          deviceId: "local-device",
+        }),
+      );
+      localStorage.setItem(
+        "biyeflow.syncMeta",
+        JSON.stringify({ cloudVersion: 0, dirty: false, lastSyncedAt: Date.now() }),
+      );
+
+      // Unregister stale PWA caches that hide Vite HMR updates on localhost.
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister());
+        });
+      }
+      if ("caches" in window) {
+        caches.keys().then((keys) => {
+          keys
+            .filter((k) => k.includes("biyeflow") || k.includes("workbox") || k.includes("precache"))
+            .forEach((k) => caches.delete(k));
+        });
+      }
+
+      let state;
+      try {
+        state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      } catch (_) {
+        state = null;
+      }
+      if (!state || typeof state !== "object") {
+        state = {
+          event: {
+            name: "Local preview event",
+            city: "",
+            startDate: "2026-12-12",
+            guests: "",
+            scheduleConfirmed: false,
+          },
+          functions: [],
+          tasks: [],
+          research: [],
+          reminders: [],
+          guests: [],
+          guestGroups: [],
+          menu: [],
+          rooms: [],
+          theme: {},
+          grandMealByDay: {},
+          buzz: {},
+        };
+      }
+
+      const staySample = [
+        { id: "local-stay-1", name: "Banerjee family", count: "4", stayCount: "4", needsStay: true, nights: "2" },
+        { id: "local-stay-2", name: "Das", count: "1", stayCount: "1", needsStay: true, nights: "3" },
+        { id: "local-stay-3", name: "Sen & Guha", count: "2", stayCount: "2", needsStay: true, nights: "2" },
+        { id: "local-stay-4", name: "Mukherjee clan", count: "6", stayCount: "6", needsStay: true, nights: "2" },
+      ];
+
+      const guests = Array.isArray(state.guests) ? state.guests.slice() : [];
+      for (const row of staySample) {
+        const i = guests.findIndex((g) => g && g.id === row.id);
+        if (i >= 0) guests[i] = { ...guests[i], ...row };
+        else guests.push({ inviteSent: false, checkIn: "", rooms: "1", side: "Family", ...row });
+      }
+      state.guests = guests;
+      if (!Array.isArray(state.rooms)) state.rooms = [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+      const go = new URLSearchParams(location.search).get("to") || "/people/rooms";
+      location.replace(go.startsWith("/") ? go : "/people/rooms");
+    </script>
+  </body>
+</html>

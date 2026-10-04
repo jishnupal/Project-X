@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GuestRow } from "../../domain/types";
-import { MobileSheet } from "../ui/MobileSheet";
+import { MobileSheet, type MobileSheetHeight } from "../ui/MobileSheet";
 import { Icon } from "../ui/Icon";
 import { InviteFluidBar } from "../ui/InviteFluidBar";
 import { cn } from "../../design-system/cn";
@@ -11,7 +11,15 @@ type InviteTrackerSheetProps = {
   guests: GuestRow[];
   dayLabel: string;
   onToggleInvite?: (guestId: string, sent: boolean) => void;
+  onSendInvite?: (guestId: string) => void;
+  sendBusyGuestId?: string | null;
+  /** Scroll/highlight this guest after send or deep-link. */
+  focusGuestId?: string | null;
+  onFocusGuestHandled?: () => void;
   onOpenGuest?: (guestId: string) => void;
+  onAddGuests?: () => void;
+  height?: MobileSheetHeight;
+  headerAction?: "close" | "back";
 };
 
 function parseCount(v: string | number | undefined): number {
@@ -48,9 +56,34 @@ export function InviteTrackerSheet({
   guests,
   dayLabel,
   onToggleInvite,
+  onSendInvite,
+  sendBusyGuestId = null,
+  focusGuestId = null,
+  onFocusGuestHandled,
   onOpenGuest,
+  onAddGuests,
+  height = "tall",
+  headerAction = "close",
 }: InviteTrackerSheetProps) {
   const [search, setSearch] = useState("");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const focusRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open || !focusGuestId) return;
+    setHighlightId(focusGuestId);
+    const frame = window.requestAnimationFrame(() => {
+      focusRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    const clear = window.setTimeout(() => {
+      setHighlightId(null);
+      onFocusGuestHandled?.();
+    }, 2200);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(clear);
+    };
+  }, [open, focusGuestId, onFocusGuestHandled]);
 
   const { sent, pending } = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -78,8 +111,9 @@ export function InviteTrackerSheet({
       open={open}
       onClose={onClose}
       title="Invite Tracker"
-      height="tall"
-      zIndexClass="z-[70]"
+      height={height}
+      headerAction={headerAction}
+      zIndexClass="z-[80]"
       panelClassName="bg-[#fffbf0] invite-tracker-sheet"
       bodyClassName="overflow-hidden"
     >
@@ -130,6 +164,15 @@ export function InviteTrackerSheet({
             className="w-full h-10 pl-9 pr-3 rounded-xl border border-[rgba(128,0,32,0.12)] bg-white text-[13px] outline-none focus:border-[#cca730]/50 focus-visible:ring-2 focus-visible:ring-[#cca730]/30"
           />
         </div>
+        {onAddGuests ? (
+          <button
+            type="button"
+            onClick={onAddGuests}
+            className="mt-3 inline-flex h-11 items-center justify-center rounded-full bg-[#feca43] px-5 text-[15px] font-semibold text-black"
+          >
+            Contacts
+          </button>
+        ) : null}
       </div>
 
       {/* Lists */}
@@ -149,10 +192,12 @@ export function InviteTrackerSheet({
               {pending.map((guest, i) => (
                 <div
                   key={guest.id}
+                  ref={guest.id === focusGuestId || guest.id === highlightId ? focusRef : undefined}
                   className={cn(
                     "invite-tracker-row flex items-center gap-2.5 rounded-2xl border border-[#f59e0b]/20 bg-[#fffbeb] px-3 py-2.5",
                     "shadow-[0_2px_8px_-4px_rgba(245,158,11,0.12)]",
                     onOpenGuest && "active:scale-[0.99] transition-transform",
+                    highlightId === guest.id && "ring-2 ring-[#feca43] ring-offset-2 ring-offset-[#fffbf0]",
                   )}
                   style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
                 >
@@ -184,6 +229,18 @@ export function InviteTrackerSheet({
                       Pending
                     </span>
                   </button>
+                  {onSendInvite ? (
+                    <button
+                      type="button"
+                      data-testid="tracker-send-invite"
+                      disabled={sendBusyGuestId === guest.id || !guest.name.trim()}
+                      onClick={() => onSendInvite(guest.id)}
+                      aria-label={`Send invite to ${guest.name}`}
+                      className="h-[30px] shrink-0 rounded-xl px-2.5 text-[10px] font-extrabold bg-[#feca43] text-[#2c2419] border border-[#e6b93a] active:scale-95 transition-transform disabled:opacity-50"
+                    >
+                      {sendBusyGuestId === guest.id ? "…" : "Send"}
+                    </button>
+                  ) : null}
                   {onToggleInvite ? (
                     <button
                       type="button"
@@ -215,10 +272,12 @@ export function InviteTrackerSheet({
               {sent.map((guest, i) => (
                 <div
                   key={guest.id}
+                  ref={guest.id === focusGuestId || guest.id === highlightId ? focusRef : undefined}
                   className={cn(
                     "invite-tracker-row flex items-center gap-2.5 rounded-2xl border border-[#22c55e]/20 bg-[#f0fdf4] px-3 py-2.5",
                     "shadow-[0_2px_8px_-4px_rgba(34,197,94,0.12)]",
                     onOpenGuest && "active:scale-[0.99] transition-transform",
+                    highlightId === guest.id && "ring-2 ring-[#feca43] ring-offset-2 ring-offset-[#fffbf0]",
                   )}
                   style={{ animationDelay: `${Math.min(pending.length + i, 10) * 45}ms` }}
                 >
@@ -250,14 +309,16 @@ export function InviteTrackerSheet({
                       Invited
                     </span>
                   </button>
-                  {onToggleInvite ? (
+                  {onSendInvite ? (
                     <button
                       type="button"
-                      onClick={() => onToggleInvite(guest.id, false)}
-                      aria-label={`Mark ${guest.name} as pending`}
-                      className="h-[30px] w-[30px] rounded-xl grid place-items-center bg-[#fef3c7] text-[#92400e] border border-[#f59e0b]/25 shrink-0 active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f59e0b]/40"
+                      data-testid="tracker-resend-invite"
+                      disabled={sendBusyGuestId === guest.id || !guest.name.trim()}
+                      onClick={() => onSendInvite(guest.id)}
+                      aria-label={`Resend invite to ${guest.name}`}
+                      className="h-[30px] shrink-0 rounded-xl px-2.5 text-[10px] font-extrabold bg-white text-[#2c2419] border border-[#d8cfc8] active:scale-95 transition-transform disabled:opacity-50"
                     >
-                      <Icon name="undo" className="text-[16px]" />
+                      {sendBusyGuestId === guest.id ? "…" : "Resend"}
                     </button>
                   ) : null}
                 </div>
@@ -269,10 +330,23 @@ export function InviteTrackerSheet({
         {sent.length === 0 && pending.length === 0 && (
           <div className="rounded-2xl border border-dashed border-[rgba(128,0,32,0.15)] bg-white/60 px-4 py-8 text-center mt-4">
             <Icon name="mark_email_read" className="text-[32px] text-secondary/40 mb-2" />
-            <p className="font-headline-md text-primary text-[18px]">No guests found</p>
-            <p className="text-[12px] text-secondary mt-1">
-              {search ? "Try a different search." : "Add guests to start tracking invitations."}
+            <p className="font-headline-md text-primary text-[18px]">
+              {guests.length === 0 ? "No guests yet" : "No guests found"}
             </p>
+            <p className="text-[12px] text-secondary mt-1">
+              {guests.length === 0
+            ? "Add people, then come back to see who said yes."
+                : "Try a different search."}
+            </p>
+            {guests.length === 0 && onAddGuests ? (
+              <button
+                type="button"
+                onClick={onAddGuests}
+                className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#feca43] px-5 text-[15px] font-semibold text-black"
+              >
+                Open contacts
+              </button>
+            ) : null}
           </div>
         )}
       </div>

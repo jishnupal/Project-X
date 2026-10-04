@@ -87,7 +87,9 @@ writeJson(versionPath, versionData);
 console.log(`version.json → ${JSON.stringify(versionData)}`);
 
 console.log("Deploying to Cloudflare Pages...");
-const deployOutput = run(`npx wrangler pages deploy dist --project-name=${projectName}`);
+const deployOutput = run(
+  `npx wrangler pages deploy dist --project-name=${projectName} --branch=main --commit-dirty=true`,
+);
 process.stdout.write(deployOutput);
 
 const latest = getProductionDeployment();

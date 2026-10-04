@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#fff8f5" />
     <meta name="color-scheme" content="light only" />
-    <meta name="description" content="BiyeFlow - Premium Bengali wedding control room" />
+    <meta name="description" content="Host events — invites, guests, Buzz, and day-of ops in one place." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -68,7 +68,7 @@
     <script>
       (function () {
         // Nuclear cache clear: unregister all old SWs and purge caches once per build
-        var SHELL_V = "v19";
+        var SHELL_V = "v42";
         if (localStorage.getItem("bf.sv") !== SHELL_V) {
           localStorage.setItem("bf.sv", SHELL_V);
           var did = false;
@@ -105,10 +105,15 @@
         if (!standalone || ios) {
           var vp = document.querySelector('meta[name="viewport"]');
           if (vp) {
-            vp.setAttribute(
-              "content",
-              (vp.getAttribute("content") || "").replace("viewport-fit=cover", "viewport-fit=contain")
+            var next = (vp.getAttribute("content") || "").replace(
+              "viewport-fit=cover",
+              "viewport-fit=contain"
             );
+            if (next.indexOf("maximum-scale") === -1) {
+              next =
+                "width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=contain";
+            }
+            vp.setAttribute("content", next);
           }
         }
 

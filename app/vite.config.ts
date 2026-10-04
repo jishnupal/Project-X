@@ -52,7 +52,7 @@ export default defineConfig({
         background_color: "#fff8f5",
         display: "standalone",
         orientation: "portrait-primary",
-        start_url: "/command-center",
+        start_url: "/",
         icons: [
           {
             src: "icons/icon-192.png",
@@ -81,7 +81,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        cacheId: "biyeflow-shell-7",
+        cacheId: "biyeflow-shell-23",
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
@@ -89,9 +89,11 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,ico,png,svg}", "**/manrope*.woff2", "**/playfair*.woff2"],
         globIgnores: ["**/version.json", "**/*material-symbols*", "**/index.html"],
         navigateFallback: undefined,
+        importScripts: ["push-sw-handlers.js"],
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.mode === "navigate",
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" && !url.pathname.startsWith("/api/"),
             handler: "NetworkFirst",
             options: {
               cacheName: "biyeflow-pages",

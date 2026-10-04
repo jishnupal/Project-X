@@ -22,11 +22,12 @@ export const PRIMARY_NAV: AppNavItem[] = [
     guestVisible: false,
   },
   {
-    id: "people",
-    label: "People",
-    shortLabel: "People",
-    icon: "groups",
-    to: "/people",
+    id: "schedule",
+    label: "Scene",
+    shortLabel: "Scene",
+    icon: "preview",
+    to: "/people/guests",
+    module: "guests",
     guestVisible: false,
   },
   {
@@ -49,10 +50,9 @@ export const PRIMARY_NAV: AppNavItem[] = [
   },
 ];
 
-/** People section tabs — Guests + Menu. Rooms stays at /people/rooms (e.g. Need stay). */
+/** People section tabs — Menu is now accessed from the Guest page portal, not a tab. */
 export const PEOPLE_TABS = [
-  { id: "guests", label: "Guests", icon: "groups", to: "/people/guests", module: "guests" as ModuleId },
-  { id: "menu", label: "Menu", icon: "restaurant", to: "/people/menu", module: "menu" as ModuleId },
+  { id: "contacts", label: "Contacts", icon: "groups", to: "/people/contacts", module: "guests" as ModuleId },
 ];
 
 /** @deprecated use PRIMARY_NAV */

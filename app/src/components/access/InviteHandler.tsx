@@ -3,60 +3,71 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ProfileAvatarPicker, ProfileAvatarBadge } from "./ProfileAvatarPicker";
 import { resolveInviteToken } from "../../domain/access/accessApi";
 import { useAccess } from "../../hooks/useAccess";
+import { useAuth } from "../../hooks/useAuth";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import type { ProfileAvatarId } from "../../domain/access/types";
 import { cn } from "../../design-system/cn";
-
-function PinInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-      inputMode="numeric"
-      maxLength={4}
-      placeholder="4-digit PIN"
-      className="w-full h-12 rounded-xl border border-[rgba(128,0,32,0.14)] bg-white px-4 text-center tracking-[0.5em] text-lg text-primary outline-none"
-    />
-  );
-}
 
 export function InviteHandler() {
   const { kind, token } = useParams<{ kind: string; token: string }>();
   const navigate = useNavigate();
   const { joinWeddingLink, syncCode, showToast } = useWeddingState();
-  const { joinGuest, joinBuddy } = useAccess();
+  const { joinGuest, joinBuddy, enterAsMember } = useAccess();
+  const { status, loginWithGoogle, refreshAuth } = useAuth();
   const handled = useRef("");
   const [resolved, setResolved] = useState<{ weddingCode: string; kind: "guest" | "buddy" } | null>(
     null,
   );
   const [name, setName] = useState("");
   const [avatarId, setAvatarId] = useState<ProfileAvatarId>("marigold");
-  const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const inviteToken = token || "";
-    if (!inviteToken || handled.current === inviteToken) return;
-    handled.current = inviteToken;
+    if (!inviteToken || status === "loading") return;
+    if (handled.current === `${status}:${inviteToken}`) return;
+    handled.current = `${status}:${inviteToken}`;
+    if (status !== "authenticated") {
+      loginWithGoogle(`/invite/${kind || "guest"}/${inviteToken}`);
+      return;
+    }
     void (async () => {
       try {
+        const response = await fetch("/api/invites/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "accept", token: inviteToken }),
+        });
+        const data = (await response.json().catch(() => ({}))) as {
+          code?: string;
+          role?: string;
+          error?: string;
+          already?: string;
+        };
+        if (response.ok && data.code) {
+          await refreshAuth();
+          if (syncCode !== data.code) await joinWeddingLink(data.code);
+          if (data.already === "host" || data.role === "admin") {
+            navigate("/dashboard", { replace: true });
+            return;
+          }
+          await enterAsMember(data.code);
+          navigate(data.role === "buddy" ? "/buddies" : "/buzz", { replace: true });
+          return;
+        }
+        if (response.status !== 404) {
+          setError(data.error || "Could not accept this invite");
+          return;
+        }
         const row = await resolveInviteToken(inviteToken);
         setResolved({ weddingCode: row.weddingCode, kind: row.kind as "guest" | "buddy" });
-        if (syncCode !== row.weddingCode) {
-          await joinWeddingLink(row.weddingCode);
-        }
+        if (syncCode !== row.weddingCode) await joinWeddingLink(row.weddingCode);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Invalid invite link");
       }
     })();
-  }, [token, kind, syncCode, joinWeddingLink]);
+  }, [token, kind, status, syncCode, joinWeddingLink, loginWithGoogle, refreshAuth, enterAsMember, navigate]);
 
   const onSubmit = () => {
     if (!resolved || !token) return;
@@ -71,14 +82,12 @@ export function InviteHandler() {
           });
           navigate("/buzz", { replace: true });
         } else {
-          if (pin.length !== 4) throw new Error("Choose a 4-digit PIN.");
           await joinBuddy({
             inviteToken: token,
             name: name.trim() || "Buddy",
             avatarId,
-            pin,
           });
-          navigate("/command-center", { replace: true });
+          navigate("/buddies", { replace: true });
         }
       } catch (err) {
         showToast(err instanceof Error ? err.message : "Could not join");
@@ -95,7 +104,7 @@ export function InviteHandler() {
         <p className="text-sm text-secondary">{error}</p>
         <button
           type="button"
-          onClick={() => navigate("/auth")}
+          onClick={() => navigate("/")}
           className="h-11 px-5 rounded-full bg-primary text-on-primary font-button text-[13px]"
         >
           Go to sign in
@@ -120,17 +129,17 @@ export function InviteHandler() {
         <ProfileAvatarBadge avatarId={avatarId} size={48} />
         <div>
           <p className="font-label-caps text-[9px] tracking-[0.14em] text-secondary">
-            {isBuddy ? "Buddy invite" : "Guest invite"}
+            {isBuddy ? "Buddies" : "Guest invite"}
           </p>
           <h1 className="font-headline-md text-primary text-[22px]">
-            {isBuddy ? "Join as Buddy" : "Welcome to the wedding"}
+            {isBuddy ? "Your tasks" : "Welcome"}
           </h1>
         </div>
       </div>
       <p className="text-[13px] text-secondary leading-relaxed">
         {isBuddy
-          ? "Set your profile and 4-digit PIN. You can edit BUZZ and modules your Admin grants."
-          : "Optional: add your name. You will see welcome, invitation, and venue details (BUZZ)."}
+          ? "Add your name. You will only see tasks, and you can mark them done."
+          : "Add your name if you want. You will see the welcome, invitation, and venue."}
       </p>
       <label className="block">
         <span className="font-label-caps text-[9px] tracking-[0.14em] text-primary">Your name</span>
@@ -141,22 +150,16 @@ export function InviteHandler() {
           className="mt-1.5 w-full h-11 rounded-xl border border-[rgba(128,0,32,0.14)] bg-white px-3.5 text-primary outline-none"
         />
       </label>
-      {!isBuddy ? <ProfileAvatarPicker value={avatarId} onChange={setAvatarId} /> : null}
-      {isBuddy ? (
-        <>
-          <ProfileAvatarPicker value={avatarId} onChange={setAvatarId} />
-          <PinInput value={pin} onChange={setPin} />
-        </>
-      ) : null}
+      <ProfileAvatarPicker value={avatarId} onChange={setAvatarId} />
       <button
         type="button"
-        disabled={busy || (isBuddy && pin.length !== 4)}
+        disabled={busy}
         onClick={onSubmit}
         className={cn(
           "w-full h-12 rounded-full bg-primary text-on-primary font-button text-[14px] disabled:opacity-40",
         )}
       >
-        {busy ? "Joining…" : isBuddy ? "Join as Buddy" : "View BUZZ"}
+        {busy ? "Joining…" : isBuddy ? "See tasks" : "View Buzz"}
       </button>
     </div>
   );

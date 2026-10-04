@@ -1,6 +1,7 @@
 name = "biyeflow"
 compatibility_date = "2026-01-01"
-pages_build_output_dir = "dist"
+# pages_build_output_dir omitted so `npm run dev:api -- --proxy 5173` can
+# forward UI to Vite. Deploy scripts pass `dist` explicitly.
 
 [[kv_namespaces]]
 binding = "BIYEFLOW_SYNC"

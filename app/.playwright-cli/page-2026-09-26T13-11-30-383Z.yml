@@ -1,0 +1,10 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - paragraph [ref=e6]: BiyeFlow
+  - generic [ref=e8]:
+    - figure [ref=e9]:
+      - generic "Opening" [ref=e10]
+    - figure [ref=e11]
+    - figure [ref=e12]
+    - figure [ref=e13]
+    - figure [ref=e14]

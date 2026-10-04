@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { cn } from "../../design-system/cn";
 import { Icon } from "./Icon";
 import type { MobileEventOption } from "./MobileEventPicker";
@@ -14,8 +15,24 @@ type MobileEventButtonsProps = {
   className?: string;
 };
 
+function splitDateLabel(label: string): { weekday: string; dayNum: string } {
+  const raw = String(label || "").trim();
+  const dayMatch = raw.match(/\b(\d{1,2})\b/);
+  const dayNum = dayMatch?.[1] || "\u2014";
+  const weekdayMatch = raw.match(/\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/i);
+  if (weekdayMatch) {
+    return { weekday: weekdayMatch[1].slice(0, 3), dayNum };
+  }
+  const monMatch = raw.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i);
+  return {
+    weekday: monMatch?.[1]?.slice(0, 3) || "Day",
+    dayNum,
+  };
+}
+
 /**
- * Single-row event strip. Idle = light; selected = maroon + gold sheen.
+ * Slim date capsules — reference-style (white idle / espresso selected).
+ * Free-flowing rail; no clay towers, no clipping cage.
  */
 export function MobileEventButtons({
   options,
@@ -26,78 +43,101 @@ export function MobileEventButtons({
   className,
 }: MobileEventButtonsProps) {
   const capped = options.slice(0, MAX_MOBILE_EVENTS);
-  const n = Math.max(capped.length, 1);
   const atCap = capped.length >= MAX_MOBILE_EVENTS;
   const canAdd = Boolean(onAddEvent) && !atCap;
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const nameClass =
-    n <= 2 ? "text-[12px]" : n === 3 ? "text-[11px]" : n === 4 ? "text-[10px]" : "text-[9px]";
-  const dateClass = n <= 3 ? "text-[8px]" : "text-[7px]";
+  useEffect(() => {
+    const node = itemRefs.current[value];
+    if (!node) return;
+    node.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [value]);
 
   return (
     <div
-      className={cn("flex items-stretch gap-1", className)}
+      className={cn(
+        "flex gap-3 overflow-x-auto scroll-hide",
+        "pt-2 pb-3",
+        "[scroll-padding-inline:16px]",
+        className,
+      )}
       data-testid="mobile-event-buttons"
+      role="group"
+      aria-label="Filter guest list by event"
     >
-      <div className="flex flex-1 min-w-0 gap-1">
-        {capped.map((option) => {
-          const active = value === option.id;
-          const showDelete = Boolean(option.canDelete && onDelete && active);
+      {capped.map((option, index) => {
+        const active = value === option.id;
+        const showDelete = Boolean(option.canDelete && onDelete && active);
+        const { weekday, dayNum } = splitDateLabel(option.dateLabel);
 
-          return (
-            <div key={option.id} className="relative flex-1 min-w-0">
-              {showDelete ? (
-                <button
-                  type="button"
-                  aria-label={`Remove ${option.name}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onDelete?.(option.id);
-                  }}
-                  className={cn(
-                    "absolute -top-1 -right-1 z-10",
-                    "flex h-3.5 w-3.5 items-center justify-center rounded-full",
-                    "bg-error text-white shadow-sm",
-                  )}
-                >
-                  <Icon name="close" className="text-[9px] leading-none" />
-                </button>
-              ) : null}
+        return (
+          <div
+            key={option.id}
+            ref={(el) => {
+              itemRefs.current[option.id] = el;
+            }}
+            className={cn(
+              "relative shrink-0 overflow-visible event-day-cap",
+              active && "is-active",
+            )}
+            style={{ animationDelay: `${index * 40}ms` }}
+          >
+            {showDelete ? (
               <button
                 type="button"
-                aria-pressed={active}
-                onClick={() => onChange(option.id)}
+                aria-label={`Remove ${option.name}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete?.(option.id);
+                }}
                 className={cn(
-                  "relative w-full h-9 rounded-[10px] overflow-hidden",
-                  "inline-flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 text-center",
-                  "active:scale-[0.98] transition-[transform,background,box-shadow,color] duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f3d58a]/70",
-                  active ? "day-pill-selected text-white" : "event-btn-idle",
+                  "absolute -top-1 -right-1 z-10",
+                  "flex h-4 w-4 items-center justify-center rounded-full",
+                  "bg-black/50 text-white",
                 )}
               >
-                <span
-                  className={cn(
-                    "relative z-[1] font-headline-md leading-none truncate w-full text-center",
-                    nameClass,
-                    active ? "text-white" : "text-primary",
-                  )}
-                >
-                  {option.name}
-                </span>
-                <span
-                  className={cn(
-                    "relative z-[1] font-label-caps tracking-[0.04em] tabular-nums leading-none truncate w-full text-center",
-                    dateClass,
-                    active ? "text-[#f3d58a]" : "text-secondary",
-                  )}
-                >
-                  {option.dateLabel || "—"}
-                </span>
+                <Icon name="close" className="text-[10px] leading-none" />
               </button>
-            </div>
-          );
-        })}
-      </div>
+            ) : null}
+            <button
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(option.id)}
+              className={cn(
+                "relative w-[3.35rem] min-h-[4.75rem] rounded-full",
+                "inline-flex flex-col items-center justify-center gap-1 px-1.5 py-2.5 text-center",
+                "transition-[transform,background,color,box-shadow] duration-250",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a100c]/35",
+                "active:scale-[0.97]",
+                active
+                  ? "bg-[#feca43] text-black shadow-[0_10px_22px_-12px_rgba(30,27,24,0.28)]"
+                  : "bg-white text-[#1e1b18] border border-black/10 shadow-[0_8px_18px_-14px_rgba(30,27,24,0.18)]",
+              )}
+            >
+              <span className="h-1.5 w-1.5 mb-0.5" aria-hidden />
+              <span
+                className={cn(
+                  "text-[10px] font-semibold leading-none tracking-wide",
+                  active ? "text-black/55" : "text-[#584141]",
+                )}
+              >
+                {weekday}
+              </span>
+              <span className="text-[17px] font-extrabold tabular-nums leading-none tracking-[-0.03em]">
+                {dayNum}
+              </span>
+              <span
+                className={cn(
+                  "text-[8px] font-bold leading-tight truncate max-w-full px-0.5",
+                  active ? "text-black/60" : "text-[#584141]",
+                )}
+              >
+                {option.name}
+              </span>
+            </button>
+          </div>
+        );
+      })}
 
       {canAdd ? (
         <button
@@ -106,14 +146,17 @@ export function MobileEventButtons({
           aria-label="New event"
           title="New event"
           className={cn(
-            "shrink-0 h-9 w-9 rounded-[10px]",
-            "border border-dashed border-[rgba(128,0,32,0.22)] bg-[#fff8f5] text-primary",
-            "flex items-center justify-center",
+            "shrink-0 w-[3.35rem] min-h-[4.75rem] rounded-full event-day-cap",
+            "border border-dashed border-[rgba(26,16,12,0.18)]",
+            "bg-white/60 text-[#7a6f62]",
+            "flex flex-col items-center justify-center gap-1",
             "active:scale-95 transition-transform",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a100c]/30",
           )}
+          style={{ animationDelay: `${capped.length * 40}ms` }}
         >
-          <Icon name="add" className="text-[18px]" />
+          <Icon name="add" className="text-[20px] leading-none block" />
+          <span className="text-[8px] font-bold uppercase tracking-wider">New</span>
         </button>
       ) : null}
     </div>

@@ -11,13 +11,13 @@ import {
 import { localStorageRepository, hydrateWeddingState } from "../domain/storage/localStorageRepository";
 import { mergeWeddingState } from "../domain/storage/mergeWeddingState";
 import { isDemoHeavyGuestList, stripDemoGuests, withoutDemoGuests } from "../domain/guestSeed";
-import { DEFAULT_WEDDING_STATE, STORAGE_KEY } from "../domain/defaults";
+import { STORAGE_KEY } from "../domain/defaults";
 import {
   clearAccountCode,
   clearDirty,
-  generateSyncCode,
   getStoredSyncCode,
   getSyncMeta,
+  isLocalPreviewSyncCode,
   isValidSyncCode,
   markCloudAligned,
   markDirty,
@@ -43,19 +43,17 @@ type WeddingContextValue = {
   setNewEventModalOpen: (open: boolean) => void;
   scheduleModalOpen: boolean;
   setScheduleModalOpen: (open: boolean) => void;
+  scheduleFocusId: number | null;
+  setScheduleFocusId: (id: number | null) => void;
   lastCreatedFunctionId: number | null;
   clearLastCreatedFunctionId: () => void;
   onFunctionCreated: (dayId: number) => void;
-  syncModalOpen: boolean;
-  setSyncModalOpen: (open: boolean) => void;
   syncCode: string | null;
   lastSyncedAt: number | null;
   syncBusy: boolean;
-  createWeddingLink: () => Promise<void>;
   joinWeddingLink: (code: string) => Promise<void>;
   unlinkWedding: () => void;
   refreshFromCloud: (silent?: boolean) => Promise<void>;
-  restoreIntactWedding: () => void;
   syncLive: boolean;
   reconnectWedding: () => Promise<void>;
   lastAccountCode: string | null;
@@ -67,13 +65,14 @@ const WeddingContext = createContext<WeddingContextValue | null>(null);
 const POLL_MS = 1500;
 
 function cleanForCloud(state: WeddingState): WeddingState {
-  const hasDemo = state.guests.some((g) => String(g.id).startsWith("demo-g-"));
-  if (!hasDemo) return state;
-  const guests = stripDemoGuests(state.guests);
+  const hydrated = hydrateWeddingState(state);
+  const hasDemo = hydrated.guests.some((g) => String(g.id).startsWith("demo-g-"));
+  if (!hasDemo) return hydrated;
+  const guests = stripDemoGuests(hydrated.guests);
   return {
-    ...state,
+    ...hydrated,
     guests,
-    event: { ...state.event, guests: syncEventGuestCount(guests) },
+    event: { ...hydrated.event, guests: syncEventGuestCount(guests) },
   };
 }
 
@@ -85,7 +84,7 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
   const [newEventModalOpen, setNewEventModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
+  const [scheduleFocusId, setScheduleFocusId] = useState<number | null>(null);
   const [lastCreatedFunctionId, setLastCreatedFunctionId] = useState<number | null>(null);
   const [syncCode, setSyncCode] = useState<string | null>(() => getStoredSyncCode());
   const [lastAccountCode, setLastAccountCode] = useState<string | null>(() => getAccountCode());
@@ -108,16 +107,17 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const adoptCloud = useCallback((cloudState: WeddingState, version: number) => {
-    localStorageRepository.save(cloudState);
+    const clean = hydrateWeddingState(cloudState);
+    localStorageRepository.save(clean);
     const meta = markCloudAligned(version);
     setLastSyncedAt(meta.lastSyncedAt);
-    setStateInternal(cloudState);
+    setStateInternal(clean);
     setSyncLive(true);
   }, []);
 
   const flushPush = useCallback(
-    async (next: WeddingState): Promise<void> => {
-      const code = getStoredSyncCode();
+    async (next: WeddingState, codeOverride?: string): Promise<void> => {
+      const code = codeOverride || getStoredSyncCode();
       if (!code) return;
 
       if (flushInFlight.current) {
@@ -156,12 +156,15 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        /* Retry also conflicted -- adopt cloud, mark dirty so next poll will re-merge */
+        /* Retry also conflicted — keep local schedule via merge; don't adopt remote. */
         let retryRemote = retry.state;
         if (isDemoHeavyGuestList(retryRemote.guests)) {
           retryRemote = withoutDemoGuests(retryRemote);
         }
-        adoptCloud(retryRemote, retry.version);
+        const kept = cleanForCloud(mergeWeddingState(payload, retryRemote));
+        localStorageRepository.save(kept);
+        setStateInternal(kept);
+        setCloudVersion(retry.version);
         markDirty();
       } finally {
         flushInFlight.current = false;
@@ -173,12 +176,13 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [adoptCloud],
+    [],
   );
 
   const schedulePush = useCallback(
     (next: WeddingState, immediate = false) => {
-      if (!getStoredSyncCode()) return;
+      const code = getStoredSyncCode();
+      if (!code || isLocalPreviewSyncCode(code)) return;
       window.clearTimeout(pushTimer.current);
       pushTimer.current = window.setTimeout(
         () => {
@@ -231,6 +235,10 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
     async (silent = false) => {
       const code = getStoredSyncCode();
       if (!code) return;
+      if (isLocalPreviewSyncCode(code)) {
+        setSyncLive(false);
+        return;
+      }
       if (!silent) setSyncBusy(true);
       try {
         const remote = await pullWedding(code);
@@ -272,14 +280,6 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
     [adoptCloud, flushPush],
   );
 
-  /* App update toast */
-  useEffect(() => {
-    if (sessionStorage.getItem("biyeflow.appUpdated") === "1") {
-      sessionStorage.removeItem("biyeflow.appUpdated");
-      showToast("App updated");
-    }
-  }, [showToast]);
-
   /* Manual flush event */
   useEffect(() => {
     const flush = () => {
@@ -320,7 +320,13 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
 
     void refreshFromCloud(true)
       .catch((error: Error) => {
-        showToast(error.message || "Could not load cloud wedding");
+        const msg = error.message || "Could not load cloud event";
+        /* Local UI still works from device storage when Wrangler isn't up. */
+        if (msg.includes("API not running") || msg.includes("API not reachable")) {
+          setSyncLive(false);
+          return;
+        }
+        showToast(msg);
       })
       .finally(() => {
         initialRefreshDone.current = true;
@@ -441,35 +447,30 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
     };
   }, [syncCode, flushPush, adoptCloud]);
 
-  const createWeddingLink = useCallback(async () => {
-    const code = generateSyncCode();
-    setSyncBusy(true);
-    try {
-      const clean = cleanForCloud(stateRef.current);
-      const result = await pushWedding(code, clean, 0);
-      if (result.status === "ok") {
-        const meta = markCloudAligned(result.version);
-        setLastSyncedAt(meta.lastSyncedAt);
-      } else {
-        /* Wedding code already exists (unlikely) -- adopt the existing one */
-        adoptCloud(mergeWeddingState(clean, result.state), result.version);
-      }
-      setStoredSyncCode(code);
-      setSyncCode(code);
-      setLastAccountCode(code);
-      setSyncLive(true);
-      showToast("Live on this wedding");
-    } finally {
-      setSyncBusy(false);
-    }
-  }, [adoptCloud, showToast]);
-
   const joinWeddingLink = useCallback(
     async (rawCode: string) => {
       const code = normalizeSyncCode(rawCode);
       if (!isValidSyncCode(code)) {
-        throw new Error("Enter the 8-character wedding code.");
+        throw new Error("Enter the 8-character event code.");
       }
+      window.clearTimeout(pushTimer.current);
+      flushQueued.current = false;
+      const previous = getStoredSyncCode();
+      if (
+        previous &&
+        previous !== code &&
+        !isLocalPreviewSyncCode(previous) &&
+        getSyncMeta().dirty
+      ) {
+        try {
+          await flushPush(stateRef.current, previous);
+        } catch {
+          /* The event we are leaving keeps its last saved copy. */
+        }
+      }
+      flushQueued.current = false;
+      window.clearTimeout(pushTimer.current);
+      clearDirty();
       setSyncBusy(true);
       try {
         const remote = await pullWedding(code);
@@ -480,8 +481,8 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
               window.location.hostname === "127.0.0.1");
           throw new Error(
             local
-              ? "Code not found on local dev. Create a wedding here first — production codes (biyeflow.pages.dev) use a separate database."
-              : "That wedding code was not found.",
+              ? "Code not found on local dev. Create an event here first — production codes (biyeflow.pages.dev) use a separate database."
+              : "That event code was not found.",
           );
         }
         let incoming = remote.state;
@@ -512,25 +513,13 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
         setSyncBusy(false);
       }
     },
-    [adoptCloud, showToast],
+    [adoptCloud, flushPush, showToast],
   );
-
-  const restoreIntactWedding = useCallback(() => {
-    const restored = {
-      ...structuredClone(DEFAULT_WEDDING_STATE),
-      event: {
-        ...DEFAULT_WEDDING_STATE.event,
-        ...stateRef.current.event,
-      },
-    };
-    saveState(restored);
-    showToast("Original wedding menu restored");
-  }, [saveState, showToast]);
 
   const reconnectWedding = useCallback(async () => {
     const account = getAccountCode();
     if (!account) {
-      setSyncModalOpen(true);
+      showToast("Open Events to continue");
       return;
     }
     setSyncBusy(true);
@@ -540,10 +529,10 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
       setLastAccountCode(account);
       await refreshFromCloud(true);
       setSyncLive(true);
-      showToast("Logged in");
+      showToast("Live again");
     } catch (error) {
       setSyncLive(false);
-      showToast(error instanceof Error ? error.message : "Could not log in");
+      showToast(error instanceof Error ? error.message : "Could not reconnect");
     } finally {
       setSyncBusy(false);
     }
@@ -578,19 +567,17 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
       setNewEventModalOpen,
       scheduleModalOpen,
       setScheduleModalOpen,
+      scheduleFocusId,
+      setScheduleFocusId,
       lastCreatedFunctionId,
       clearLastCreatedFunctionId,
       onFunctionCreated,
-      syncModalOpen,
-      setSyncModalOpen,
       syncCode,
       lastSyncedAt,
       syncBusy,
-      createWeddingLink,
       joinWeddingLink,
       unlinkWedding,
       refreshFromCloud,
-      restoreIntactWedding,
       syncLive,
       reconnectWedding,
       lastAccountCode,
@@ -604,18 +591,16 @@ export function WeddingProvider({ children }: { children: ReactNode }) {
       showToast,
       newEventModalOpen,
       scheduleModalOpen,
+      scheduleFocusId,
       lastCreatedFunctionId,
       clearLastCreatedFunctionId,
       onFunctionCreated,
-      syncModalOpen,
       syncCode,
       lastSyncedAt,
       syncBusy,
-      createWeddingLink,
       joinWeddingLink,
       unlinkWedding,
       refreshFromCloud,
-      restoreIntactWedding,
       syncLive,
       reconnectWedding,
       lastAccountCode,

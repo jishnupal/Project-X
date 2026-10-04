@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "../ui/Icon";
 
@@ -18,44 +19,76 @@ export function ConfirmDangerDialog({
   onConfirm,
   onCancel,
 }: ConfirmDangerDialogProps) {
+  const [viewportBox, setViewportBox] = useState({ top: 0, height: 0 });
+
+  useEffect(() => {
+    const syncViewport = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) {
+        setViewportBox({ top: 0, height: window.innerHeight });
+        return;
+      }
+      setViewportBox({ top: viewport.offsetTop, height: viewport.height });
+    };
+    syncViewport();
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", syncViewport);
+    viewport?.addEventListener("scroll", syncViewport);
+    window.addEventListener("resize", syncViewport);
+    return () => {
+      viewport?.removeEventListener("resize", syncViewport);
+      viewport?.removeEventListener("scroll", syncViewport);
+      window.removeEventListener("resize", syncViewport);
+    };
+  }, []);
+
+  const overlayHeight = viewportBox.height || undefined;
+
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+      className="fixed inset-x-0 z-[100] flex items-center justify-center px-4 bg-black/45 create-group-backdrop"
+      style={{
+        top: viewportBox.top || 0,
+        height: overlayHeight,
+        bottom: overlayHeight ? undefined : 0,
+        paddingTop: "max(12px, env(safe-area-inset-top))",
+        paddingBottom: "max(12px, env(safe-area-inset-bottom))",
+      }}
       role="dialog"
       aria-modal
       aria-labelledby="confirm-danger-title"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-[360px] rounded-t-[24px] sm:rounded-2xl bg-surface shadow-2xl border border-[rgba(128,0,32,0.16)] overflow-hidden"
+        className="create-group-panel relative w-full max-w-[360px] overflow-hidden rounded-[26px] bg-[#faf6f0] shadow-[0_24px_48px_-24px_rgba(28,20,16,0.35)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="px-4 pt-5 pb-3 flex gap-3">
-          <span className="h-11 w-11 rounded-full bg-[#f3e0e4] text-primary flex items-center justify-center shrink-0">
+        <div className="relative px-5 pt-5 pb-3 flex gap-3">
+          <span className="h-11 w-11 rounded-2xl bg-[#ffe14d] text-[#1a100c] flex items-center justify-center shrink-0">
             <Icon name="warning" className="text-[22px]" />
           </span>
           <div className="min-w-0 flex-1">
             <h2
               id="confirm-danger-title"
-              className="font-headline-md text-primary text-[18px] leading-tight"
+              className="font-extrabold tracking-[-0.02em] text-[#1a100c] text-[18px] leading-tight"
             >
               {title}
             </h2>
-            <p className="text-[13px] text-secondary mt-1.5 leading-snug">{message}</p>
+            <p className="text-[13px] text-[#7a6f62] font-semibold mt-1.5 leading-snug">{message}</p>
           </div>
         </div>
-        <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] grid grid-cols-2 gap-2 pt-1">
+        <div className="relative px-5 pb-5 grid grid-cols-2 gap-2.5 pt-1">
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 rounded-full border border-[rgba(128,0,32,0.18)] text-primary font-button text-[13px]"
+            className="h-11 rounded-full bg-white text-[#1a100c] font-extrabold text-[13px] tracking-[-0.01em] shadow-[inset_0_0_0_1px_rgba(26,16,12,0.08)] active:scale-[0.99] transition-transform"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="h-11 rounded-full bg-primary text-on-primary font-button text-[13px]"
+            className="h-11 rounded-full bg-[#1a100c] text-white font-extrabold text-[13px] tracking-[-0.01em] active:scale-[0.99] transition-transform"
           >
             {confirmLabel}
           </button>

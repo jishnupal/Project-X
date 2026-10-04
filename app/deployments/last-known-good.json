@@ -1,11 +1,11 @@
 {
-  "deploymentId": "682ac113-1c81-4c76-9b3a-7475bd0006dd",
+  "deploymentId": "19d772b5-8c36-4572-9352-ba34be441805",
   "environment": "Production",
-  "url": "https://682ac113.biyeflow.pages.dev",
+  "url": "https://19d772b5.biyeflow.pages.dev",
   "productionUrl": "https://biyeflow.pages.dev",
-  "savedAt": "2026-08-30T22:31:05.846Z",
-  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/682ac113-1c81-4c76-9b3a-7475bd0006dd",
+  "savedAt": "2026-10-04T12:47:59.907Z",
+  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/19d772b5-8c36-4572-9352-ba34be441805",
   "appVersion": "1.1.1",
-  "deployLabel": "v1.1.1-20260830",
-  "buildId": "mtgdu5vf"
+  "deployLabel": "v1.1.1-20261003",
+  "buildId": "musoz1lj"
 }

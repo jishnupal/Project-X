@@ -159,7 +159,8 @@ export function normalizeInviteStatus(status: string | undefined): "Sent" | "Pen
 
 export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
   const count = row.count || "1";
-  const receptionCount = row.receptionCount || count;
+  const receptionCount =
+    row.receptionCount == null || row.receptionCount === "" ? count : row.receptionCount;
   const stayCount =
     row.stayCount || (parseCount(row.stayCount) > 0 || row.needsStay ? count : "0");
   const needsStay =
@@ -192,6 +193,7 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
     sangeetCount: row.sangeetCount || "",
     biyebariCount: row.biyebariCount || "",
     borjatriCount: row.borjatriCount || "",
+    dayCounts: normalizeDayCounts(row),
     stayCount: effectiveStayCount,
     needsStay,
     checkIn,
@@ -202,6 +204,23 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
     groupId,
     groupCount,
     updatedAt: Number(row.updatedAt) || 0,
+    isBuddy: Boolean(row.isBuddy),
+  };
+}
+
+function normalizeDayCounts(row: Partial<GuestRow>): Record<string, string> {
+  const fromRow =
+    row.dayCounts && typeof row.dayCounts === "object" && !Array.isArray(row.dayCounts)
+      ? Object.fromEntries(
+          Object.entries(row.dayCounts).map(([key, value]) => [String(key), String(value ?? "0")]),
+        )
+      : {};
+  if (Object.keys(fromRow).length) return fromRow;
+  return {
+    "1": row.sangeetCount || "0",
+    "2": row.biyebariCount || "0",
+    "3": row.receptionCount || row.count || "0",
+    "4": row.borjatriCount || "0",
   };
 }
 
@@ -211,6 +230,10 @@ export function touchGuestRow(row: Partial<GuestRow>): GuestRow {
 }
 
 export function guestCountForFunction(row: GuestRow, day: string | number): number {
+  const key = String(day);
+  if (row.dayCounts && Object.prototype.hasOwnProperty.call(row.dayCounts, key)) {
+    return parseCount(row.dayCounts[key]);
+  }
   if (String(day) === "1") return parseCount(row.sangeetCount);
   if (String(day) === "2") return parseCount(row.biyebariCount);
   if (String(day) === "4") return parseCount(row.borjatriCount);
@@ -218,8 +241,31 @@ export function guestCountForFunction(row: GuestRow, day: string | number): numb
   return parseCount(row.count);
 }
 
+/** Set attendance for a Plot/Dates day id; keeps legacy fields in sync for days 1–4. */
+export function setGuestDayCount(row: GuestRow, day: string | number, value: string | number): GuestRow {
+  const key = String(day);
+  const nextValue = String(Math.max(0, parseCount(String(value))));
+  const dayCounts = { ...(row.dayCounts || {}), [key]: nextValue };
+  const next: GuestRow = { ...row, dayCounts };
+  if (key === "1") next.sangeetCount = nextValue;
+  if (key === "2") next.biyebariCount = nextValue;
+  if (key === "3") next.receptionCount = nextValue;
+  if (key === "4") next.borjatriCount = nextValue;
+  return syncGuestEventCounts(keepTotalAtLeastEventCounts(touchGuestRow(next)));
+}
+
 export function guestsByFunctionDay(guests: GuestRow[], day: string | number): number {
   return guests.reduce((sum, row) => sum + guestCountForFunction(row, day), 0);
+}
+
+/** Stay guests occupy a room on an event day only if they attend that day. */
+export function guestStaysOnDay(
+  guest: GuestRow,
+  day?: string | number | null,
+): boolean {
+  if (!guest.needsStay) return false;
+  if (day == null || day === "" || day === "All") return true;
+  return guestCountForFunction(guest, day) > 0;
 }
 
 export function syncGuestEventCounts(row: GuestRow): GuestRow {
@@ -294,13 +340,26 @@ export function applyStayCountChange(row: GuestRow, stayCount: string): GuestRow
 }
 
 export function applyTotalCountChange(row: GuestRow, count: string): GuestRow {
+  const previous = Math.max(1, parseCount(row.count) || 1);
   const total = Math.max(1, parseCount(count) || 1);
-  // Total and Reception stay in sync; other event/stay counts clamp to the new total.
+  const follow = (value: string | undefined) => {
+    const amount = parseCount(value);
+    if (amount <= 0) return "0";
+    if (amount >= previous) return String(total);
+    return String(Math.min(amount, total));
+  };
   return syncGuestEventCounts(
     touchGuestRow({
       ...row,
       count: String(total),
-      receptionCount: String(total),
+      receptionCount: follow(row.receptionCount || row.count),
+      sangeetCount: follow(row.sangeetCount),
+      biyebariCount: follow(row.biyebariCount),
+      borjatriCount: follow(row.borjatriCount),
+      dayCounts: Object.fromEntries(
+        Object.entries(row.dayCounts || {}).map(([key, value]) => [key, follow(value)]),
+      ),
+      stayCount: row.needsStay ? follow(row.stayCount || row.count) : "0",
     }),
   );
 }
@@ -314,8 +373,16 @@ export function applyFieldCountChange(
     return applyTotalCountChange(row, value);
   }
   if (field === "receptionCount") {
-    // Reception moves Total with it.
-    return applyTotalCountChange(row, value);
+    return setGuestDayCount(row, 3, value);
+  }
+  if (field === "sangeetCount") {
+    return setGuestDayCount(row, 1, value);
+  }
+  if (field === "biyebariCount") {
+    return setGuestDayCount(row, 2, value);
+  }
+  if (field === "borjatriCount") {
+    return setGuestDayCount(row, 4, value);
   }
   if (field === "stayCount") {
     return applyStayCountChange(row, value);
@@ -331,6 +398,7 @@ export function createGuestFromDraft(draft: {
   sangeetCount: string;
   biyebariCount: string;
   borjatriCount: string;
+  dayCounts?: Record<string, string>;
   stayCount: string;
   groupId?: string;
 }): GuestRow {
@@ -347,6 +415,7 @@ export function createGuestFromDraft(draft: {
     sangeetCount: String(Math.min(totalCount, parseCount(draft.sangeetCount))),
     biyebariCount: String(Math.min(totalCount, parseCount(draft.biyebariCount))),
     borjatriCount: String(Math.min(totalCount, parseCount(draft.borjatriCount))),
+    dayCounts: draft.dayCounts,
     stayCount: String(Math.min(totalCount, parseCount(draft.stayCount))),
     checkIn: inferCheckInFromEventCounts({
       receptionCount: String(receptionCount),
@@ -361,15 +430,12 @@ export function createGuestFromDraft(draft: {
 }
 
 export function guestEventLabelList(row: GuestRow, state: WeddingState): string {
-  const entries = [
-    { label: resolveDayName(state, 1), value: row.sangeetCount },
-    { label: resolveDayName(state, 2), value: row.biyebariCount },
-    { label: resolveDayName(state, 3), value: row.receptionCount || row.count },
-    { label: resolveDayName(state, 4), value: row.borjatriCount },
-  ];
-  return entries
-    .filter((entry) => parseCount(entry.value) > 0)
-    .map((entry) => entry.label)
+  const ids = state.functions?.length
+    ? state.functions.map((fn) => fn.id)
+    : [1, 2, 3, 4];
+  return ids
+    .filter((day) => guestCountForFunction(row, day) > 0)
+    .map((day) => resolveDayName(state, day))
     .join(", ");
 }
 
@@ -451,7 +517,7 @@ export function formatGuestPlan(state: WeddingState): string {
     .join(", ");
 
   return [
-    `${state.event.name || "Bengali wedding"} - guest and accommodation list`,
+    `${state.event.name || "Event"} - guest and accommodation list`,
     `Functions: ${functionLabels || "Dates not set"}`,
     "",
     ...(state.guestGroups || []).map((group) => {

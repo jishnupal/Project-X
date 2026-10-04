@@ -34,8 +34,9 @@ function mergeById<T extends { id: string; updatedAt?: number }>(
 }
 
 /**
- * Remote document is the base for menu/tasks/theme.
- * Demo seed guests never win over a real list.
+ * Guests merge by row clock. Schedule (Dates / Plot) always keeps the local
+ * document when this merge runs from a dirty push — otherwise cloud poll/409
+ * would resurrect deleted days or drop a just-saved schedule.
  */
 export function mergeWeddingState(local: WeddingState, remote: WeddingState): WeddingState {
   const localGuests = local.guests || [];
@@ -61,10 +62,18 @@ export function mergeWeddingState(local: WeddingState, remote: WeddingState): We
     ...base,
     guests: grouped.guests,
     guestGroups: grouped.guestGroups,
+    functions: local.functions || [],
     event: {
       ...base.event,
+      ...local.event,
+      name: local.event?.name?.trim() || base.event?.name || "",
+      startDate: local.event?.startDate || "",
+      scheduleConfirmed: Boolean(local.event?.scheduleConfirmed),
       guests: syncEventGuestCount(grouped.guests),
     },
+    buzz: local.buzz ?? base.buzz,
+    modules: local.modules ?? base.modules,
+    dayPlans: local.dayPlans ?? base.dayPlans,
   });
 }
 

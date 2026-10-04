@@ -1,6 +1,6 @@
 # BiyeFlow React PWA
 
-Installable wedding control room — Phase 1: Menu Board + app shell.
+Installable event host app — invites, guests, Buzz, menu, and day-of ops.
 
 ## Develop
 
@@ -73,11 +73,11 @@ Local test: `npm run build && npm run preview`, then open DevTools → Applicati
 
 Each browser still caches a copy under `biyeflow.v1`. That is why a laptop Chrome profile and a phone Safari profile do not see each other by default.
 
-To share one wedding across devices:
+To share one event across devices:
 
 1. Open **https://biyeflow.pages.dev** on the laptop (not localhost).
-2. Tap **Sync** in the header → **Create wedding code**.
-3. Open the same URL on the phone → **Sync** → enter that 8-character code.
+2. Create or open the event, then use sync / the event code from the host tools.
+3. Open the same URL on the phone and continue in that event.
 
 Edits then push to Cloudflare KV and pull onto other linked devices. Export/Import JSON remains available as a manual backup.
 

@@ -42,9 +42,9 @@ export function OpsProvisionPage() {
     <div className="min-h-dvh bg-surface px-4 py-10">
       <div className="max-w-md mx-auto space-y-5">
         <div>
-          <h1 className="font-headline-md text-primary text-[22px]">Provision wedding</h1>
+          <h1 className="font-headline-md text-primary text-[22px]">Provision event</h1>
           <p className="text-[13px] text-secondary mt-2">
-            Link a wedding code, then enable modules for the client Admin.
+            Link an event code, then enable modules for the client host.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export function OpsProvisionPage() {
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               maxLength={8}
-              placeholder="Wedding code"
+              placeholder="Event code"
               className="flex-1 h-11 rounded-xl border border-[rgba(128,0,32,0.14)] bg-white px-3 text-xs tracking-[0.2em] uppercase text-primary outline-none"
             />
             <button

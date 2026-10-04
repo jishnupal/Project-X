@@ -1,0 +1,2 @@
+# Obsolete: Pages rejects --config. Proxy mode works when wrangler.toml
+# omits pages_build_output_dir (see wrangler.toml + npm run dev:api).

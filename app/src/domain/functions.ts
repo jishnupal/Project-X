@@ -2,90 +2,85 @@ import type { EventInfo, MenuCourse, MenuRow, WeddingFunction, WeddingState } fr
 import { createId } from "./event";
 import { MENU_COURSES, emptyMenuCategoryDraft, normalizeMenuRow } from "./menu";
 
-/** Default seed date — replace via the wedding dates editor. */
+/** @deprecated Legacy label only — not used to block calendar picks. */
 export const PLACEHOLDER_START_DATE = "2027-03-07";
 
-/** Always present. Cannot be removed. */
+/** @deprecated Kept for older saves that used fixed day ids 1–3. New events have no defaults. */
 export const CORE_FUNCTION_IDS = [1, 2, 3] as const;
 
-const LEGACY_DAY_NAMES: Record<number, string> = {
-  1: "Sangeet",
-  2: "Marriage",
-  3: "Reception",
-  4: "Event",
-};
-
-export function isCoreWeddingFunction(dayId: number): boolean {
-  return CORE_FUNCTION_IDS.includes(Number(dayId) as (typeof CORE_FUNCTION_IDS)[number]);
+export function isCoreWeddingFunction(_dayId: number): boolean {
+  return false;
 }
 
-export function functionOffset(day: number): number {
-  return ({ 1: 0, 2: 2, 3: 4, 4: 2 } as Record<number, number>)[Number(day)] ?? 0;
+/** Any non-empty calendar day the host picks is real — including 7 March. */
+export function isRealEventDate(iso: string | undefined | null): boolean {
+  const value = String(iso || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime());
 }
 
-export function defaultFunctionDate(event: EventInfo, dayId: number): string {
-  const base = new Date(`${event.startDate}T00:00:00`);
-  if (Number.isNaN(base.getTime())) return event.startDate || "";
-  base.setDate(base.getDate() + functionOffset(dayId));
-  return base.toISOString().slice(0, 10);
+/** @deprecated Offset defaults are no longer applied. */
+export function functionOffset(_day: number): number {
+  return 0;
 }
 
-export function buildDefaultFunctions(event: EventInfo): WeddingFunction[] {
-  return [
-    { id: 1, name: "Sangeet", date: defaultFunctionDate(event, 1), custom: false },
-    { id: 2, name: "Marriage", date: defaultFunctionDate(event, 2), custom: false },
-    { id: 3, name: "Reception", date: defaultFunctionDate(event, 3), custom: false },
-  ];
+export function defaultFunctionDate(event: EventInfo, _dayId: number): string {
+  return isRealEventDate(event.startDate) ? String(event.startDate).trim() : "";
+}
+
+/** Demo seed only — new / empty events stay at `functions: []`. */
+export function buildDefaultFunctions(_event: EventInfo): WeddingFunction[] {
+  return [];
+}
+
+function sortByDate(a: { date: string }, b: { date: string }): number {
+  if (!a.date && !b.date) return 0;
+  if (!a.date) return 1;
+  if (!b.date) return -1;
+  return a.date.localeCompare(b.date);
+}
+
+function nextFunctionId(existing: { id: number }[]): number {
+  const used = new Set(existing.map((fn) => Number(fn.id)));
+  let nextId = 1;
+  while (used.has(nextId)) nextId += 1;
+  return nextId;
 }
 
 export function normalizeFunctions(
   functions: WeddingFunction[] | undefined,
-  event: EventInfo,
+  _event: EventInfo,
 ): WeddingFunction[] {
-  const defaults = buildDefaultFunctions(event);
-  if (!Array.isArray(functions) || !functions.length) {
-    return defaults;
-  }
+  if (!Array.isArray(functions) || functions.length === 0) return [];
 
-  const byId = new Map(
-    functions.map((fn) => {
+  return functions
+    .map((fn) => {
       const id = Number(fn.id);
-      return [
+      const rawDate = String(fn.date || "").trim();
+      const date = isRealEventDate(rawDate) ? rawDate : "";
+      const name = String(fn.name || "").trim() || "Event";
+      return {
         id,
-        {
-          id,
-          name: fn.name || LEGACY_DAY_NAMES[id] || "Event",
-          date: fn.date || defaultFunctionDate(event, id),
-          custom: Boolean(fn.custom),
-        } satisfies WeddingFunction,
-      ] as const;
-    }),
-  );
+        name,
+        date,
+        custom: true,
+      } satisfies WeddingFunction;
+    })
+    // Persist every host-dated day. Blank rows (including old undated stubs) drop.
+    .filter((fn) => isRealEventDate(fn.date) && fn.name.trim())
+    .sort(sortByDate);
+}
 
-  const cores = defaults.map((core) => {
-    const existing = byId.get(core.id);
-    if (!existing) return core;
-    return {
-      ...existing,
-      id: core.id,
-      name: existing.name || core.name,
-      custom: false,
-    };
-  });
-
-  const extras = [...byId.values()]
-    .filter((fn) => !isCoreWeddingFunction(fn.id))
-    .map((fn) => ({ ...fn, custom: true }));
-
-  return [...cores, ...extras].sort((a, b) => a.date.localeCompare(b.date));
+/** Days that belong on The Plot — only Dates with a real calendar day. */
+export function datedWeddingFunctions(state: WeddingState): WeddingFunction[] {
+  return [...(state.functions || [])]
+    .filter((fn) => isRealEventDate(fn.date) && String(fn.name || "").trim())
+    .sort(sortByDate);
 }
 
 export function resolveDayName(state: WeddingState, dayId: number): string {
-  return (
-    state.functions.find((fn) => fn.id === dayId)?.name ||
-    LEGACY_DAY_NAMES[dayId] ||
-    "Event"
-  );
+  return state.functions.find((fn) => fn.id === dayId)?.name || "Event";
 }
 
 export function resolveFunctionDateLabel(state: WeddingState, dayId: number): string {
@@ -98,7 +93,7 @@ export function resolveFunctionDateLabel(state: WeddingState, dayId: number): st
 }
 
 export function functionIds(state: WeddingState): number[] {
-  return [...state.functions].sort((a, b) => a.date.localeCompare(b.date)).map((f) => f.id);
+  return datedWeddingFunctions(state).map((f) => f.id);
 }
 
 export function addWeddingFunction(
@@ -107,16 +102,14 @@ export function addWeddingFunction(
   date: string,
 ): WeddingState {
   const trimmed = name.trim();
-  if (!trimmed || !date) return state;
+  if (!trimmed || !isRealEventDate(date)) return state;
 
-  const used = new Set(state.functions.map((f) => f.id));
-  let nextId = Math.max(3, ...state.functions.map((f) => f.id)) + 1;
-  while (used.has(nextId) || isCoreWeddingFunction(nextId)) nextId += 1;
+  const nextId = nextFunctionId(state.functions);
 
   const newFunction: WeddingFunction = {
     id: nextId,
     name: trimmed,
-    date,
+    date: date.trim(),
     custom: true,
   };
 
@@ -137,13 +130,12 @@ export function addWeddingFunction(
 
   return {
     ...state,
-    functions: [...state.functions, newFunction].sort((a, b) => a.date.localeCompare(b.date)),
+    functions: [...state.functions, newFunction].sort(sortByDate),
     menu: [...state.menu, ...newRows],
   };
 }
 
 export function canRemoveWeddingFunction(state: WeddingState, dayId: number): boolean {
-  if (isCoreWeddingFunction(dayId)) return false;
   return state.functions.some((f) => f.id === dayId);
 }
 
@@ -200,7 +192,9 @@ export function formatFunctionDateFull(iso: string): string {
 }
 
 export function weddingScheduleNeedsSetup(state: WeddingState): boolean {
-  return !state.event.scheduleConfirmed;
+  if (!state.event.scheduleConfirmed) return true;
+  if (!isRealEventDate(state.event.startDate)) return true;
+  return !state.functions.some((fn) => isRealEventDate(fn.date));
 }
 
 function parseIsoDate(iso: string): Date | null {
@@ -237,13 +231,47 @@ function formatCelebrationSpan(first: Date, last: Date): string {
   return `${formatShortDate(first, true)} – ${formatShortDate(last, true)}`;
 }
 
+export type ScheduleDayPreview = {
+  id: number;
+  name: string;
+  day: string;
+  month: string;
+  weekday: string;
+  detail: string;
+};
+
+export function functionDateParts(iso: string) {
+  if (!iso?.trim()) {
+    return { day: "—", weekday: "SET", month: "DATE", detail: "Pick a day" };
+  }
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return { day: "—", weekday: "SET", month: "DATE", detail: "Pick a day" };
+  }
+  return {
+    day: String(date.getDate()).padStart(2, "0"),
+    weekday: date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+    month: date.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+    detail: date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+  };
+}
+
 export type WeddingScheduleHomeCopy = {
   label: string;
   headline: string;
   detail: string;
   shortRange: string;
   eventsLine: string;
+  days: ScheduleDayPreview[];
 };
+
+function scheduleDays(state: WeddingState): ScheduleDayPreview[] {
+  return datedWeddingFunctions(state).map((fn) => ({
+    id: fn.id,
+    name: fn.name || "Event",
+    ...functionDateParts(fn.date),
+  }));
+}
 
 function formatHeroRange(first: Date, last: Date): string {
   const month = first.toLocaleDateString("en-US", { month: "short" });
@@ -263,31 +291,18 @@ function formatHeroRange(first: Date, last: Date): string {
 
 /** Copy for Home hero — range + function names, or a clear setup prompt. */
 export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleHomeCopy {
-  const sorted = [...state.functions].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = datedWeddingFunctions(state);
   const eventsLine = sorted.map((fn) => fn.name).filter(Boolean).join(" · ");
+  const days = scheduleDays(state);
 
-  if (weddingScheduleNeedsSetup(state)) {
-    const names = sorted
-      .slice(0, 3)
-      .map((fn) => fn.name)
-      .filter(Boolean)
-      .join(" · ");
+  if (weddingScheduleNeedsSetup(state) || !sorted.length) {
     return {
       label: "Dates & events",
-      headline: "When is your wedding week?",
-      detail: names ? `${names} — tap to set dates` : "Tap to set Sangeet, Marriage & Reception",
-      shortRange: "Dates",
-      eventsLine: names,
-    };
-  }
-
-  if (!sorted.length) {
-    return {
-      label: "Dates & events",
-      headline: "No functions yet",
-      detail: "Tap to add your celebration dates",
+      headline: "When are your event days?",
+      detail: "Tap to add your event days",
       shortRange: "Dates",
       eventsLine: "",
+      days,
     };
   }
 
@@ -305,6 +320,7 @@ export function formatWeddingScheduleHome(state: WeddingState): WeddingScheduleH
     detail: `${dayCount} ${dayCount === 1 ? "day" : "days"} · ${eventsLine}`,
     shortRange,
     eventsLine,
+    days,
   };
 }
 
@@ -323,62 +339,84 @@ export type FunctionScheduleDraft = Pick<WeddingFunction, "id" | "name" | "date"
 
 export function buildFunctionScheduleDraft(state: WeddingState): FunctionScheduleDraft[] {
   return [...state.functions]
-    .sort((a, b) => a.date.localeCompare(b.date))
     .map((fn) => ({
       id: fn.id,
       name: fn.name,
-      date: fn.date,
-      custom: fn.custom,
-    }));
-}
-
-export function proposeCoreDatesForStart(
-  functions: FunctionScheduleDraft[],
-  previousStart: string,
-  nextStart: string,
-): FunctionScheduleDraft[] {
-  if (!nextStart.trim()) return functions;
-  const prevEvent = { startDate: previousStart || PLACEHOLDER_START_DATE } as EventInfo;
-  const nextEvent = { startDate: nextStart } as EventInfo;
-  return functions.map((fn) => {
-    if (fn.custom || !isCoreWeddingFunction(fn.id)) return fn;
-    if (fn.date === defaultFunctionDate(prevEvent, fn.id)) {
-      return { ...fn, date: defaultFunctionDate(nextEvent, fn.id) };
-    }
-    return fn;
-  });
+      date: isRealEventDate(fn.date) ? fn.date : "",
+      custom: true,
+    }))
+    .sort(sortByDate);
 }
 
 export function applyWeddingSchedule(
   state: WeddingState,
-  startDate: string,
+  _startDate: string,
   functions: FunctionScheduleDraft[],
 ): WeddingState {
-  const trimmedStart = startDate.trim();
+  const dated = functions.filter((fn) => isRealEventDate(fn.date) && fn.name.trim());
+  const previousIds = new Set(state.functions.map((fn) => fn.id));
+
+  if (!dated.length) {
+    return {
+      ...state,
+      event: {
+        ...state.event,
+        startDate: "",
+        scheduleConfirmed: false,
+      },
+      functions: [],
+      menu: state.menu.filter((row) => !previousIds.has(Number(row.day))),
+    };
+  }
+
+  const trimmedStart = [...dated].sort(sortByDate)[0]?.date?.trim() || "";
   if (!trimmedStart) return state;
 
-  const byId = new Map(functions.map((fn) => [fn.id, fn]));
-  const nextFunctions = state.functions
-    .map((fn) => {
-      const draft = byId.get(fn.id);
-      if (!draft?.date?.trim()) return fn;
-      return {
-        ...fn,
-        name: draft.name.trim() || fn.name,
-        date: draft.date,
-      };
-    })
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const existingIds = previousIds;
+  const existingById = new Map(state.functions.map((fn) => [fn.id, fn]));
 
-  const sangeetDate = nextFunctions.find((fn) => fn.id === 1)?.date?.trim() || trimmedStart;
+  const nextFunctions = dated
+    .map((fn) => {
+      const existing = existingById.get(fn.id);
+      return {
+        id: fn.id,
+        name: fn.name.trim() || existing?.name || "Event",
+        date: fn.date.trim(),
+        custom: true,
+      } satisfies WeddingFunction;
+    })
+    .sort(sortByDate);
+
+  const nextIds = new Set(nextFunctions.map((fn) => fn.id));
+  const created = nextFunctions.filter((fn) => !existingIds.has(fn.id));
+  const newRows: MenuRow[] = created.flatMap((fn) =>
+    MENU_COURSES.map((course) =>
+      normalizeMenuRow({
+        id: createId("mn"),
+        day: fn.id,
+        course,
+        items: "",
+        notes: "",
+        plateCount: "",
+        rate: "",
+        estimate: "",
+        status: "Discuss",
+        categories: emptyMenuCategoryDraft(),
+      }),
+    ),
+  );
 
   return {
     ...state,
     event: {
       ...state.event,
-      startDate: sangeetDate,
+      startDate: trimmedStart,
       scheduleConfirmed: true,
     },
     functions: nextFunctions,
+    menu: [
+      ...state.menu.filter((row) => nextIds.has(Number(row.day))),
+      ...newRows,
+    ],
   };
 }

@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Home mock — stack &amp; show</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,500,0..1,0&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fff8f5;
+      --ink: #1e1b18;
+      --muted: #584141;
+      --card: #fffdf8;
+      --yellow: #feca43;
+      --blue: #82b1db;
+      --green: #c8e6c0;
+      --plum: #e8d5f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Manrope, system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(80% 50% at 20% 0%, #ffe8d6 0%, transparent 55%),
+        radial-gradient(70% 45% at 90% 10%, #e8f0f8 0%, transparent 50%),
+        #f3ebe4;
+    }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+    .intro h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+    .intro p {
+      margin: 8px 0 0;
+      max-width: 62ch;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.45;
+    }
+    .note {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #1a100c;
+      color: #feca43;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+      margin-top: 28px;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; justify-items: center; }
+    }
+    .col h2 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .phone {
+      width: 390px;
+      max-width: 100%;
+      height: 800px;
+      border-radius: 36px;
+      padding: 14px;
+      background: #1a100c;
+      box-shadow: 0 30px 80px rgba(26, 16, 12, 0.28);
+    }
+    .screen {
+      position: relative;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 26px;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 18px 14px 96px;
+      scrollbar-width: thin;
+    }
+    /* Prod floating bottom nav (Home · Scene · Buzz · Buddies · Event) */
+    .bottom-nav {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 20;
+      height: 64px;
+      border-radius: 28px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      padding: 0 4px;
+      background: rgba(255, 252, 248, 0.82);
+      border: 1px solid rgba(87, 0, 19, 0.1);
+      box-shadow: 0 24px 60px rgba(60, 40, 20, 0.12);
+      backdrop-filter: blur(28px) saturate(1.5);
+      -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    }
+    .bottom-nav button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+      min-height: 44px;
+      padding: 0 2px;
+      color: #7a6f62;
+      cursor: default;
+      font: inherit;
+    }
+    .bottom-nav button.is-active { color: #2c2419; }
+    .bottom-nav .icon-wrap {
+      position: relative;
+      display: flex;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .bottom-nav .material-symbols-outlined {
+      font-size: 21px;
+      line-height: 1;
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+    }
+    .bottom-nav button.is-active .material-symbols-outlined,
+    .bottom-nav .buzz .material-symbols-outlined {
+      font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+    }
+    .bottom-nav .buzz-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      opacity: 0.55;
+      background: linear-gradient(135deg, #2ec8ff, #ff3d9a, #ff5a1f);
+      pointer-events: none;
+    }
+    .bottom-nav .buzz .material-symbols-outlined {
+      position: relative;
+      color: #fff;
+    }
+    .bottom-nav .buzz .nav-label {
+      color: #ffb07a;
+      font-weight: 800;
+    }
+    .bottom-nav .nav-label {
+      width: 100%;
+      text-align: center;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .bottom-nav .nav-badge {
+      position: absolute;
+      top: -4px;
+      right: -6px;
+      display: grid;
+      place-items: center;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 999px;
+      background: #1e1b18;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .event { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+    .cmd { margin-top: 4px; font-size: 15px; font-weight: 600; color: var(--muted); }
+    .dates {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .entry {
+      min-height: 112px;
+      border-radius: 20px;
+      padding: 14px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.045em;
+      line-height: 0.95;
+    }
+    .entry.dates { background: var(--yellow); }
+    .entry.plot { background: var(--blue); }
+    .label {
+      margin: 20px 2px 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    /* People pins = exact prod .home-module — do not restyle the cards */
+    .people {
+      position: relative;
+      margin: 4px -6px 0;
+      padding: 8px 6px 12px;
+      overflow: visible;
+    }
+    .people::before {
+      content: "";
+      position: absolute;
+      inset: 4px 0 0;
+      border-radius: 36px;
+      background:
+        radial-gradient(70% 80% at 50% 42%, rgba(255, 214, 140, 0.28), transparent 72%);
+      pointer-events: none;
+      animation: people-glow 3.6s ease-in-out infinite;
+    }
+    .people .label {
+      position: relative;
+      margin-top: 12px;
+      color: #3d342e;
+      animation: people-label 2.8s ease-in-out infinite;
+    }
+    .pin-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding-top: 14px;
+    }
+    .pin-slot {
+      position: relative;
+      height: 248px;
+    }
+    .pin {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border: 0;
+      border-radius: 28px;
+      padding: 16px 12px 8px;
+      background: #fffdf8;
+      color: #1e1b18;
+      font: inherit;
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 0 16px 32px rgba(90, 62, 8, 0.12);
+    }
+    .pin:active { opacity: 0.92; }
+    .pin:focus-visible {
+      outline: 2px solid #1e1b18;
+      outline-offset: 4px;
+    }
+    .pin strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: #000;
+    }
+    .pin span.line {
+      display: block;
+      margin-top: 2px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: #584141;
+    }
+    .pin img {
+      min-height: 0;
+      width: 100%;
+      flex: 1;
+      object-fit: contain;
+      object-position: center bottom;
+      pointer-events: none;
+    }
+    .pin-slot > .badge {
+      top: -14px;
+      right: -14px;
+      z-index: 3;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 7px;
+      background: #1e1b18;
+      font-family: Manrope, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      pointer-events: none;
+      animation: none;
+    }
+    .badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #e11d3a;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: grid;
+      place-items: center;
+      animation: pulse 1.8s ease-in-out infinite;
+      z-index: 2;
+    }
+
+    /* A · flat rail */
+    .rail-wrap { position: relative; }
+    .rail {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 2px 2px 10px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .rail::-webkit-scrollbar { height: 0; }
+    .fade-edge { position: relative; }
+    .fade-edge::after {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      top: 0; right: 0;
+      width: 36px; height: 100%;
+      background: linear-gradient(90deg, transparent, var(--bg));
+    }
+
+    /* B · stack & show (coverflow) */
+    .stack-stage {
+      position: relative;
+      height: 340px;
+      margin: 0 -10px;
+      perspective: 1200px;
+      perspective-origin: 50% 50%;
+      overflow: hidden;
+    }
+    .stack {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      gap: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px calc(50% - 112px);
+      scrollbar-width: none;
+    }
+    .stack::-webkit-scrollbar { display: none; }
+    .stack .mod {
+      flex: 0 0 224px;
+      height: 292px;
+      margin: 0 -34px;
+      scroll-snap-align: center;
+      transform-origin: center center;
+      transform: translateZ(0) rotateY(var(--ry, 0deg)) scale(var(--sc, 0.78)) translateX(var(--tx, 0px));
+      opacity: var(--op, 0.45);
+      filter: blur(var(--blur, 0.6px));
+      transition: transform 90ms linear, opacity 90ms linear, filter 90ms linear;
+      will-change: transform, opacity, filter;
+      box-shadow:
+        0 18px 40px rgba(26, 16, 12, 0.16),
+        0 0 0 1px rgba(255, 255, 255, 0.35) inset;
+      background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), #fffdf8 40%);
+      backdrop-filter: blur(8px);
+    }
+    .stack .mod strong {
+      font-size: 18px;
+    }
+    .stack .mod span.line {
+      font-size: 13px;
+    }
+    .stack-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .stack-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #d8cfc6;
+      transition: width 0.2s ease, background 0.2s ease;
+    }
+    .stack-dots span.on {
+      width: 16px;
+      background: #1a100c;
+    }
+
+    .mod {
+      position: relative;
+      flex: 0 0 168px;
+      height: 220px;
+      scroll-snap-align: start;
+      border-radius: 24px;
+      padding: 12px 10px 8px;
+      background: var(--card);
+      box-shadow: 0 14px 28px rgba(90, 62, 8, 0.1);
+      overflow: hidden;
+    }
+    .mod.big {
+      flex: 0 0 196px;
+      height: 268px;
+    }
+    .mod strong {
+      display: block;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+    .mod span.line {
+      display: block;
+      margin-top: 2px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .mod img {
+      position: absolute;
+      left: 50%;
+      bottom: -8px;
+      width: 132px;
+      transform: translateX(-50%);
+      object-fit: contain;
+      pointer-events: none;
+    }
+    .mod.big img { width: 160px; bottom: -12px; }
+    .stack .mod img {
+      width: 168px;
+      bottom: -8px;
+      transform: translateX(-50%);
+    }
+    .mod-art {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      width: 112px;
+      height: 112px;
+      border-radius: 32px;
+      display: grid;
+      place-items: center;
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: #1a100c;
+    }
+    .mod-art.broadcast { background: var(--plum); }
+    .mod-art.budget { background: var(--green); }
+    .mod-art.buddies { background: #fde2c8; }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      opacity: 0.85;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    @keyframes people-glow {
+      0%, 100% { opacity: 0.55; transform: scale(0.98); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+    @keyframes people-label {
+      0%, 100% { opacity: 0.72; }
+      50% { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .badge, .stack .mod, .people::before, .people .label {
+        animation: none;
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="intro">
+      <h1>Home mock — stack &amp; show</h1>
+      <p>
+        Modules use stack &amp; show above. <strong>Invitations + Contacts</strong> stay bright and fixed
+        below — the easy path hosts use most, so nobody feels lost.
+      </p>
+      <span class="note">Throwaway mock · swipe the stack on B</span>
+    </div>
+
+    <div class="grid">
+      <div class="col">
+        <h2>A · Current flat rail</h2>
+        <div class="phone">
+          <div class="screen">
+            <div class="scroll">
+              <div class="event">Subhangi &amp; Roni</div>
+              <div class="cmd">Add the people next.</div>
+              <div class="dates">
+                <div class="entry dates">Dates</div>
+                <div class="entry plot">The Plot</div>
+              </div>
+              <div class="label">Open one</div>
+              <div class="fade-edge rail-wrap">
+                <div class="rail">
+                  <div class="mod big">
+                    <strong>Invitations</strong>
+                    <span class="line">Still to send</span>
+                    <span class="badge">12</span>
+                    <img src="/public/home/home-invitations.png" alt="" />
+                  </div>
+                  <div class="mod big">
+                    <strong>Contacts</strong>
+                    <span class="line">Add a guest</span>
+                    <img src="/public/home/home-guests.png" alt="" />
+                  </div>
+                  <div class="mod big">
+                    <strong>Buzz</strong>
+                    <span class="line">Games &amp; play</span>
+                    <img src="/public/home/home-buzz.png" alt="" />
+                  </div>
+                  <div class="mod big">
+                    <strong>Stay</strong>
+                    <span class="line">Rooms still open</span>
+                    <img src="/public/home/home-stay.png" alt="" />
+                  </div>
+                  <div class="mod big">
+                    <strong>Menu</strong>
+                    <span class="line">Meals still open</span>
+                    <img src="/public/home/home-menu.png" alt="" />
+                  </div>
+                </div>
+              </div>
+              <p class="hint">Flat strip — every card same size</p>
+            </div>
+            <nav class="bottom-nav" aria-label="Primary">
+              <button type="button" class="is-active">
+                <span class="icon-wrap"><span class="material-symbols-outlined">dashboard</span></span>
+                <span class="nav-label">Home</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap"><span class="material-symbols-outlined">preview</span></span>
+                <span class="nav-label">Scene</span>
+              </button>
+              <button type="button" class="buzz">
+                <span class="icon-wrap">
+                  <span class="buzz-glow" aria-hidden></span>
+                  <span class="material-symbols-outlined">campaign</span>
+                </span>
+                <span class="nav-label">Buzz</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap">
+                  <span class="material-symbols-outlined">handshake</span>
+                  <span class="nav-badge">2</span>
+                </span>
+                <span class="nav-label">Buddies</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap"><span class="material-symbols-outlined">tune</span></span>
+                <span class="nav-label">Event</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <h2>B · Stack &amp; show + pinned people</h2>
+        <div class="phone">
+          <div class="screen">
+            <div class="scroll">
+              <div class="event">Subhangi &amp; Roni</div>
+              <div class="cmd">Add the people next.</div>
+              <div class="dates">
+                <div class="entry dates">Dates</div>
+                <div class="entry plot">The Plot</div>
+              </div>
+
+              <div class="label">Modules</div>
+              <div class="stack-stage">
+                <div class="stack" data-stack>
+                  <div class="mod" data-title="Buzz" data-line="Games &amp; play">
+                    <strong>Buzz</strong>
+                    <span class="line">Games &amp; play</span>
+                    <img src="/public/home/home-buzz.png" alt="" />
+                  </div>
+                  <div class="mod" data-title="Buddies" data-line="2 tasks open">
+                    <strong>Buddies</strong>
+                    <span class="line">2 tasks open</span>
+                    <span class="badge">2</span>
+                    <div class="mod-art buddies" aria-hidden>🤝</div>
+                  </div>
+                  <div class="mod" data-title="Stay" data-line="Rooms still open">
+                    <strong>Stay</strong>
+                    <span class="line">Rooms still open</span>
+                    <img src="/public/home/home-stay.png" alt="" />
+                  </div>
+                  <div class="mod" data-title="Menu" data-line="Meals still open">
+                    <strong>Menu</strong>
+                    <span class="line">Meals still open</span>
+                    <img src="/public/home/home-menu.png" alt="" />
+                  </div>
+                  <div class="mod" data-title="Broadcast" data-line="Message everyone">
+                    <strong>Broadcast</strong>
+                    <span class="line">Message everyone</span>
+                    <div class="mod-art broadcast" aria-hidden>📢</div>
+                  </div>
+                  <div class="mod" data-title="Budget" data-line="₹2.4L spent">
+                    <strong>Budget</strong>
+                    <span class="line">₹2.4L spent</span>
+                    <div class="mod-art budget" aria-hidden>₹</div>
+                  </div>
+                </div>
+              </div>
+              <div class="stack-dots" data-stack-dots aria-hidden></div>
+
+              <div class="people">
+                <div class="label">People</div>
+                <div class="pin-row">
+                  <span class="pin-slot">
+                    <button type="button" class="pin">
+                      <strong>Invitations</strong>
+                      <span class="line">Still to send</span>
+                      <img src="/public/home/home-invitations.png" alt="" />
+                    </button>
+                    <span class="badge">12</span>
+                  </span>
+                  <span class="pin-slot">
+                    <button type="button" class="pin">
+                      <strong>Contacts</strong>
+                      <span class="line">Add a guest</span>
+                      <img src="/public/home/home-guests.png" alt="" />
+                    </button>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <nav class="bottom-nav" aria-label="Primary">
+              <button type="button" class="is-active">
+                <span class="icon-wrap"><span class="material-symbols-outlined">dashboard</span></span>
+                <span class="nav-label">Home</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap"><span class="material-symbols-outlined">preview</span></span>
+                <span class="nav-label">Scene</span>
+              </button>
+              <button type="button" class="buzz">
+                <span class="icon-wrap">
+                  <span class="buzz-glow" aria-hidden></span>
+                  <span class="material-symbols-outlined">campaign</span>
+                </span>
+                <span class="nav-label">Buzz</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap">
+                  <span class="material-symbols-outlined">handshake</span>
+                  <span class="nav-badge">2</span>
+                </span>
+                <span class="nav-label">Buddies</span>
+              </button>
+              <button type="button">
+                <span class="icon-wrap"><span class="material-symbols-outlined">tune</span></span>
+                <span class="nav-label">Event</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const track = document.querySelector("[data-stack]");
+      const dotsHost = document.querySelector("[data-stack-dots]");
+      if (!track) return;
+
+      const cards = Array.from(track.querySelectorAll(".mod"));
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      dotsHost.innerHTML = cards.map(() => "<span></span>").join("");
+      const dots = Array.from(dotsHost.children);
+
+      const paint = () => {
+        const mid = track.scrollLeft + track.clientWidth / 2;
+        let best = 0;
+        let bestDist = Infinity;
+
+        cards.forEach((card, i) => {
+          const c = card.offsetLeft + card.offsetWidth / 2;
+          const dist = (c - mid) / (card.offsetWidth * 0.72);
+          const x = Math.max(-2.2, Math.min(2.2, dist));
+          const abs = Math.abs(x);
+
+          if (!reduce) {
+            card.style.setProperty("--ry", `${(-x * 38).toFixed(2)}deg`);
+            card.style.setProperty("--sc", String((1 - Math.min(abs * 0.2, 0.28)).toFixed(3)));
+            card.style.setProperty("--tx", `${(x * -10).toFixed(1)}px`);
+            card.style.setProperty("--op", String((1 - Math.min(abs * 0.32, 0.55)).toFixed(3)));
+            card.style.setProperty("--blur", `${Math.min(abs * 0.9, 1.4).toFixed(2)}px`);
+          } else {
+            card.style.setProperty("--ry", "0deg");
+            card.style.setProperty("--sc", abs < 0.4 ? "1" : "0.88");
+            card.style.setProperty("--tx", "0px");
+            card.style.setProperty("--op", abs < 0.4 ? "1" : "0.65");
+            card.style.setProperty("--blur", "0px");
+          }
+
+          card.style.zIndex = String(Math.round(20 - abs * 8));
+          card.classList.toggle("is-center", abs < 0.35);
+
+          if (abs < bestDist) {
+            bestDist = abs;
+            best = i;
+          }
+        });
+
+        dots.forEach((dot, i) => dot.classList.toggle("on", i === best));
+      };
+
+      track.addEventListener("scroll", () => requestAnimationFrame(paint), { passive: true });
+      window.addEventListener("resize", paint);
+      requestAnimationFrame(() => {
+        const first = cards[0];
+        if (first) {
+          track.scrollLeft = first.offsetLeft - (track.clientWidth - first.offsetWidth) / 2;
+        }
+        paint();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 ---
 version: 1.0.0
 name: BiyeFlow-design-system
-description: Premium Wedding OS — warm ivory canvas, deep maroon primary (#570013), gold tertiary accents (#cca730), Playfair Display headlines, Manrope UI. Hospitality-first like Airbnb warmth, editorial like luxury print. Mobile PWA with role-gated modules (Command Center, People, Buddies, Buzz).
+description: Premium Event OS — warm ivory canvas, deep maroon primary (#570013), gold tertiary accents (#cca730), Playfair Display headlines, Manrope UI. Hospitality-first like Airbnb warmth, editorial like luxury print. Mobile PWA with role-gated modules (Command Center, People, Buddies, Buzz).
 
 colors:
   primary: "#570013"
@@ -71,7 +71,7 @@ typography:
     fontSize: 11px
     fontWeight: 400
     lineHeight: 1.45
-  wedding-code:
+  event-code:
     fontFamily: "Manrope, ui-sans-serif, system-ui, sans-serif"
     fontSize: 20px
     fontWeight: 600
@@ -148,7 +148,7 @@ components:
 
 ## 1. Visual Theme & Atmosphere
 
-**Mood:** Warm, celebratory, premium — a wedding planner that feels like a boutique concierge app, not enterprise SaaS.
+**Mood:** Warm, celebratory, premium — an event host app that feels like a boutique concierge, not enterprise SaaS.
 
 **Density:** Comfortable on mobile (PWA-first). Generous padding on auth and profile flows. Data-heavy boards (Menu, Guests) use bento cards with scrollable content areas.
 
@@ -175,11 +175,11 @@ components:
 
 | Role | Font | Size | Weight | Usage |
 |------|------|------|--------|-------|
-| Headline | Playfair Display | 24–32px | 600–700 | Page titles, wedding name, section heroes |
+| Headline | Playfair Display | 24–32px | 600–700 | Page titles, event name, section heroes |
 | Button | Manrope | 13–15px | 600 | All buttons, nav labels |
 | Label caps | Manrope | 9–12px | 600 | Section eyebrows, tracking 0.14–0.16em uppercase |
 | Body | Manrope | 11–13px | 400 | Descriptions, helper text |
-| Wedding code | Manrope | 20px | 600 | 0.18em letter-spacing, tabular |
+| Event code | Manrope | 20px | 600 | 0.18em letter-spacing, tabular |
 
 **Never** use Playfair for buttons or form labels.
 
@@ -200,7 +200,7 @@ components:
 ### Inputs
 - White fill, maroon-tinted border, `rounded-xl`.
 - PIN: centered, wide letter-spacing, numeric keyboard.
-- Wedding code input: uppercase, wide tracking.
+- Event code input: uppercase, wide tracking.
 
 ### Navigation
 - **Desktop sidebar:** People module only — Guests + Menu nested. Maroon logo tile "B".
@@ -250,7 +250,7 @@ components:
 When building or redesigning BiyeFlow UI:
 
 ```
-Follow app/DESIGN.md. Premium wedding aesthetic: ivory canvas #fff8f5,
+Follow app/DESIGN.md. Premium event aesthetic: ivory canvas #fff8f5,
 maroon #570013 primary, gold #cca730 accents, Playfair headlines, Manrope UI,
 pill buttons, rounded-2xl cards. Mobile PWA — ensure scroll works. Match
 existing Tailwind tokens in globals.css (@theme). For inspiration see

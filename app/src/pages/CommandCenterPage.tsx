@@ -1,31 +1,151 @@
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAccess } from "../hooks/useAccess";
 import { useWeddingState } from "../hooks/useWeddingState";
-import { CommandCenterWidget } from "../components/command-center/CommandCenterWidget";
 import { HomeLandingHeader } from "../components/command-center/HomeLandingHeader";
-import { HomeInviteProgressCard } from "../components/command-center/HomeInviteProgressCard";
+import { EventDetailsSheet } from "../components/command-center/EventDetailsSheet";
 import { HomeLiveCard } from "../components/command-center/HomeLiveCard";
 import { Icon } from "../components/ui/Icon";
-import {
-  buildBuddyOverviewWidget,
-  buildCoreOverviewWidgets,
-  buildHomeLiveCards,
-  buildSetupTasks,
-  setupProgress,
-} from "../domain/commandCenterSummary";
-import { formatWeddingScheduleHome, weddingScheduleNeedsSetup } from "../domain/functions";
+import { buildSetupTasks, homeCardPending } from "../domain/commandCenterSummary";
+import { formatWeddingScheduleHome, resolveDayName, weddingScheduleNeedsSetup } from "../domain/functions";
 import { cn } from "../design-system/cn";
+import { useNavigateInsideEvent, useSheetHistory } from "../navigation/eventHistory";
+
+const MODULE_SLOT_PX = 208;
+const MODULE_GAP_PX = 16;
+
+type HomeModuleCard = {
+  key: string;
+  title: string;
+  line: string;
+  image: string;
+  pending: number;
+  liftArt?: boolean;
+  to?: string;
+  onOpen?: () => void;
+};
 
 export function CommandCenterPage() {
-  const { state, syncLive, syncCode, setScheduleModalOpen } = useWeddingState();
-  const { profile, snapshot, isGuest, canManage, canEdit } = useAccess();
+  const go = useNavigateInsideEvent();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { state, setState, showToast, setScheduleModalOpen, setScheduleFocusId } =
+    useWeddingState();
+  const { profile, snapshot, isGuest, canManage, canAccessModule } = useAccess();
+  const [detailsOpen, setDetailsOpen] = useSheetHistory("plot");
+
+  useEffect(() => {
+    const invitesDeep =
+      searchParams.get("invites") === "1" || searchParams.get("sheet") === "invites";
+    if (!invitesDeep) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("invites");
+    next.delete("sheet");
+    setSearchParams(next, { replace: true });
+    go("/people/invites");
+  }, [searchParams, setSearchParams, go]);
+  const [activeModule, setActiveModule] = useState(0);
+  const modulesRef = useRef<HTMLDivElement>(null);
+
+  const canViewGuests = canAccessModule("guests", "view");
+  const canViewRooms = canAccessModule("rooms", "view");
+  const canViewMenu = canAccessModule("menu", "view");
+  const canViewBuzz = canAccessModule("buzz", "view");
+  const modules = state.modules || { stay: false, menu: false, asked: false };
+  const pending = homeCardPending(state);
+
+  const moduleCards = useMemo<HomeModuleCard[]>(() => {
+    const cards: HomeModuleCard[] = [];
+    if (canViewGuests) {
+      cards.push({
+        key: "invitations",
+        title: "Invitations",
+        line: "Still to send",
+        image: "/home/home-invitations.png",
+        pending: pending.invitations,
+        to: "/people/invites",
+      });
+      cards.push({
+        key: "contacts",
+        title: "Contacts",
+        line: "Add a guest",
+        image: "/home/home-guests.png",
+        pending: pending.contacts,
+        to: "/people/contacts",
+      });
+    }
+    if (canViewBuzz) {
+      cards.push({
+        key: "buzz",
+        title: "Buzz",
+        line: pending.buzz ? "Finish the invite" : "Games & play",
+        image: "/home/home-buzz.png",
+        pending: pending.buzz,
+        to: "/buzz",
+      });
+    }
+    if (canViewRooms && modules.stay) {
+      cards.push({
+        key: "stay",
+        title: "Stay",
+        line: "Rooms still open",
+        image: "/home/home-stay.png",
+        pending: pending.stay,
+        to: "/people/rooms",
+      });
+    }
+    if (canViewMenu && modules.menu) {
+      cards.push({
+        key: "menu",
+        title: "Menu",
+        line: "Meals still open",
+        image: "/home/home-menu.png",
+        liftArt: true,
+        pending: pending.menu,
+        to: "/people/menu",
+      });
+    }
+    return cards;
+  }, [
+    canViewGuests,
+    canViewBuzz,
+    canViewRooms,
+    canViewMenu,
+    modules.stay,
+    modules.menu,
+    pending.invitations,
+    pending.contacts,
+    pending.buzz,
+    pending.stay,
+    pending.menu,
+  ]);
+
+  const moduleCount = moduleCards.length;
+
+  useEffect(() => {
+    const el = modulesRef.current;
+    if (!el) return;
+
+    const sync = () => {
+      const step = MODULE_SLOT_PX + MODULE_GAP_PX;
+      const next = Math.round(el.scrollLeft / step);
+      setActiveModule(Math.max(0, Math.min(Math.max(moduleCount - 1, 0), next)));
+    };
+
+    sync();
+    el.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    return () => {
+      el.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, [moduleCount]);
 
   if (isGuest) {
     return (
       <div className="mx-auto max-w-lg px-3 py-8 text-center space-y-4">
         <Icon name="campaign" className="text-primary text-[40px]" />
         <h1 className="font-headline-md text-primary text-[24px]">Welcome, {profile?.name}</h1>
-        <p className="text-[13px] text-secondary">Your wedding hub is BUZZ — welcome, invitation & venue.</p>
+        <p className="text-[13px] text-secondary">Your event hub is BUZZ — welcome, invitation & venue.</p>
         <Link
           to="/buzz"
           className="inline-flex h-11 items-center px-6 rounded-full bg-primary text-on-primary font-button text-[13px]"
@@ -37,20 +157,38 @@ export function CommandCenterPage() {
   }
 
   const tasks = buildSetupTasks(state, snapshot, canManage);
-  const progress = setupProgress(tasks);
-  const coreWidgets = buildCoreOverviewWidgets(state, snapshot, canManage);
-  const liveCards = buildHomeLiveCards(state, snapshot, canManage);
-  const buddyWidget = canManage ? buildBuddyOverviewWidget(state, snapshot) : null;
-  const menuWidget = coreWidgets.find((w) => w.id === "menu");
-  const setupComplete = progress.pct >= 100;
-  const attentionCount = coreWidgets.filter((w) => w.status === "attention").length;
+  const openTasks = tasks.filter((task) => !task.done);
   const scheduleHome = formatWeddingScheduleHome(state);
   const datesNeedSetup = weddingScheduleNeedsSetup(state);
+  const showModuleAsk = canManage && !modules.asked && !modules.stay && !modules.menu;
 
-  const openScheduleEditor = () => {
-    if (!canEdit) return;
+  const openScheduleEditor = (focusId?: number) => {
+    setScheduleFocusId(focusId ?? null);
     setScheduleModalOpen(true);
   };
+
+  const setModules = (next: { stay?: boolean; menu?: boolean; asked?: boolean }) => {
+    setState((prev) => ({
+      ...prev,
+      modules: {
+        stay: next.stay ?? Boolean(prev.modules?.stay),
+        menu: next.menu ?? Boolean(prev.modules?.menu),
+        asked: next.asked ?? Boolean(prev.modules?.asked),
+      },
+    }));
+  };
+
+  const next = openTasks[0];
+  const command =
+    next?.id === "dates"
+      ? "Lock the days first."
+      : next?.id === "buzz"
+        ? "Write the invite next."
+        : next?.id === "guests"
+          ? "Add the people next."
+          : next?.id === "menu"
+            ? "Set the food next."
+            : "You're set. Open a card.";
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col max-lg:mx-0 max-lg:max-w-none max-lg:min-h-0 max-lg:flex-1 lg:py-4">
@@ -63,226 +201,127 @@ export function CommandCenterPage() {
         <div
           className={cn(
             "home-page-scroll max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-y-auto max-lg:overflow-x-hidden max-lg:overscroll-contain",
-            "max-lg:px-3.5 max-lg:pt-1 max-lg:pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
+            "max-lg:px-3.5 max-lg:pt-1 max-lg:pb-[calc(4.75rem+env(safe-area-inset-bottom))]",
             "space-y-0 lg:space-y-4 lg:px-0 lg:pb-0 lg:overflow-visible",
           )}
         >
-          <section aria-label="Home overview" className="lg:hidden">
+          <section aria-label="Home overview" className="font-[Manrope,sans-serif] text-black">
             <HomeLandingHeader
               eventName={state.event.name}
-              syncCode={syncCode}
-              syncLive={syncLive}
-              attentionCount={attentionCount}
+              command={command}
               scheduleHome={scheduleHome}
               datesNeedSetup={datesNeedSetup}
-              canEdit={canEdit}
-              onEditDates={openScheduleEditor}
+              onOpenDates={() => openScheduleEditor()}
+              onOpenDetails={() => setDetailsOpen(true)}
             />
-            <HomeInviteProgressCard guests={state.guests} />
-            <div className="mb-1.5 mt-1 flex items-center justify-between">
-              <h3 className="text-[0.72rem] font-extrabold uppercase tracking-[0.1em] text-[#7a6f62]">
-                Your modules
-              </h3>
-            </div>
-            <div className="home-live-rail" aria-label="Module cards">
-              {liveCards.map((card) => (
-                <HomeLiveCard key={card.id} card={card} />
-              ))}
-            </div>
-
-            {!setupComplete ? (
-              <section className="home-setup-block mt-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-[0.9rem] font-extrabold text-[#2c2419]">Getting started</h3>
-                  <span className="text-[0.68rem] font-bold tabular-nums text-[#7a6f62]">
-                    {progress.done}/{progress.total}
-                  </span>
-                </div>
-                <div className="home-setup-bar">
-                  <i style={{ width: `${progress.pct}%` }} />
-                </div>
-                <div className="home-task-glass">
-                  {tasks.map((task) => {
-                    const inner = (
-                      <>
-                        <span className={cn("home-task-check", task.done && "on")}>
-                          {task.done ? "✓" : ""}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[0.84rem] font-extrabold text-[#2c2419]">
-                            {task.label}
-                          </span>
-                          <span className="block text-[0.68rem] font-semibold text-[#7a6f62]">
-                            {task.done ? "Done" : task.hint}
-                          </span>
-                        </span>
-                        {task.done ? null : (
-                          <Icon name="chevron_right" className="shrink-0 text-[18px] text-[#7a6f62]" />
-                        )}
-                      </>
-                    );
-
-                    if (task.id === "dates") {
-                      return (
-                        <button
-                          key={task.id}
-                          type="button"
-                          onClick={openScheduleEditor}
-                          disabled={!canEdit || task.done}
-                          className="home-task"
-                        >
-                          {inner}
-                        </button>
-                      );
-                    }
-
-                    if (task.done) {
-                      return (
-                        <div key={task.id} className="home-task">
-                          {inner}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <Link key={task.id} to={task.to} className="home-task">
-                        {inner}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : menuWidget ? (
-              <section className="mt-2">
-                <div className="mb-2">
-                  <h3 className="text-[0.9rem] font-extrabold text-[#2c2419]">Menu</h3>
-                </div>
-                <Link to={menuWidget.to} className="home-team-card" aria-label="Open menu">
-                  <span className="home-team-card__av">
-                    <Icon name="restaurant" className="text-[18px]" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-[0.9rem] font-extrabold text-[#2c2419]">
-                        {menuWidget.detail}
-                      </span>
-                      {menuWidget.status === "attention" ? (
-                        <span className="home-team-card__badge">Review</span>
-                      ) : null}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[0.68rem] font-semibold text-[#7a6f62]">
-                      {menuWidget.alert || "Tap to plan courses"}
-                    </span>
-                  </span>
-                  <Icon name="chevron_right" className="shrink-0 text-[18px] text-[#7a6f62]" />
-                </Link>
-              </section>
-            ) : null}
-          </section>
-
-          <section
-            aria-label="Home overview"
-            className={cn(
-              "hidden lg:flex home-landing-frame bento-card flex-col overflow-hidden bg-white",
-              "lg:mx-auto lg:w-full lg:rounded-2xl lg:border",
-            )}
-          >
-            <HomeLandingHeader
-              eventName={state.event.name}
-              syncCode={syncCode}
-              syncLive={syncLive}
-              attentionCount={attentionCount}
-              scheduleHome={scheduleHome}
-              datesNeedSetup={datesNeedSetup}
-              canEdit={canEdit}
-              onEditDates={openScheduleEditor}
-            />
-
-            <div className="home-glass-stage p-3 pb-3.5 lg:p-4">
-              <HomeInviteProgressCard guests={state.guests} />
-              <div className="home-widget-grid grid grid-cols-2 gap-2.5 lg:gap-3">
-                {coreWidgets.map((widget) => (
-                  <CommandCenterWidget key={widget.id} widget={widget} compact />
+            <div className="mt-16">
+              <h3 className="px-2 text-[15px] font-medium text-[#584141]">Open one</h3>
+              <div
+                ref={modulesRef}
+                className="home-modules"
+                aria-label="Module cards"
+              >
+                {moduleCards.map((card) => (
+                  <HomeLiveCard
+                    key={card.key}
+                    title={card.title}
+                    line={card.line}
+                    image={card.image}
+                    pending={card.pending}
+                    liftArt={card.liftArt}
+                    to={card.to}
+                    onOpen={card.onOpen}
+                  />
                 ))}
               </div>
+
+              {moduleCount > 1 ? (
+                <div
+                  className="home-modules-dots"
+                  role="presentation"
+                  aria-hidden
+                  data-testid="home-module-dots"
+                >
+                  {moduleCards.map((card, index) => (
+                    <span
+                      key={card.key}
+                      className={cn(
+                        "home-modules-dot",
+                        index === activeModule && "is-active",
+                      )}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {showModuleAsk ? (
+                <div className="mx-2 mt-3 rounded-[24px] bg-white/90 px-4 py-4 shadow-[0_10px_28px_rgba(30,27,24,0.06)]">
+                  <p className="text-[15px] font-extrabold tracking-[-0.02em] text-black">
+                    Do you need Stay or Menu for this event?
+                  </p>
+                  <p className="mt-1 text-[13px] font-medium text-[#584141]">
+                    Most hosts start with invites and Buzz. Add rooms or food only if you&apos;re running them here.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModules({ stay: true, asked: true });
+                        showToast("Stay is on Home");
+                      }}
+                      className="h-10 rounded-full bg-[#feca43] px-4 text-[13px] font-bold text-black"
+                    >
+                      Yes, Stay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModules({ menu: true, asked: true });
+                        showToast("Menu is on Home");
+                      }}
+                      className="h-10 rounded-full bg-[#feca43] px-4 text-[13px] font-bold text-black"
+                    >
+                      Yes, Menu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModules({ stay: true, menu: true, asked: true });
+                        showToast("Stay & Menu are on Home");
+                      }}
+                      className="h-10 rounded-full bg-[#1a100c] px-4 text-[13px] font-bold text-white"
+                    >
+                      Both
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModules({ stay: false, menu: false, asked: true });
+                        showToast("Kept Home light");
+                      }}
+                      className="h-10 rounded-full px-3 text-[13px] font-semibold text-[#584141]"
+                    >
+                      Not this event
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
-
-          {!setupComplete ? (
-            <section
-              className={cn(
-                "hidden lg:block bento-card space-y-3 bg-white p-4",
-                "lg:rounded-2xl lg:border lg:border-[rgba(128,0,32,0.12)]",
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-label-caps text-[9px] tracking-[0.14em] text-primary">
-                  Getting started
-                </p>
-                <span className="text-[10px] tabular-nums text-secondary lg:text-[11px]">
-                  {progress.done}/{progress.total}
-                </span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-[rgba(128,0,32,0.08)]">
-                <div
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${progress.pct}%` }}
-                />
-              </div>
-              <ul className="space-y-1.5">
-                {tasks
-                  .filter((task) => !task.done)
-                  .slice(0, 3)
-                  .map((task) => (
-                    <li key={task.id}>
-                      {task.id === "dates" ? (
-                        <button
-                          type="button"
-                          onClick={openScheduleEditor}
-                          disabled={!canEdit}
-                          className="flex min-h-10 w-full items-center gap-2.5 rounded-xl border border-[rgba(128,0,32,0.08)] px-3 py-2 text-[11px] text-primary transition-colors hover:bg-[rgba(128,0,32,0.03)] disabled:opacity-50 lg:text-[12px]"
-                        >
-                          <Icon
-                            name="radio_button_unchecked"
-                            className="shrink-0 text-[16px] text-secondary"
-                          />
-                          <span className="min-w-0 flex-1 truncate text-left">{task.label}</span>
-                          <Icon name="chevron_right" className="shrink-0 text-[16px] text-secondary/40" />
-                        </button>
-                      ) : (
-                        <Link
-                          to={task.to}
-                          className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[rgba(128,0,32,0.08)] px-3 py-2 text-[11px] text-primary transition-colors hover:bg-[rgba(128,0,32,0.03)] lg:text-[12px]"
-                        >
-                          <Icon
-                            name="radio_button_unchecked"
-                            className="shrink-0 text-[16px] text-secondary"
-                          />
-                          <span className="min-w-0 flex-1 truncate">{task.label}</span>
-                          <Icon name="chevron_right" className="shrink-0 text-[16px] text-secondary/40" />
-                        </Link>
-                      )}
-                    </li>
-                  ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {buddyWidget ? (
-            <section
-              className={cn(
-                "hidden lg:block bento-card bg-white p-4",
-                "lg:rounded-2xl lg:border lg:border-[rgba(128,0,32,0.12)]",
-              )}
-            >
-              <p className="mb-2.5 font-label-caps text-[9px] tracking-[0.14em] text-secondary">
-                Team
-              </p>
-              <CommandCenterWidget widget={buddyWidget} />
-            </section>
-          ) : null}
         </div>
       </div>
+
+      <EventDetailsSheet
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        eventName={state.event.name?.trim() || "Your event"}
+        dateLine={datesNeedSetup ? "" : scheduleHome.headline}
+        functions={state.functions}
+        nameOf={(fn) => fn.name || resolveDayName(state, fn.id)}
+        state={state}
+        onChangeState={setState}
+        onOpenDates={() => openScheduleEditor()}
+      />
     </div>
   );
 }

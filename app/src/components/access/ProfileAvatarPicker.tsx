@@ -21,8 +21,8 @@ export function ProfileAvatarPicker({
             className={cn(
               "aspect-square rounded-2xl flex flex-col items-center justify-center gap-1 border",
               selected
-                ? "border-primary bg-[rgba(128,0,32,0.08)]"
-                : "border-[rgba(128,0,32,0.12)] bg-white",
+                ? "border-[#ff6a1a] bg-[rgba(255,106,26,0.08)]"
+                : "border-[rgba(87,0,19,0.1)] bg-[#f5ece7]",
             )}
             aria-label={avatar.label}
             aria-pressed={selected}

@@ -16,6 +16,7 @@ type FeaturedMealCardProps = {
   grandCourse: GrandMealCourse;
   onGrandCourseChange: (course: GrandMealCourse) => void;
   swapTo?: GrandMealCourse | null;
+  surface?: "hero" | "clay";
 };
 
 function cleanItems(items: string[] | undefined): string[] {
@@ -83,6 +84,7 @@ export function FeaturedMealCard({
   grandCourse,
   onGrandCourseChange,
   swapTo = null,
+  surface = "hero",
 }: FeaturedMealCardProps) {
   const grouped = categorizeMenuItems(row);
   const items = menuItemsArray(row);
@@ -92,6 +94,52 @@ export function FeaturedMealCard({
   const icon = mealCourseIcon(row.course);
   const mobilePreview = previewDishes(row, multi, 3);
   const totalDishes = items.length;
+
+  if (surface === "clay") {
+    return (
+      <article className="clay-featured-meal">
+        <div className="flex items-center gap-2">
+          <span className={cn("clay-featured-chip", isConfirmed && "is-ok")}>
+            {isConfirmed ? <span className="d" aria-hidden /> : null}
+            {isConfirmed ? "Confirmed" : "In discussion"}
+          </span>
+        </div>
+        <button type="button" onClick={onOpen} className="mt-2 w-full text-left">
+          <h3 className="m-0 text-[1.2rem] font-extrabold leading-tight tracking-[-0.02em] text-[#2c2419]">
+            {dayLabel} {row.course}
+          </h3>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[0.68rem] font-semibold text-[#7a6f62]">
+            <Icon name={icon} className="text-[15px]" />
+            Grand buffet · {totalDishes} {totalDishes === 1 ? "dish" : "dishes"}
+          </p>
+          {mobilePreview.length ? (
+            <ul className="mt-2.5 space-y-1.5 p-0">
+              {mobilePreview.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2 text-[0.8rem] font-semibold leading-snug text-[#7a6f62]"
+                >
+                  <i className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[rgba(87,0,19,0.25)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+              {totalDishes > mobilePreview.length ? (
+                <li className="pl-3 text-[0.68rem] font-semibold text-[#7a6f62]">
+                  +{totalDishes - mobilePreview.length} more
+                </li>
+              ) : null}
+            </ul>
+          ) : (
+            <p className="mt-2.5 text-[0.8rem] font-semibold text-[#7a6f62]">Tap to plan dishes</p>
+          )}
+          <div className="mt-2.5 flex items-center justify-between text-[0.62rem] font-bold uppercase tracking-[0.12em] text-[#ffb07a]">
+            <span>Open full menu</span>
+            <Icon name="north_east" className="text-[16px]" />
+          </div>
+        </button>
+      </article>
+    );
+  }
 
   const cardClass = cn(
     "hero-meal-card hero-group-card rounded-[20px] lg:rounded-[28px] overflow-hidden flex flex-col h-full min-h-0",

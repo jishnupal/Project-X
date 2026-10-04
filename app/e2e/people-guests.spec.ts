@@ -8,18 +8,18 @@ function randomCode(): string {
 }
 
 async function createWedding(code: string) {
-  const res = await fetch(`${API}/api/wedding/${code}`, {
+  const res = await fetch(`${API}/api/event/${code}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       baseVersion: 0,
       state: {
-        event: { name: "E2E Wedding", guests: 0 },
+        event: { name: "E2E Event", guests: 0 },
         guests: [],
         menu: [],
         functions: [
-          { id: 1, name: "Sangeet" },
-          { id: 2, name: "Biyebari" },
+          { id: 1, name: "Day 1" },
+          { id: 2, name: "Main day" },
         ],
         guestGroups: [],
       },
@@ -29,7 +29,7 @@ async function createWedding(code: string) {
 }
 
 async function bootstrapAdmin(code: string, pin = "1234") {
-  const res = await fetch(`${API}/api/wedding/${code}/access`, {
+  const res = await fetch(`${API}/api/event/${code}/access`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -59,7 +59,7 @@ async function signInAsAdmin(page: Page, code: string, pin = "1234") {
 }
 
 async function seedGroupWithMembers(code: string, groupName: string, familyNames: string[]) {
-  const pull = await fetch(`${API}/api/wedding/${code}`);
+  const pull = await fetch(`${API}/api/event/${code}`);
   const payload = (await pull.json()) as { version: number; state: Record<string, unknown> };
   const groupId = `g-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const guests = familyNames.map((name, i) => ({
@@ -81,7 +81,7 @@ async function seedGroupWithMembers(code: string, groupName: string, familyNames
       guests: ((payload.state.guests as unknown[]) || []).length + familyNames.length,
     },
   };
-  const put = await fetch(`${API}/api/wedding/${code}`, {
+  const put = await fetch(`${API}/api/event/${code}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ baseVersion: payload.version, state: nextState }),

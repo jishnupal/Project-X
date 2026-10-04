@@ -149,6 +149,7 @@ export function normalizeMenuRow(row: Partial<MenuRow>): MenuRow {
 }
 
 export function normalizeMenu(menu: MenuRow[] | undefined, fallback: MenuRow[]): MenuRow[] {
+  if (Array.isArray(menu) && menu.length === 0) return [];
   const rows = Array.isArray(menu) ? menu.map(normalizeMenuRow) : [];
   const merged = fallback.map((fallbackRow) => {
     const saved = rows.find(
@@ -465,7 +466,7 @@ export function formatMenuPlan(state: WeddingState): string {
   const total = state.menu.reduce((sum, row) => sum + menuRowCost(state, row), 0);
 
   return [
-    `${state.event.name || "Bengali wedding"} - day-wise food timing plan`,
+    `${state.event.name || "Event"} - day-wise food timing plan`,
     `Catering estimate: ${formatINR(total)}`,
     "",
     ...rows,

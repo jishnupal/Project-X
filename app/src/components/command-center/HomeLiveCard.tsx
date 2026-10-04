@@ -1,51 +1,53 @@
-import { Link } from "react-router-dom";
-import { Icon } from "../ui/Icon";
-import { cn } from "../../design-system/cn";
-import type { HomeLiveCardData } from "../../domain/commandCenterSummary";
+import { useNavigateInsideEvent } from "../../navigation/eventHistory";
 
-export function HomeLiveCard({ card }: { card: HomeLiveCardData }) {
+type HomeModuleCardProps = {
+  title: string;
+  line: string;
+  image: string;
+  pending?: number;
+  to?: string;
+  onOpen?: () => void;
+  liftArt?: boolean;
+};
+
+function pendingLabel(count: number): string {
+  if (count > 99) return "99+";
+  return String(count);
+}
+
+export function HomeLiveCard({ title, line, image, pending = 0, to, onOpen, liftArt = false }: HomeModuleCardProps) {
+  const go = useNavigateInsideEvent();
+  const waiting = pending > 0;
+  const label = waiting ? `${title}, ${pending} pending` : title;
+  const face = (
+    <>
+      <span className="block">
+        <span className="block text-[18px] font-bold tracking-[-0.03em] text-black">{title}</span>
+        <span className="home-module__line">{line}</span>
+      </span>
+      <img src={image} alt="" className={liftArt ? "home-module__art home-module__art--lift" : "home-module__art"} />
+    </>
+  );
+  const badge = waiting ? (
+    <span className="home-module__badge" aria-hidden>
+      {pendingLabel(pending)}
+    </span>
+  ) : null;
+
   return (
-    <Link
-      to={card.to}
-      aria-label={card.title}
-      className={cn(
-        "home-live-card",
-        `c-${card.id}`,
-        card.needsAction && "needs-action",
-        card.isOk && "is-ok",
-      )}
-    >
-      <span className="home-live-card__bg" aria-hidden />
-      <span className="home-live-card__veil" aria-hidden />
-      {card.parkChrome ? null : (
-        <>
-          <span className="home-live-card__pill">
-            <span className="home-live-card__av">
-              <Icon name={card.icon} className="text-[14px]" />
-            </span>
-            <b>{card.title}</b>
-            <span className={cn("home-live-card__tag", card.tagTone)}>{card.tag}</span>
-          </span>
-          <span className="home-live-card__body">
-            <p className="home-live-card__action">
-              <span className="home-live-card__pulse" aria-hidden />
-              {card.actionLine}
-            </p>
-            <h3>{card.headline}</h3>
-            {card.meta.length > 0 ? (
-              <span className="home-live-card__meta">
-                {card.meta.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </span>
-            ) : null}
-            <span className="home-live-card__cta">
-              <Icon name="arrow_forward" className="text-[16px] text-white" />
-              {card.cta}
-            </span>
-          </span>
-        </>
-      )}
-    </Link>
+    <span className="home-module-slot">
+      <button
+        type="button"
+        aria-label={label}
+        className="home-module"
+        onClick={() => {
+          if (to) go(to);
+          else onOpen?.();
+        }}
+      >
+        {face}
+      </button>
+      {badge}
+    </span>
   );
 }

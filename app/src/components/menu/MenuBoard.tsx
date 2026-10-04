@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { MENU_ADD_ON_ITEMS } from "../../domain/defaults";
 import {
   functionIds,
@@ -30,12 +31,13 @@ import { cn } from "../../design-system/cn";
 import { CommercialDial } from "./CommercialDial";
 import { CommercialDialPopup } from "./CommercialDialPopup";
 import { FeaturedMealCard } from "./FeaturedMealCard";
+import { GrandMealSwitcher } from "./GrandMealSwitcher";
 import { MiniMealCard, AiMenuGeneratorCTA } from "./MiniMealCard";
 import { MenuDetailModal } from "./MenuDetailModal";
 import { BalanceCheckModal } from "./BalanceCheckModal";
 import { MenuAssistModal } from "./MenuAssistModal";
 import { DayPill } from "./DayPill";
-import { MobileEventButtons, MAX_MOBILE_EVENTS } from "../ui/MobileEventButtons";
+// MobileEventButtons removed — Menu uses DayPill for event selection
 import { ViewerBanner } from "../access/ViewerBanner";
 
 export function MenuBoard() {
@@ -45,16 +47,21 @@ export function MenuBoard() {
     showToast,
     lastCreatedFunctionId,
     clearLastCreatedFunctionId,
-    setNewEventModalOpen,
   } = useWeddingState();
   const { canAccessModule } = useAccess();
   const canEdit = canAccessModule("menu", "edit");
+  const [searchParams] = useSearchParams();
   const dayIds = useMemo(() => functionIds(state), [state]);
   const receptionDayId = state.functions.find((fn) => /reception/i.test(fn.name))?.id;
   const userPickedDay = useRef(false);
-  const [activeDay, setActiveDay] = useState(
-    () => receptionDayId ?? dayIds[1] ?? dayIds[0] ?? 2,
-  );
+  const [activeDay, setActiveDay] = useState(() => {
+    const urlDay = Number(searchParams.get("day"));
+    if (urlDay && Number.isFinite(urlDay)) {
+      userPickedDay.current = true;
+      return urlDay;
+    }
+    return receptionDayId ?? dayIds[1] ?? dayIds[0] ?? 2;
+  });
   const [detailRowId, setDetailRowId] = useState<string | null>(null);
   const [commercialRowId, setCommercialRowId] = useState<string | null>(null);
   const [balanceOpen, setBalanceOpen] = useState(false);
@@ -189,18 +196,19 @@ export function MenuBoard() {
     />
   );
 
-  const renderDial = (row: MenuRow, compact = false) => (
+  const renderDial = (row: MenuRow, compact = false, clay = false) => (
     <CommercialDial
       key={row.id}
       row={row}
       plates={menuCommercialPlateCount(state, row)}
       estimate={menuCommercialEstimate(state, row)}
       compact={compact}
+      surface={clay ? "clay" : "default"}
       onClick={() => setCommercialRowId(row.id)}
     />
   );
 
-  const renderMini = (row: MenuRow) => (
+  const renderMini = (row: MenuRow, clay = false) => (
     <MiniMealCard
       row={row}
       onOpen={() => setDetailRowId(row.id)}
@@ -210,6 +218,7 @@ export function MenuBoard() {
           : undefined
       }
       swapping={Boolean(swapTo) && isGrandMealCourse(row.course)}
+      surface={clay ? "clay" : "default"}
     />
   );
 
@@ -223,127 +232,72 @@ export function MenuBoard() {
             <h2 className="font-headline-md text-primary text-[22px]">No events yet</h2>
             <p className="text-[13px] text-secondary max-w-sm mx-auto">
               {canEdit
-                ? "Add a wedding function with New Event, then plan courses for each day."
+                ? "Add an event day with New Event, then plan courses for each day."
                 : "Menu planning will appear here once your Admin adds events."}
             </p>
           </div>
         ) : (
           <>
-        <div className="lg:hidden flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="shrink-0 px-3 pt-3 pb-2">
-            <div className="grid grid-cols-2 gap-2">
-              {canEdit ? (
-                <button
-                  type="button"
-                  onClick={() => setAssistOpen(true)}
-                  className={cn(
-                    "h-10 rounded-xl border border-[rgba(204,167,48,0.35)] bg-tertiary-container/80",
-                    "text-on-tertiary-container text-[11px] font-button",
-                    "flex items-center justify-center gap-1.5",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
-                  )}
-                >
-                  <Icon name="assistant" className="text-[15px]" />
-                  Assist
-                </button>
-              ) : (
-                <div className="h-10 rounded-xl bg-surface-container text-secondary/70 text-[11px] font-button flex items-center justify-center gap-1.5">
-                  <Icon name="visibility" className="text-[15px]" />
-                  View
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={shareMenuPlan}
-                className={cn(
-                  "h-10 rounded-xl border border-outline-variant bg-white text-primary text-[11px] font-button",
-                  "flex items-center justify-center gap-1.5",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+        <div className="lg:hidden flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
+          <Link
+            to="/people/guests"
+            className="mb-1 inline-flex items-center gap-1 py-1 text-[0.78rem] font-extrabold text-[#ff6a1a]"
+          >
+            <Icon name="arrow_back" className="text-[18px]" />
+            Back to Guests
+          </Link>
+
+          <div className="clay-menu-board">
+            <div className="clay-menu-board__head">
+              <div className="clay-menu-utils">
+                {canEdit ? (
+                  <button type="button" className="is-assist" onClick={() => setAssistOpen(true)}>
+                    <Icon name="assistant" className="text-[15px]" />
+                    Assist
+                  </button>
+                ) : (
+                  <button type="button" disabled>
+                    <Icon name="visibility" className="text-[15px]" />
+                    View
+                  </button>
                 )}
-              >
-                <Icon name="ios_share" className="text-[15px]" />
-                Share
-              </button>
-            </div>
-          </div>
-
-          {/* Landing: hero first, then events, dials, one full other-course card */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-            <div className="h-full min-h-0 flex flex-col px-3 pb-4">
-              <div className="flex-1 min-h-0 pt-0.5">
-                <FeaturedMealCard
-                  key={featured.id}
-                  row={featured}
-                  dayLabel={resolveDayName(state, activeDay)}
-                  onOpen={() => setDetailRowId(featured.id)}
-                  grandCourse={grandCourse}
-                  onGrandCourseChange={setGrandCourse}
-                  swapTo={swapTo}
-                />
+                <button type="button" onClick={shareMenuPlan}>
+                  <Icon name="ios_share" className="text-[15px]" />
+                  Share
+                </button>
               </div>
-
-              <div className="shrink-0 pt-2.5">
-                <div className="rounded-xl border border-[rgba(128,0,32,0.1)] bg-white/80 p-1.5 shadow-[0_8px_22px_-16px_rgba(128,0,32,0.3)]">
-                  <MobileEventButtons
-                    options={dayIds.map((day) => ({
-                      id: String(day),
-                      name: resolveDayName(state, day),
-                      dateLabel: resolveFunctionDateLabel(state, day) || "",
-                      canDelete: canEdit && canRemoveWeddingFunction(state, day),
-                    }))}
-                    value={String(activeDay)}
-                    onChange={(id) => {
-                      userPickedDay.current = true;
-                      setActiveDay(Number(id));
-                    }}
-                    onAddEvent={
-                      canEdit && dayIds.length < MAX_MOBILE_EVENTS
-                        ? () => setNewEventModalOpen(true)
-                        : undefined
-                    }
-                    onDelete={
-                      canEdit
-                        ? (id) => {
-                            const dayId = Number(id);
-                            if (Number.isFinite(dayId)) handleDeleteDay(dayId);
-                          }
-                        : undefined
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="shrink-0 pt-2.5 pb-1.5">
-                <div className="flex gap-1.5">
-                  {dayRows.map((row) => (
-                    <div key={row.id} className="flex-1 min-w-0">
-                      {renderDial(row, true)}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {sideRows.length ? (
-                <div className="shrink-0 pt-3 border-t border-outline-variant/40">
-                  <p className="font-label-caps text-[10px] tracking-[0.14em] text-secondary uppercase px-0.5 mb-2">
-                    Other courses
-                  </p>
-                  <div className="h-[7.5rem]">
-                    {renderMini(sideRows[0])}
-                  </div>
-                </div>
-              ) : null}
+              <GrandMealSwitcher
+                value={grandCourse}
+                onChange={setGrandCourse}
+                swapping={Boolean(swapTo)}
+                tone="ink"
+              />
             </div>
 
-            {sideRows.length > 1 ? (
-              <div className="px-3 pt-2.5 pb-[calc(5.25rem+env(safe-area-inset-bottom))] space-y-2.5">
-                {sideRows.slice(1).map((row) => (
-                  <div key={row.id} className="min-h-[7.5rem]">
-                    {renderMini(row)}
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <FeaturedMealCard
+              key={featured.id}
+              row={featured}
+              dayLabel={resolveDayName(state, activeDay)}
+              onOpen={() => setDetailRowId(featured.id)}
+              grandCourse={grandCourse}
+              onGrandCourseChange={setGrandCourse}
+              swapTo={swapTo}
+              surface="clay"
+            />
+
+            <div className="clay-menu-sep" />
+            <p className="clay-menu-label">Headcount · plates</p>
+            <div className="clay-dial-grid">
+              {dayRows.map((row) => renderDial(row, true, true))}
+            </div>
+
+            <div className="clay-menu-sep" />
+            <p className="clay-menu-label">Other courses</p>
+            <div className="clay-menu-courses">
+              {sideRows.map((row) => (
+                <div key={row.id}>{renderMini(row, true)}</div>
+              ))}
+            </div>
           </div>
         </div>
 

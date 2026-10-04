@@ -7,7 +7,7 @@ const PULL_THRESHOLD = 56;
 const BUSY_GAP = 52;
 
 export function PullToRefresh({ children }: { children: ReactNode }) {
-  const { refreshFromCloud, syncCode, showToast } = useWeddingState();
+  const { refreshFromCloud, syncCode } = useWeddingState();
   const startY = useRef(0);
   const pulling = useRef(false);
   const offsetRef = useRef(0);
@@ -17,7 +17,10 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onStart = (event: TouchEvent) => {
       if (busy) return;
-      let node = event.target instanceof HTMLElement ? event.target : null;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('[role="dialog"], input, textarea, select, label')) return;
+      if (target?.closest("button, a, [role=\"button\"]")) return;
+      let node = target instanceof HTMLElement ? target : null;
       while (node && node !== document.body) {
         if (node.scrollHeight - node.clientHeight > 8 && node.scrollTop > 4) return;
         node = node.parentElement;
@@ -30,7 +33,14 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     const onMove = (event: TouchEvent) => {
       if (!pulling.current || busy) return;
       const delta = event.touches[0].clientY - startY.current;
-      const next = delta <= 0 ? 0 : Math.min(88, delta * 0.5);
+      if (delta < 12) {
+        if (offsetRef.current !== 0) {
+          offsetRef.current = 0;
+          setOffset(0);
+        }
+        return;
+      }
+      const next = Math.min(88, (delta - 12) * 0.5);
       offsetRef.current = next;
       setOffset(next);
     };
@@ -50,10 +60,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       offsetRef.current = BUSY_GAP;
 
       const work = syncCode ? refreshFromCloud(true) : Promise.resolve();
-      void work
-        .then(() => showToast(syncCode ? "Updated" : "This device is up to date"))
-        .catch(() => showToast("Could not update"))
-        .finally(() => {
+      void work.finally(() => {
           window.setTimeout(() => {
             setBusy(false);
             offsetRef.current = 0;
@@ -72,7 +79,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       window.removeEventListener("touchend", onEnd);
       window.removeEventListener("touchcancel", onEnd);
     };
-  }, [busy, refreshFromCloud, showToast, syncCode]);
+  }, [busy, refreshFromCloud, syncCode]);
 
   const gap = busy ? BUSY_GAP : offset;
 
@@ -90,7 +97,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
           <Icon
             name="refresh"
             className={cn(
-              "text-[22px] text-primary",
+              "text-[22px] text-black",
               busy ? "ptr-icon-spin" : "",
             )}
             filled={false}

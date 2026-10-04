@@ -13,8 +13,8 @@ export type SetupTask = {
 
 export function buildSetupTasks(
   state: WeddingState,
-  snapshot: AccessSnapshot | null,
-  canManage: boolean,
+  _snapshot: AccessSnapshot | null,
+  _canManage: boolean,
 ): SetupTask[] {
   const buzz = { ...DEFAULT_BUZZ, ...state.buzz };
   const buzzReady =
@@ -25,50 +25,33 @@ export function buildSetupTasks(
   const tasks: SetupTask[] = [
     {
       id: "dates",
-      label: "Set wedding dates",
-      hint: "Your celebration week",
+      label: "Lock the dates",
+      hint: "Set the days of the week",
       to: "/command-center",
       done: !weddingScheduleNeedsSetup(state),
     },
     {
       id: "buzz",
-      label: "Set up BUZZ for guests",
-      hint: "Welcome message, invitation note, venue",
+      label: "Write the invite",
+      hint: "What guests see in Buzz",
       to: "/buzz",
       done: buzzReady,
     },
     {
       id: "guests",
-      label: "Add your first families",
-      hint: "Guest list & headcount",
-      to: "/people/guests",
+      label: "Add the people",
+      hint: "Families and headcount",
+      to: "/people/contacts",
       done: (state.guests?.length || 0) > 0,
     },
     {
       id: "menu",
-      label: "Plan the menu",
-      hint: "Courses for each function",
+      label: "Set the food",
+      hint: "Courses for each day",
       to: "/people/menu",
       done: (state.menu?.length || 0) > 0,
     },
   ];
-
-  if (canManage) {
-    tasks.push({
-      id: "buddies",
-      label: "Invite Buddies (optional)",
-      hint: "Helpers with module access",
-      to: "/buddies",
-      done: (snapshot?.profiles || []).some((p) => p.role === "buddy"),
-    });
-    tasks.push({
-      id: "guest-link",
-      label: "Share guest invite link",
-      hint: "From Buddies — guests see BUZZ only",
-      to: "/buddies",
-      done: Boolean(snapshot?.guestInviteToken),
-    });
-  }
 
   return tasks;
 }

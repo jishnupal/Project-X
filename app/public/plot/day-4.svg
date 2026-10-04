@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="40" x2="160" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4E98F0"/>
+      <stop offset="1" stop-color="#FFE07A"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="28" fill="url(#bg)"/>
+  <path d="M110 24h28v28H110z" fill="#fff" fill-opacity=".22"/>
+  <!-- map pointer character -->
+  <g transform="translate(40 32)">
+    <ellipse cx="40" cy="104" rx="30" ry="8" fill="#1A100C" fill-opacity=".12"/>
+    <rect x="26" y="48" width="28" height="34" rx="12" fill="#FECA43"/>
+    <rect x="26" y="76" width="12" height="24" rx="6" fill="#E8F4FF"/>
+    <rect x="42" y="76" width="12" height="24" rx="6" fill="#E8F4FF"/>
+    <circle cx="40" cy="32" r="15" fill="#F6C7A8"/>
+    <path d="M28 26c5-8 20-7 24 2" stroke="#1A100C" stroke-width="5" stroke-linecap="round"/>
+    <path d="M54 52l18-14" stroke="#F6C7A8" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="76" cy="34" r="8" fill="#1A6FD4"/>
+    <circle cx="76" cy="34" r="3" fill="#FECA43"/>
+  </g>
+</svg>

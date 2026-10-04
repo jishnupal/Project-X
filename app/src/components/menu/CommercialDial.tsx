@@ -12,15 +12,59 @@ type CommercialDialProps = {
   estimate: number;
   onClick: () => void;
   compact?: boolean;
+  surface?: "default" | "clay";
 };
 
-export function CommercialDial({ row, plates, estimate, onClick, compact = false }: CommercialDialProps) {
+export function CommercialDial({
+  row,
+  plates,
+  estimate,
+  onClick,
+  compact = false,
+  surface = "default",
+}: CommercialDialProps) {
   const percentage = getDialPercentage(row, plates);
   const circleRef = useDialAnimation(percentage);
   const rate = parseMoney(row.rate);
   const isEmpty = plates === 0 && rate === 0;
   const strokeClass = isEmpty ? "stroke-secondary" : "stroke-primary";
   const iconClass = isEmpty ? "text-secondary" : "text-primary";
+  const dialTone =
+    row.course === "Breakfast"
+      ? "d-breakfast"
+      : row.course === "Lunch"
+        ? "d-lunch"
+        : row.course === "Dinner"
+          ? "d-dinner"
+          : "d-snacks";
+
+  if (surface === "clay") {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn("clay-dial", dialTone, plates > 0 && "is-set")}
+      >
+        <span className="clay-dial__bg" aria-hidden />
+        <span className="clay-dial__veil" aria-hidden />
+        <span className="clay-dial__ico">
+          <Icon name={mealCourseIcon(row.course as MenuCourse)} className="text-[18px] text-white" />
+        </span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="clay-dial__label">{dialCourseLabel(row.course as MenuCourse)}</span>
+          <span className={cn("clay-dial__rate", plates === 0 && "tbd")}>
+            {plates > 0 ? (
+              <>
+                {plates} <small>plates</small>
+              </>
+            ) : (
+              "Set plates"
+            )}
+          </span>
+        </span>
+      </button>
+    );
+  }
 
   if (compact) {
     return (

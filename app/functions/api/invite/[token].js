@@ -38,7 +38,7 @@ export async function onRequestGet({ params, env }) {
   if (!row) return json({ error: "Invite link not found." }, 404);
 
   const weddingCode = String(row.wedding_code || "").toUpperCase();
-  if (!CODE_PATTERN.test(weddingCode)) return json({ error: "Invalid wedding." }, 404);
+  if (!CODE_PATTERN.test(weddingCode)) return json({ error: "Invalid event." }, 404);
 
   return json({
     weddingCode,

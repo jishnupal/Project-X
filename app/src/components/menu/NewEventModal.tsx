@@ -76,13 +76,13 @@ export function NewEventModal({ open, onClose, onCreated }: NewEventModalProps) 
           <div className="relative z-[3] flex items-start gap-3">
             <div className="min-w-0 flex-1">
               <p className="font-label-caps text-[9px] tracking-[0.18em] text-[#f3d58a]/80">
-                Wedding functions
+                Event days
               </p>
               <h3 id="new-event-title" className="font-headline-xl text-white text-[24px] leading-none mt-1">
                 New Event
               </h3>
               <p className="text-[12px] text-white/55 mt-2">
-                This joins Sangeet, Marriage & Reception in the event row.
+                Name it and pick a date — it joins your event days.
               </p>
             </div>
             <button
@@ -113,7 +113,7 @@ export function NewEventModal({ open, onClose, onCreated }: NewEventModalProps) 
             <span className="font-label-caps text-[9px] tracking-[0.14em] text-primary">Event name</span>
             <input
               className="mt-1.5 w-full h-11 border border-[rgba(128,0,32,0.18)] rounded-xl px-3 text-sm bg-white outline-none focus:border-[#cca730]"
-              placeholder="Mehendi, Aiburo Bhaat…"
+              placeholder="Dinner, Launch, Day 1…"
               value={name}
               autoFocus
               onChange={(e) => setName(e.target.value)}

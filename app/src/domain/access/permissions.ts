@@ -22,7 +22,7 @@ export const MODULE_LABELS: Record<ModuleId, string> = {
 const ROLE_DEFAULTS: Record<ProfileRole, Partial<Record<ModuleId, AccessLevel>>> = {
   super_admin: { buzz: "manage", guests: "manage", menu: "manage", rooms: "manage", access: "manage" },
   admin: { buzz: "edit", guests: "edit", menu: "edit", rooms: "edit", access: "manage" },
-  buddy: { buzz: "edit", guests: "none", menu: "none", access: "none" },
+  buddy: { buzz: "view", guests: "none", menu: "none", access: "none" },
   guest: { buzz: "view", guests: "none", menu: "none", access: "none" },
 };
 
@@ -73,13 +73,13 @@ export function canManageAccess(
 export function roleLabel(role: ProfileRole | string): string {
   const normalized = normalizeRole(role);
   if (normalized === "super_admin") return "Super Admin";
-  if (normalized === "admin") return "Admin";
+  if (normalized === "admin") return "Host";
   if (normalized === "buddy") return "Buddy";
   return "Guest";
 }
 
 export function defaultBuddyGrants(): ModuleGrants {
-  return { buzz: "edit" };
+  return {};
 }
 
 export function isPinRole(role: ProfileRole | string): boolean {

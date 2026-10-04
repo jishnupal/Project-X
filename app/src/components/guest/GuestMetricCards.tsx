@@ -6,10 +6,12 @@ type GuestMetricCardsProps = {
   headTotal: number;
   inviteSentTotal: number;
   familyCount: number;
-  /** Compact 2×2 stage tiles for mobile People */
+  /** Soft hero strip for mobile People (reference layout) */
   variant?: "default" | "stage";
-  /** Opens room mapping when Need stay is tapped (stage variant) */
+  /** Opens room mapping when Need stay is tapped (desktop / unused on stage) */
   onStayClick?: () => void;
+  /** Opens the headcount actions beside the Scene character */
+  onOpen?: () => void;
   className?: string;
 };
 
@@ -19,85 +21,41 @@ export function GuestMetricCards({
   inviteSentTotal,
   familyCount,
   variant = "default",
-  onStayClick,
+  onOpen,
   className,
 }: GuestMetricCardsProps) {
   const invitePct =
     familyCount > 0 ? Math.min(100, Math.round((inviteSentTotal / familyCount) * 100)) : 0;
 
   if (variant === "stage") {
+    const families = familyCount || 0;
     return (
-      <div className={cn("grid grid-cols-2 gap-2", className)}>
-        <div className="relative overflow-hidden rounded-2xl bg-primary text-white p-3.5 min-h-[5.5rem] flex flex-col justify-between shadow-[0_12px_28px_-12px_rgba(128,0,32,0.45)]">
-          <div className="absolute inset-0 glossy-overlay opacity-25 pointer-events-none" />
-          <div className="absolute -bottom-8 -right-6 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
-          <p className="relative text-[9px] font-bold uppercase tracking-[0.16em] text-white/65">
-            Guests
-          </p>
-          <p className="relative font-display text-[2rem] font-black leading-none tabular-nums">
+      <header className={cn("scene-keeper", className)}>
+        <button
+          type="button"
+          className="scene-keeper__card"
+          onClick={onOpen}
+          aria-label={`Headcount, ${headTotal} ${headTotal === 1 ? "person" : "people"}, ${families} ${families === 1 ? "family" : "families"}`}
+        >
+          <span className="flex items-center justify-between gap-2">
+            <span className="text-[13px] font-semibold text-[#584141]">Headcount</span>
+            <Icon name="north_east" className="text-[16px] text-black/45" />
+          </span>
+          <span className="mt-2.5 block text-[52px] font-extrabold leading-none tracking-[-0.045em] text-black tabular-nums">
             {headTotal}
-          </p>
-          <p className="relative text-[10px] text-[#f3d58a] font-semibold flex items-center gap-1">
-            <Icon name="groups" className="text-[13px]" />
-            Headcount
-          </p>
-        </div>
-
-        {onStayClick ? (
-          <button
-            type="button"
-            onClick={onStayClick}
-            className="relative overflow-hidden rounded-2xl bg-white border border-[rgba(128,0,32,0.12)] p-3.5 min-h-[5.5rem] flex flex-col justify-between text-left shadow-[0_10px_28px_-14px_rgba(128,0,32,0.18)] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-bl-full -mr-6 -mt-6" />
-            <p className="relative text-[9px] font-bold uppercase tracking-[0.16em] text-secondary">
-              Need stay
-            </p>
-            <p className="relative font-display text-[2rem] font-black leading-none text-primary tabular-nums">
-              {stayTotal}
-            </p>
-            <p className="relative text-[10px] text-primary font-semibold flex items-center gap-1">
-              <Icon name="hotel" className="text-[13px]" />
-              Room mapping
-            </p>
-          </button>
-        ) : (
-          <div className="relative overflow-hidden rounded-2xl bg-white border border-[rgba(128,0,32,0.12)] p-3.5 min-h-[5.5rem] flex flex-col justify-between shadow-[0_10px_28px_-14px_rgba(128,0,32,0.18)]">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 rounded-bl-full -mr-6 -mt-6" />
-            <p className="relative text-[9px] font-bold uppercase tracking-[0.16em] text-secondary">
-              Need stay
-            </p>
-            <p className="relative font-display text-[2rem] font-black leading-none text-primary tabular-nums">
-              {stayTotal}
-            </p>
-            <p className="relative text-[10px] text-primary font-semibold flex items-center gap-1">
-              <Icon name="hotel" className="text-[13px]" />
-              Room mapping
-            </p>
-          </div>
-        )}
-
-        <div className="relative col-span-2 overflow-hidden rounded-2xl bg-white border border-[rgba(128,0,32,0.12)] p-3.5 flex items-center gap-3 shadow-[0_10px_28px_-14px_rgba(128,0,32,0.18)]">
-          <div className="min-w-0 flex-1">
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-secondary mb-1">
-              Invites sent
-            </p>
-            <p className="font-display text-[1.65rem] font-black leading-none text-primary tabular-nums">
-              {inviteSentTotal}
-              <span className="text-base text-secondary/50 font-bold"> / {familyCount || 0}</span>
-            </p>
-          </div>
-          <div className="w-24 shrink-0">
-            <div className="h-2 rounded-full bg-surface-container-high overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${invitePct}%` }}
-              />
-            </div>
-            <p className="mt-1 text-[10px] text-secondary text-right tabular-nums">{invitePct}%</p>
+          </span>
+          <span className="mt-2.5 block text-[15px] font-semibold leading-snug text-[#584141]">
+            {headTotal === 1 ? "1 person" : `${headTotal} people`}
+            <span className="text-black/25"> · </span>
+            {families === 1 ? "1 family" : `${families} families`}
+          </span>
+        </button>
+        <div className="scene-keeper__figure">
+          <div className="scene-keeper__sway">
+            <img src="/home/scene-keeper.png" alt="" />
           </div>
         </div>
-      </div>
+      </header>
     );
   }
 

@@ -1,4 +1,5 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { Outlet, useLocation, useSearchParams } from "react-router-dom";
 import { AppHeader } from "./AppHeader";
 import { AppSidebar } from "./AppSidebar";
 import { DevApiBanner } from "./DevApiBanner";
@@ -8,24 +9,63 @@ import { NewEventModal } from "../menu/NewEventModal";
 import { WeddingScheduleModal } from "../wedding/WeddingScheduleModal";
 import { PullToRefresh } from "./PullToRefresh";
 import { useWeddingState } from "../../hooks/useWeddingState";
+import { setThemeColor } from "../../pwa/viewport";
 import { cn } from "../../design-system/cn";
+import { SHEET_QUERY, useSheetHistory } from "../../navigation/eventHistory";
 
 export function AppLayout() {
-  const { toast, newEventModalOpen, setNewEventModalOpen, scheduleModalOpen, setScheduleModalOpen } =
+  const { newEventModalOpen, setNewEventModalOpen, scheduleModalOpen, setScheduleModalOpen, setScheduleFocusId } =
     useWeddingState();
   const location = useLocation();
-  const lockMobileViewport =
-    location.pathname.startsWith("/people") || location.pathname === "/command-center";
+  const [searchParams] = useSearchParams();
+  const [datesOpen, setDatesOpen] = useSheetHistory("dates");
+  const activeSheet = searchParams.get(SHEET_QUERY);
+  const nestedDates = Boolean(scheduleModalOpen && activeSheet && activeSheet !== "dates");
+  const onPeopleRoute = location.pathname.startsWith("/people");
+  const onHomeRoute = location.pathname === "/command-center";
+  const onSceneRoute = location.pathname === "/people/guests" || location.pathname.startsWith("/people/guests/");
+  const onProfileRoute = location.pathname === "/profile";
+  const onEventRoute = location.pathname === "/event";
+  const onBuzzRoute = location.pathname === "/buzz";
+  const onBuddiesRoute = location.pathname === "/buddies";
+  const onClayModuleRoute = onBuzzRoute || onBuddiesRoute || onProfileRoute || onEventRoute;
+  const claySurface = true;
+  const lockMobileViewport = onPeopleRoute || onHomeRoute || onClayModuleRoute;
+  const immersiveMobile = onBuzzRoute;
+
+  useEffect(() => {
+    setThemeColor(onBuzzRoute ? "#16081f" : "#fff8f5");
+  }, [onBuzzRoute]);
+
+  // Open Dates into history when requested from Home (not when nested over Plot/Invites).
+  useEffect(() => {
+    if (!scheduleModalOpen || nestedDates || datesOpen) return;
+    setDatesOpen(true);
+  }, [scheduleModalOpen, nestedDates, datesOpen, setDatesOpen]);
+
+  // Swipe-back closed the dates sheet — clear wedding-state flag.
+  useEffect(() => {
+    if (datesOpen || !scheduleModalOpen || nestedDates) return;
+    setScheduleModalOpen(false);
+    setScheduleFocusId(null);
+  }, [datesOpen, scheduleModalOpen, nestedDates, setScheduleModalOpen, setScheduleFocusId]);
 
   return (
-    <div className="app-shell flex h-dvh max-h-dvh overflow-hidden bg-surface">
+    <div className={cn(
+      "app-shell flex h-dvh max-h-dvh overflow-hidden bg-surface",
+      claySurface && !immersiveMobile && !onHomeRoute && !onProfileRoute && !onBuddiesRoute && !onSceneRoute && "max-lg:people-bg-warm",
+      (onHomeRoute || onProfileRoute || onEventRoute || onBuddiesRoute || onSceneRoute) && "home-ivory",
+      onBuzzRoute && "buzz-night-bg",
+    )}>
       <DevApiBanner />
       <AppSidebar />
       <main
         className={cn(
           "flex-1 flex flex-col min-w-0 min-h-0 bg-surface overflow-hidden",
+          claySurface && "max-lg:bg-transparent",
           /* Bottom nav clearance — safe area is handled inside the nav bar */
-          "max-lg:pb-[4.25rem] lg:pb-0",
+          immersiveMobile ? "max-lg:pb-0" : "max-lg:pb-[4.25rem]",
+          "lg:pb-0",
         )}
       >
         <AppHeader />
@@ -51,20 +91,13 @@ export function AppLayout() {
         onClose={() => setNewEventModalOpen(false)}
       />
       <WeddingScheduleModal
-        open={scheduleModalOpen}
-        onClose={() => setScheduleModalOpen(false)}
+        open={datesOpen || nestedDates}
+        onClose={() => {
+          if (datesOpen) setDatesOpen(false);
+          setScheduleModalOpen(false);
+          setScheduleFocusId(null);
+        }}
       />
-      {toast ? (
-        <div
-          className={cn(
-            "fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] lg:bottom-6 left-1/2 -translate-x-1/2 z-[60]",
-            "bg-primary text-on-primary px-4 py-2 rounded-full text-sm font-button shadow-lg",
-          )}
-          role="status"
-        >
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

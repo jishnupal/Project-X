@@ -223,7 +223,7 @@ export function MenuBoard() {
             <h2 className="font-headline-md text-primary text-[22px]">No events yet</h2>
             <p className="text-[13px] text-secondary max-w-sm mx-auto">
               {canEdit
-                ? "Add a wedding function with New Event, then plan courses for each day."
+                ? "Add an event day with New Event, then plan courses for each day."
                 : "Menu planning will appear here once your Admin adds events."}
             </p>
           </div>

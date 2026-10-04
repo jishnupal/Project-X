@@ -69,7 +69,7 @@ export type LocalAccessSession = {
   deviceId: string;
 };
 
-export { canAccess, canEditWedding, canManageAccess, roleLabel } from "./permissions";
+export { canAccess, canEditWedding, canManageAccess, normalizeRole, roleLabel } from "./permissions";
 
 export function avatarMeta(id: string | undefined) {
   return PROFILE_AVATARS.find((row) => row.id === id) || PROFILE_AVATARS[0];

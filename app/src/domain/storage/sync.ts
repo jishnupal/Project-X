@@ -1,5 +1,6 @@
 import type { WeddingState } from "../types";
 import { hydrateWeddingState } from "./localStorageRepository";
+import { loadAccessSession } from "../access/sessionLocal";
 
 export const SYNC_CODE_KEY = "biyeflow.syncCode";
 export const ACCOUNT_KEY = "biyeflow.accountCode";
@@ -12,6 +13,18 @@ const ACCOUNT_COOKIE = "bf_account";
 const PAIR_COOKIE_MAX_AGE = 60 * 60 * 24 * 730;
 
 export const SYNC_CODE_PATTERN = /^[A-Z0-9]{8}$/;
+
+/** Offline UI preview code from /local-people.html — never hits the API. */
+export function isLocalPreviewSyncCode(code: string | null | undefined): boolean {
+  if (!code) return false;
+  return code.trim().toUpperCase() === "LOCALPRE";
+}
+
+function isLocalDevHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
 
 export type PushResult =
   | { status: "ok"; version: number }
@@ -206,7 +219,7 @@ export function markCloudAligned(cloudVersion: number, at = Date.now()): SyncMet
 }
 
 function apiUrl(code: string): string {
-  return `/api/wedding/${encodeURIComponent(code)}`;
+  return `/api/event/${encodeURIComponent(code)}`;
 }
 
 function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 8000): Promise<Response> {
@@ -220,14 +233,27 @@ function fetchWithTimeout(url: string, init: RequestInit = {}, ms = 8000): Promi
 export async function pullWedding(
   code: string,
 ): Promise<{ state: WeddingState; version: number } | null> {
-  const response = await fetchWithTimeout(apiUrl(code), { method: "GET" });
+  if (isLocalPreviewSyncCode(code)) return null;
+
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(apiUrl(code), { method: "GET" });
+  } catch {
+    throw new Error(localApiDownMessage());
+  }
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(await readError(response));
   }
   assertJson(response);
-  const payload = (await response.json()) as { version?: number; state?: WeddingState };
+  const payload = (await response.json()) as { version?: number; state?: WeddingState; viewerName?: string };
   if (!payload?.state) return null;
+  try {
+    if (payload.viewerName) sessionStorage.setItem("biyeflow.viewerName", payload.viewerName);
+    else sessionStorage.removeItem("biyeflow.viewerName");
+  } catch {
+    /* ignore */
+  }
   return {
     state: hydrateWeddingState(payload.state),
     version: Number(payload.version) || 0,
@@ -239,12 +265,31 @@ export async function pushWedding(
   state: WeddingState,
   baseVersion: number,
 ): Promise<PushResult> {
+  if (isLocalPreviewSyncCode(code)) {
+    return { status: "ok", version: baseVersion || 1 };
+  }
+
   const body = { state, baseVersion };
-  const response = await fetchWithTimeout(apiUrl(code), {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const access = loadAccessSession();
+  if (
+    access?.role === "buddy" &&
+    access.weddingCode === code.trim().toUpperCase() &&
+    access.adminToken
+  ) {
+    headers.Authorization = `Bearer ${access.adminToken}`;
+  }
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(apiUrl(code), {
+      method: "PUT",
+      credentials: "same-origin",
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(localApiDownMessage());
+  }
 
   assertJson(response);
 
@@ -274,21 +319,25 @@ export async function pushWedding(
   };
 }
 
+function localApiDownMessage(): string {
+  return "API not running. Keep Vite on 5173 and run npm run dev:api, then open http://127.0.0.1:8788 — or use /local-people.html for offline UI.";
+}
+
 function assertJson(response: Response): void {
   const type = response.headers.get("content-type") || "";
   if (!type.includes("application/json")) {
-    const local =
-      typeof window !== "undefined" &&
-      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
     throw new Error(
-      local
-        ? "API not reachable. Run npm run dev:api and open http://localhost:8788 (or keep Vite + Wrangler both running)."
+      isLocalDevHost()
+        ? localApiDownMessage()
         : "Cloud sync only works on https://biyeflow.pages.dev after deploy.",
     );
   }
 }
 
 async function readError(response: Response): Promise<string> {
+  if (isLocalDevHost() && [502, 503, 504].includes(response.status)) {
+    return localApiDownMessage();
+  }
   try {
     const payload = (await response.json()) as { error?: string };
     if (payload?.error) return payload.error;

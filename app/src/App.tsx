@@ -14,6 +14,8 @@ import { CohostAcceptPage } from "./pages/CohostAcceptPage";
 import { ContactsPage } from "./pages/ContactsPage";
 import { InvitationsPage } from "./pages/InvitationsPage";
 import { LetterPage } from "./pages/LetterPage";
+import { InvitePreviewPage } from "./pages/InvitePreviewPage";
+import { PassPage } from "./pages/PassPage";
 import { GuestsPage } from "./pages/GuestsPage";
 import { MenuPage } from "./pages/MenuPage";
 import { BuzzPage } from "./pages/BuzzPage";
@@ -100,7 +102,9 @@ export default function App() {
                   <Route path="guests" element={<GuestsPage />} />
                   <Route path="contacts" element={<ContactsPage />} />
                   <Route path="invites" element={<InvitationsPage />} />
+                  <Route path="preview" element={<InvitePreviewPage />} />
                   <Route path="letter" element={<LetterPage />} />
+                  <Route path="pass" element={<PassPage />} />
                   <Route path="rooms" element={<RoomsPage />} />
                 </Route>
                 <Route path="buddies" element={<BuddiesPage />} />

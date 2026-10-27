@@ -149,12 +149,14 @@ export function defaultStayDays(checkIn: string): string {
   return String(Math.max(days, 1));
 }
 
-export function normalizeInviteStatus(status: string | undefined): "Sent" | "Pending" {
+export function normalizeInviteStatus(status: string | undefined): "Pending" | "Sent" | "Claimed" {
   const normalized = String(status ?? "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z]/g, "");
-  return ["sent", "shared", "invited", "done"].includes(normalized) ? "Sent" : "Pending";
+  if (["claimed", "joined", "boarded", "accepted"].includes(normalized)) return "Claimed";
+  if (["sent", "shared", "invited", "done"].includes(normalized)) return "Sent";
+  return "Pending";
 }
 
 export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
@@ -171,8 +173,11 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
   const checkIn = row.checkIn || "3";
   const nights = row.nights || (needsStay ? defaultStayDays(checkIn) : "0");
   const rooms = row.rooms || (needsStay ? estimateRooms(effectiveStayCount) : "0");
+  const status = normalizeInviteStatus(row.inviteStatus);
   const invitationSent =
-    Boolean(row.invitationSent) || normalizeInviteStatus(row.inviteStatus) === "Sent";
+    Boolean(row.invitationSent) || status === "Sent" || status === "Claimed";
+  const inviteStatus =
+    status === "Claimed" ? "Claimed" : invitationSent ? "Sent" : "Pending";
   const groupId = String(row.groupId || "").trim();
   const totalPeople = parseCount(count);
   let groupCount = "0";
@@ -200,7 +205,7 @@ export function normalizeGuestRow(row: Partial<GuestRow>): GuestRow {
     nights,
     rooms,
     invitationSent,
-    inviteStatus: invitationSent ? "Sent" : "Pending",
+    inviteStatus,
     groupId,
     groupCount,
     updatedAt: Number(row.updatedAt) || 0,

@@ -101,6 +101,13 @@ function TextField({
   );
 }
 
+function safeReturnPath(raw: string | null, fallback = "/dashboard") {
+  if (!raw) return fallback;
+  const path = raw.trim();
+  if (!path.startsWith("/") || path.startsWith("//")) return fallback;
+  return path;
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -108,6 +115,12 @@ export function LoginPage() {
   const [faces, setFaces] = useState<HostFace[]>(() => loadHostFaces());
   const [freshReady, setFreshReady] = useState(false);
   const picking = searchParams.get("pick") === "1";
+  const returnTo = safeReturnPath(searchParams.get("return"), "/dashboard");
+  const inviteIntent =
+    searchParams.get("intent") === "invite" ||
+    searchParams.get("signup") === "1" ||
+    returnTo.startsWith("/claim") ||
+    returnTo.startsWith("/invite");
 
   useEffect(() => {
     const wantFresh = searchParams.get("fresh") === "1";
@@ -127,7 +140,12 @@ export function LoginPage() {
       }
       if (!cancelled) {
         setFaces([]);
-        navigate("/login", { replace: true });
+        const keep = new URLSearchParams();
+        if (searchParams.get("return")) keep.set("return", searchParams.get("return")!);
+        if (searchParams.get("intent")) keep.set("intent", searchParams.get("intent")!);
+        if (searchParams.get("signup")) keep.set("signup", searchParams.get("signup")!);
+        const q = keep.toString();
+        navigate(q ? `/login?${q}` : "/login", { replace: true });
         setFreshReady(true);
       }
     })();
@@ -140,20 +158,46 @@ export function LoginPage() {
     if (!freshReady) return;
     if (searchParams.get("fresh") === "1" || searchParams.get("pick") === "1") return;
     if (status === "authenticated") {
-      navigate("/dashboard", { replace: true });
+      navigate(returnTo, { replace: true });
     }
-  }, [status, navigate, freshReady, searchParams]);
+  }, [status, navigate, freshReady, searchParams, returnTo]);
 
-  const waiting = !freshReady || status === "loading" || (status === "authenticated" && searchParams.get("fresh") !== "1" && searchParams.get("pick") !== "1");
+  const waiting =
+    !freshReady ||
+    status === "loading" ||
+    (status === "authenticated" &&
+      searchParams.get("fresh") !== "1" &&
+      searchParams.get("pick") !== "1");
   const recent = recentHostFace(faces);
-  const [screen, setScreen] = useState<"start" | "login" | "signup">(picking ? "login" : "start");
+  const [screen, setScreen] = useState<"start" | "login" | "signup">(() => {
+    if (inviteIntent) return "signup";
+    if (picking) return "login";
+    return "start";
+  });
   const [email, setEmail] = useState(() => recentHostFace(loadHostFaces())?.email ?? "");
+  const [signupName, setSignupName] = useState(() => {
+    try {
+      return sessionStorage.getItem("biyeflow.viewerName") || "";
+    } catch {
+      return "";
+    }
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const busy = waiting;
   const typedEmail = email.trim().toLowerCase();
   const emailReady = typedEmail.includes("@");
   const sameAsRecent = Boolean(recent && emailReady && typedEmail === recent.email);
+
+  const rememberSignupName = () => {
+    const name = signupName.trim();
+    if (!name) return;
+    try {
+      sessionStorage.setItem("biyeflow.viewerName", name);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const openLogin = () => {
     setEmail(recent?.email ?? "");
@@ -164,16 +208,23 @@ export function LoginPage() {
     setScreen("signup");
   };
   const continueSaved = () => {
-    if (recent) loginWithGoogle("/dashboard", recent.email, true);
+    if (recent) loginWithGoogle(returnTo, recent.email, true);
   };
   const continueKnown = () => {
     const hint = emailReady ? typedEmail : undefined;
-    if (hint) loginWithGoogle("/dashboard", hint);
-    else loginWithGoogle("/dashboard", undefined, false, true);
+    if (hint) loginWithGoogle(returnTo, hint);
+    else loginWithGoogle(returnTo, undefined, false, true);
   };
-  const continueDifferent = () => loginWithGoogle("/dashboard", undefined, false, true);
-  const continueSignup = () =>
-    loginWithGoogle("/dashboard", emailReady && !sameAsRecent ? typedEmail : undefined, false, true);
+  const continueDifferent = () => loginWithGoogle(returnTo, undefined, false, true);
+  const continueSignup = () => {
+    rememberSignupName();
+    loginWithGoogle(
+      returnTo,
+      emailReady && !sameAsRecent ? typedEmail : undefined,
+      false,
+      true,
+    );
+  };
 
   let introSeen = false;
   try {
@@ -182,7 +233,7 @@ export function LoginPage() {
     introSeen = false;
   }
 
-  if (screen === "start") {
+  if (screen === "start" && !inviteIntent) {
     return (
       <AppIntro
         still={introSeen}
@@ -200,21 +251,33 @@ export function LoginPage() {
           <div className="flex flex-1 flex-col px-6 pb-8 pt-4">
             <button
               type="button"
-              onClick={() => setScreen("start")}
+              onClick={() => {
+                if (inviteIntent) {
+                  navigate(returnTo, { replace: true });
+                  return;
+                }
+                setScreen("start");
+              }}
               aria-label="Back"
               className="grid h-10 w-10 place-items-center"
             >
               <Icon name="arrow_back" className="text-[24px] text-[#1a1a1a]" />
             </button>
             <h1 className="mt-3 text-[32px] font-extrabold leading-tight tracking-[-0.03em] text-[#324e51]">
-              {screen === "login" ? "Welcome back" : "Create account"}
+              {screen === "login"
+                ? "Welcome back"
+                : inviteIntent
+                  ? "Join to check in"
+                  : "Create account"}
             </h1>
             <p className="mt-1.5 text-[15px] text-[#584141]">
               {screen === "login"
                 ? recent
                   ? "Tap to continue"
                   : "Enter your credential to continue"
-                : "Use a different email. This adds another person."}
+                : inviteIntent
+                  ? "Create your BiyeFlow profile to save your pass and enter the event."
+                  : "Use a different email. This adds another person."}
             </p>
 
             {screen === "login" && recent ? (
@@ -266,6 +329,8 @@ export function LoginPage() {
                 <TextField
                   icon="person"
                   placeholder="Name"
+                  value={signupName}
+                  onChange={setSignupName}
                   trailing={<span className="h-6 w-px bg-[#e4e4e4]" aria-hidden />}
                 />
               ) : null}

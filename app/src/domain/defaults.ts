@@ -33,6 +33,8 @@ export const DEFAULT_BUZZ: BuzzContent = {
   venueName: "Main venue",
   venueAddress: "",
   venueMapUrl: "",
+  passArtUrl: "",
+  letterPhotoUrl: "",
 };
 
 export const DEFAULT_WEDDING_STATE: WeddingState = {

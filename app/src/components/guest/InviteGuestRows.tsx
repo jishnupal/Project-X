@@ -8,19 +8,16 @@ function parseCount(v: string | number | undefined): number {
   return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
-function letterOf(name: string) {
-  const char = name.trim()[0]?.toUpperCase() || "#";
-  return /[A-Z]/.test(char) ? char : "#";
-}
-
 function peopleLabel(count: string | number | undefined) {
   const n = parseCount(count);
   return n === 1 ? "1 person" : `${n} people`;
 }
 
+export type InviteListMode = "pending" | "sent" | "claimed";
+
 export type InviteGuestRowsProps = {
   guests: GuestRow[];
-  mode: "pending" | "invited";
+  mode: InviteListMode;
   onSendInvite?: (guestId: string) => void;
   onToggleInvite?: (guestId: string, sent: boolean) => void;
   sendBusyGuestId?: string | null;
@@ -60,11 +57,11 @@ export function InviteGuestRows({
   }, [focusGuestId, guests, onFocusGuestHandled]);
 
   if (guests.length === 0) {
-    return <p className="mt-8 text-[15px] font-medium text-[#584141]">{emptyLabel}</p>;
+    return <p className="mt-4 px-0.5 text-[14px] font-medium text-[#584141]">{emptyLabel}</p>;
   }
 
   return (
-    <ul className="mt-5 overflow-hidden rounded-[22px] bg-[#fffdf8]">
+    <ul className="mt-2.5 space-y-2">
       {guests.map((guest) => {
         const focused = guest.id === focusGuestId || guest.id === highlightId;
         return (
@@ -72,23 +69,20 @@ export function InviteGuestRows({
             key={guest.id}
             ref={focused ? focusRef : undefined}
             className={cn(
-              "border-t border-[#ece7e2] first:border-t-0",
-              highlightId === guest.id && "bg-[#fff8e6]",
+              "rounded-[18px] bg-[#fffdf8] px-3 py-3 shadow-[0_8px_20px_rgba(90,62,8,0.06)]",
+              highlightId === guest.id && "ring-2 ring-[#feca43]/70",
             )}
           >
-            <div className="flex w-full items-center gap-3 px-3 py-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#feca43] text-[16px] font-bold">
-                {letterOf(guest.name || "")}
-              </span>
+            <div className="flex w-full items-center gap-3">
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[16px] font-semibold">
+                <span className="block truncate text-[16px] font-extrabold tracking-[-0.02em]">
                   {guest.name || "Unnamed"}
                 </span>
-                <span className="block truncate text-[13px] font-medium text-[#584141]">
+                <span className="mt-0.5 block truncate text-[12px] font-semibold text-[#584141]">
                   {peopleLabel(guest.count)}
-                  {mode === "invited" ? " · Invited" : " · Not sent"}
                 </span>
               </span>
+
               {mode === "pending" ? (
                 <span className="flex shrink-0 items-center gap-1.5">
                   {onSendInvite ? (
@@ -97,9 +91,9 @@ export function InviteGuestRows({
                       data-testid="tracker-send-invite"
                       disabled={sendBusyGuestId === guest.id || !guest.name.trim()}
                       onClick={() => onSendInvite(guest.id)}
-                      className="h-9 rounded-full bg-[#feca43] px-3 text-[13px] font-semibold text-black disabled:opacity-50"
+                      className="h-9 rounded-full bg-[#feca43] px-3.5 text-[13px] font-extrabold text-black disabled:opacity-50"
                     >
-                      {sendBusyGuestId === guest.id ? "…" : "Send"}
+                      {sendBusyGuestId === guest.id ? "…" : "Send pass"}
                     </button>
                   ) : null}
                   {onToggleInvite ? (
@@ -107,16 +101,18 @@ export function InviteGuestRows({
                       type="button"
                       onClick={() => onToggleInvite(guest.id, true)}
                       aria-label={`Mark ${guest.name} as invited`}
-                      className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#166534]"
+                      className="grid h-9 w-9 place-items-center rounded-full bg-[#ece7e2] text-[#166534]"
                     >
                       <Icon name="check" className="text-[18px]" />
                     </button>
                   ) : null}
                 </span>
-              ) : (
+              ) : null}
+
+              {mode === "sent" ? (
                 <span className="flex shrink-0 items-center gap-1.5">
-                  <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-bold text-[#166534]">
-                    Invited
+                  <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[11px] font-extrabold text-[#166534]">
+                    Sent
                   </span>
                   {onSendInvite ? (
                     <button
@@ -124,13 +120,19 @@ export function InviteGuestRows({
                       data-testid="tracker-resend-invite"
                       disabled={sendBusyGuestId === guest.id || !guest.name.trim()}
                       onClick={() => onSendInvite(guest.id)}
-                      className="h-9 rounded-full bg-white px-3 text-[13px] font-semibold text-black disabled:opacity-50"
+                      className="h-9 rounded-full bg-[#ece7e2] px-3 text-[13px] font-extrabold text-black disabled:opacity-50"
                     >
                       {sendBusyGuestId === guest.id ? "…" : "Resend"}
                     </button>
                   ) : null}
                 </span>
-              )}
+              ) : null}
+
+              {mode === "claimed" ? (
+                <span className="rounded-full bg-[#ffe0e6] px-2.5 py-1 text-[11px] font-extrabold text-[#e11d3a]">
+                  Claimed
+                </span>
+              ) : null}
             </div>
           </li>
         );

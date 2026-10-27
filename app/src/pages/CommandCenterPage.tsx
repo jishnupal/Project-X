@@ -11,9 +11,6 @@ import { formatWeddingScheduleHome, resolveDayName, weddingScheduleNeedsSetup } 
 import { cn } from "../design-system/cn";
 import { useNavigateInsideEvent, useSheetHistory } from "../navigation/eventHistory";
 
-const MODULE_SLOT_PX = 208;
-const MODULE_GAP_PX = 16;
-
 type HomeModuleCard = {
   key: string;
   title: string;
@@ -44,7 +41,7 @@ export function CommandCenterPage() {
     go("/people/invites");
   }, [searchParams, setSearchParams, go]);
   const [activeModule, setActiveModule] = useState(0);
-  const modulesRef = useRef<HTMLDivElement>(null);
+  const stackRef = useRef<HTMLDivElement>(null);
 
   const canViewGuests = canAccessModule("guests", "view");
   const canViewRooms = canAccessModule("rooms", "view");
@@ -53,31 +50,35 @@ export function CommandCenterPage() {
   const modules = state.modules || { stay: false, menu: false, asked: false };
   const pending = homeCardPending(state);
 
-  const moduleCards = useMemo<HomeModuleCard[]>(() => {
-    const cards: HomeModuleCard[] = [];
-    if (canViewGuests) {
-      cards.push({
+  const peopleCards = useMemo<HomeModuleCard[]>(() => {
+    if (!canViewGuests) return [];
+    return [
+      {
         key: "invitations",
         title: "Invitations",
-        line: "Still to send",
+        line: pending.invitations ? "Still to send" : "Send passes",
         image: "/home/home-invitations.png",
         pending: pending.invitations,
         to: "/people/invites",
-      });
-      cards.push({
+      },
+      {
         key: "contacts",
         title: "Contacts",
-        line: "Add a guest",
+        line: pending.contacts ? "Add guests" : "Guest list",
         image: "/home/home-guests.png",
         pending: pending.contacts,
         to: "/people/contacts",
-      });
-    }
+      },
+    ];
+  }, [canViewGuests, pending.invitations, pending.contacts]);
+
+  const stackCards = useMemo<HomeModuleCard[]>(() => {
+    const cards: HomeModuleCard[] = [];
     if (canViewBuzz) {
       cards.push({
         key: "buzz",
         title: "Buzz",
-        line: pending.buzz ? "Finish the invite" : "Games & play",
+        line: pending.buzz ? "Finish the invite" : "Games & board",
         image: "/home/home-buzz.png",
         pending: pending.buzz,
         to: "/buzz",
@@ -87,7 +88,7 @@ export function CommandCenterPage() {
       cards.push({
         key: "stay",
         title: "Stay",
-        line: "Rooms still open",
+        line: pending.stay ? "Rooms open" : "Guest rooms",
         image: "/home/home-stay.png",
         pending: pending.stay,
         to: "/people/rooms",
@@ -97,7 +98,7 @@ export function CommandCenterPage() {
       cards.push({
         key: "menu",
         title: "Menu",
-        line: "Meals still open",
+        line: pending.menu ? "Meals open" : "Food plan",
         image: "/home/home-menu.png",
         liftArt: true,
         pending: pending.menu,
@@ -106,39 +107,83 @@ export function CommandCenterPage() {
     }
     return cards;
   }, [
-    canViewGuests,
     canViewBuzz,
     canViewRooms,
     canViewMenu,
     modules.stay,
     modules.menu,
-    pending.invitations,
-    pending.contacts,
     pending.buzz,
     pending.stay,
     pending.menu,
   ]);
 
-  const moduleCount = moduleCards.length;
+  const stackCount = stackCards.length;
 
   useEffect(() => {
-    const el = modulesRef.current;
-    if (!el) return;
+    const track = stackRef.current;
+    if (!track || stackCount === 0) return;
 
-    const sync = () => {
-      const step = MODULE_SLOT_PX + MODULE_GAP_PX;
-      const next = Math.round(el.scrollLeft / step);
-      setActiveModule(Math.max(0, Math.min(Math.max(moduleCount - 1, 0), next)));
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const paint = () => {
+      const cards = Array.from(track.querySelectorAll<HTMLElement>("[data-home-stack-card]"));
+      if (!cards.length) return;
+
+      const mid = track.scrollLeft + track.clientWidth / 2;
+      let best = 0;
+      let bestDist = Infinity;
+
+      cards.forEach((card, i) => {
+        const c = card.offsetLeft + card.offsetWidth / 2;
+        const dist = (c - mid) / (card.offsetWidth * 0.72);
+        const x = Math.max(-2.2, Math.min(2.2, dist));
+        const abs = Math.abs(x);
+        const centered = abs < 0.35;
+
+        if (centered || reduce) {
+          // Focused card = same optical sharpness as People pins (no tilt/blur)
+          card.style.setProperty("--ry", "0deg");
+          card.style.setProperty("--sc", reduce && !centered ? "0.9" : "1");
+          card.style.setProperty("--tx", "0px");
+          card.style.setProperty("--op", reduce && !centered ? "0.7" : "1");
+        } else {
+          card.style.setProperty("--ry", `${(-x * 18).toFixed(2)}deg`);
+          card.style.setProperty("--sc", String((1 - Math.min(abs * 0.12, 0.16)).toFixed(3)));
+          card.style.setProperty("--tx", `${(x * -8).toFixed(1)}px`);
+          card.style.setProperty("--op", String((1 - Math.min(abs * 0.28, 0.42)).toFixed(3)));
+        }
+
+        card.style.removeProperty("--blur");
+        card.style.filter = "";
+        card.style.zIndex = String(Math.round(20 - abs * 8));
+        card.classList.toggle("is-center", centered);
+
+        if (abs < bestDist) {
+          bestDist = abs;
+          best = i;
+        }
+      });
+
+      setActiveModule(best);
     };
 
-    sync();
-    el.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
+    const onScroll = () => requestAnimationFrame(paint);
+    track.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", paint);
+
+    requestAnimationFrame(() => {
+      const first = track.querySelector<HTMLElement>("[data-home-stack-card]");
+      if (first) {
+        track.scrollLeft = first.offsetLeft - (track.clientWidth - first.offsetWidth) / 2;
+      }
+      paint();
+    });
+
     return () => {
-      el.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
+      track.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", paint);
     };
-  }, [moduleCount]);
+  }, [stackCount]);
 
   if (isGuest) {
     return (
@@ -214,43 +259,72 @@ export function CommandCenterPage() {
               onOpenDates={() => openScheduleEditor()}
               onOpenDetails={() => setDetailsOpen(true)}
             />
-            <div className="mt-16">
-              <h3 className="px-2 text-[15px] font-medium text-[#584141]">Open one</h3>
-              <div
-                ref={modulesRef}
-                className="home-modules"
-                aria-label="Module cards"
-              >
-                {moduleCards.map((card) => (
-                  <HomeLiveCard
-                    key={card.key}
-                    title={card.title}
-                    line={card.line}
-                    image={card.image}
-                    pending={card.pending}
-                    liftArt={card.liftArt}
-                    to={card.to}
-                    onOpen={card.onOpen}
-                  />
-                ))}
-              </div>
 
-              {moduleCount > 1 ? (
-                <div
-                  className="home-modules-dots"
-                  role="presentation"
-                  aria-hidden
-                  data-testid="home-module-dots"
-                >
-                  {moduleCards.map((card, index) => (
-                    <span
-                      key={card.key}
-                      className={cn(
-                        "home-modules-dot",
-                        index === activeModule && "is-active",
-                      )}
-                    />
-                  ))}
+            <div className="mt-6">
+              {peopleCards.length > 0 ? (
+                <div className="home-people" data-testid="home-people-pins">
+                  <h3 className="home-people__label">People</h3>
+                  <div className="home-people-grid" aria-label="People cards">
+                    {peopleCards.map((card) => (
+                      <HomeLiveCard
+                        key={card.key}
+                        layout="pin"
+                        title={card.title}
+                        line={card.line}
+                        image={card.image}
+                        pending={card.pending}
+                        to={card.to}
+                        onOpen={card.onOpen}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {stackCount > 0 ? (
+                <div className={peopleCards.length > 0 ? "mt-7" : undefined}>
+                  <h3 className="px-2 text-[15px] font-medium text-[#584141]">Modules</h3>
+                  <div className="home-modules-stack-stage">
+                    <div
+                      ref={stackRef}
+                      className="home-modules-stack"
+                      aria-label="Module cards"
+                      data-testid="home-module-stack"
+                    >
+                      {stackCards.map((card) => (
+                        <HomeLiveCard
+                          key={card.key}
+                          layout="stack"
+                          title={card.title}
+                          line={card.line}
+                          image={card.image}
+                          pending={card.pending}
+                          liftArt={card.liftArt}
+                          to={card.to}
+                          onOpen={card.onOpen}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {stackCount > 1 ? (
+                    <div
+                      className="home-modules-dots"
+                      role="presentation"
+                      aria-hidden
+                      data-testid="home-module-dots"
+                    >
+                      {stackCards.map((card, index) => (
+                        <span
+                          key={card.key}
+                          className={cn(
+                            "home-modules-dot",
+                            index === activeModule && "is-active",
+                          )}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

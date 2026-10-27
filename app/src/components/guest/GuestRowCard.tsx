@@ -199,7 +199,11 @@ function ContactDetailSheet({
                 <p className="text-[12px] text-[#7a6f62] font-semibold tabular-nums mt-1.5">
                   {memberCount} {memberCount === 1 ? "person" : "people"}
                   {groupName ? ` · ${groupName}` : ""}
-                  {row.invitationSent ? " · Invite sent" : " · Invite pending"}
+                  {row.inviteStatus === "Claimed"
+                    ? " · Claimed"
+                    : row.invitationSent
+                      ? " · Invite sent"
+                      : " · Invite pending"}
                 </p>
               </div>
               <button
@@ -367,6 +371,9 @@ function ContactDetailSheet({
           welcomeTitle: state.buzz?.welcomeTitle || "",
           welcomeMessage: state.buzz?.welcomeMessage || "",
           venueName: state.buzz?.venueName || "",
+          passArtUrl: state.buzz?.passArtUrl || "",
+          claimCode: sendInvite?.claimCode || null,
+          dateLine: state.event?.startDate || "",
         }}
         onClose={() => setSendInvite(null)}
         onSent={() => onUpdate({ ...row, invitationSent: true, inviteStatus: "Sent" })}
@@ -419,7 +426,9 @@ export function GuestRowCard({
         aria-hidden
       >
         {guestContactInitials(label)}
-        {row.invitationSent ? (
+        {row.inviteStatus === "Claimed" ? (
+          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#e11d3a] ring-2 ring-white" />
+        ) : row.invitationSent ? (
           <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#30d158] ring-2 ring-white" />
         ) : null}
       </span>
@@ -432,10 +441,14 @@ export function GuestRowCard({
       <span
         className={cn(
           "shrink-0 text-[11px] font-extrabold",
-          row.invitationSent ? "text-emerald-700" : "text-[#7a6f62]",
+          row.inviteStatus === "Claimed"
+            ? "text-[#e11d3a]"
+            : row.invitationSent
+              ? "text-emerald-700"
+              : "text-[#7a6f62]",
         )}
       >
-        {row.invitationSent ? "Sent" : "Pending"}
+        {row.inviteStatus === "Claimed" ? "Claimed" : row.invitationSent ? "Sent" : "Pending"}
       </span>
       {!readOnly ? (
         <Icon name="chevron_right" className="text-[18px] text-primary/35 shrink-0" />

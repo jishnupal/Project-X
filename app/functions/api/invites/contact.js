@@ -58,7 +58,7 @@ export async function onRequestPost({ request, env }) {
     return json({ error: "Invalid JSON." }, 400);
   }
 
-  if (body.action === "accept") return acceptInvite(d1, request, body);
+  if (body.action === "accept") return acceptInvite(d1, request, body, env);
 
   const code = String(body.code || "").trim().toUpperCase();
   const guestId = String(body.guestId || "").trim();
@@ -89,6 +89,15 @@ export async function onRequestPost({ request, env }) {
   const name = await loadGuestName(d1, code, guestId);
   if (!name) return json({ error: "That contact has no name yet." }, 400);
 
+  // Re-send: kill prior open links for this guest so old claim codes die.
+  await d1
+    .prepare(
+      `UPDATE contact_invites SET status = 'revoked'
+       WHERE event_id = ? AND guest_id = ? AND status = 'open'`,
+    )
+    .bind(access.event.id, guestId)
+    .run();
+
   const token = inviteToken();
   const claimCode = await uniqueClaimCode(d1);
   const now = Date.now();
@@ -111,19 +120,19 @@ export async function onRequestPost({ request, env }) {
     role,
     url: `${origin}/invite/${role}/${token}`,
     claimUrl: `${origin}/claim/${claimCode}`,
-    whatsappText: `You're invited to ${access.event.name || "our event"}.\nOpen your invite: ${origin}/claim/${claimCode}\nOr enter code ${claimCode} in BiyeFlow.`,
+    whatsappText: `You're invited to ${access.event.name || "our event"}.\nYour pass is ready: ${origin}/claim/${claimCode}\nOr enter code ${claimCode} in BiyeFlow.`,
   });
 }
 
-async function acceptInvite(d1, request, body) {
+async function acceptInvite(d1, request, body, env) {
   const token = String(body.token || "").trim();
   if (!token) return json({ error: "Missing invite." }, 400);
   const user = await validateSession(d1, parseCookie(request));
   if (!user) return json({ error: "Sign in required." }, 401);
-  return bindInvite(d1, user, token);
+  return bindInvite(d1, user, token, env);
 }
 
-async function bindInvite(d1, user, token) {
+async function bindInvite(d1, user, token, env) {
   const invite = await d1
     .prepare(
       `SELECT token, event_id, guest_id, name, role, accepted_by, status, claimed_device_id
@@ -132,6 +141,9 @@ async function bindInvite(d1, user, token) {
     .bind(token)
     .first();
   if (!invite) return json({ error: "Invite not found." }, 404);
+  if (invite.status === "revoked") {
+    return json({ error: "This invite link was replaced. Ask the host for a new pass." }, 410);
+  }
   if (invite.accepted_by && invite.accepted_by !== user.id) {
     return json({ error: "This invite was already accepted." }, 409);
   }
@@ -148,6 +160,7 @@ async function bindInvite(d1, user, token) {
       code: event.code,
       role: "admin",
       name: invite.name,
+      guestId: invite.guest_id,
       eventName: event.name,
       already: "host",
     });
@@ -159,6 +172,7 @@ async function bindInvite(d1, user, token) {
     .first();
 
   const now = Date.now();
+  const firstClaim = invite.status !== "claimed" && !invite.accepted_by;
   let role = invite.role === "buddy" ? "buddy" : "guest";
   if (existing?.role === "admin" || existing?.role === "buddy") role = existing.role;
   else if (invite.role === "buddy") role = "buddy";
@@ -189,11 +203,47 @@ async function bindInvite(d1, user, token) {
     .bind(user.id, now, token)
     .run();
 
+  if (invite.guest_id) {
+    try {
+      const { patchWeddingGuestInviteStatus } = await import("../_push.js");
+      await patchWeddingGuestInviteStatus(d1, event.code, invite.guest_id, "Claimed");
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  if (firstClaim && env) {
+    try {
+      const { appendActivityToWedding, dispatchPush, newActivityItem } = await import("../_push.js");
+      const name = String(invite.name || "Someone").trim() || "Someone";
+      const item = newActivityItem({
+        type: "invite.claimed",
+        title: `${name} is in`,
+        body: "Pass claimed",
+        href: "/command-center?invites=1",
+        audience: "host",
+      });
+      await appendActivityToWedding(d1, event.code, item);
+      await dispatchPush(env, d1, {
+        eventId: event.id,
+        eventCode: event.code,
+        type: item.type,
+        title: item.title,
+        body: item.body,
+        href: "/command-center",
+        audience: "host",
+      });
+    } catch {
+      /* non-fatal */
+    }
+  }
+
   return json({
     ok: true,
     code: event.code,
     role: role === "admin" ? "admin" : role,
     name: invite.name,
+    guestId: invite.guest_id,
     eventName: event.name,
   });
 }

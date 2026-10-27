@@ -37,6 +37,57 @@ export async function ensureNotificationsTable(d1) {
     .run();
 }
 
+/** Mark a guest row Claimed inside weddings_v2 payload (optimistic lock). */
+export async function patchWeddingGuestInviteStatus(d1, code, guestId, inviteStatus = "Claimed") {
+  if (!d1 || !code || !guestId) return false;
+  await d1
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS weddings_v2 (
+        code TEXT PRIMARY KEY NOT NULL,
+        version INTEGER NOT NULL,
+        payload TEXT NOT NULL
+      )`,
+    )
+    .run();
+
+  const upper = String(code).toUpperCase();
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const row = await d1
+      .prepare("SELECT version, payload FROM weddings_v2 WHERE code = ?")
+      .bind(upper)
+      .first();
+    if (!row?.payload) return false;
+    let state;
+    try {
+      state = JSON.parse(row.payload);
+    } catch {
+      return false;
+    }
+    const guests = Array.isArray(state.guests) ? state.guests : [];
+    let changed = false;
+    state.guests = guests.map((guest) => {
+      if (!guest || guest.id !== guestId) return guest;
+      changed = true;
+      return {
+        ...guest,
+        invitationSent: true,
+        inviteStatus,
+        updatedAt: Date.now(),
+      };
+    });
+    if (!changed) return false;
+    const payload = JSON.stringify(state);
+    const result = await d1
+      .prepare(
+        "UPDATE weddings_v2 SET version = version + 1, payload = ? WHERE code = ? AND version = ?",
+      )
+      .bind(payload, upper, row.version)
+      .run();
+    if ((result?.meta?.changes || 0) > 0) return true;
+  }
+  return false;
+}
+
 export async function appendActivityToWedding(d1, code, item) {
   if (!d1 || !code) return false;
   await d1

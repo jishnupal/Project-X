@@ -80,6 +80,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   const status = invite.status || (invite.accepted_by ? "claimed" : "open");
+  if (status === "revoked") {
+    return json({ error: "This invite link was replaced. Ask the host for a new pass." }, 410);
+  }
   if (status === "claimed" && invite.claimed_device_id && invite.claimed_device_id !== deviceId) {
     return json({ error: "This invite was already claimed on another device." }, 409);
   }
@@ -172,14 +175,23 @@ export async function onRequestPost({ request, env }) {
     .bind(userId, now, deviceId, invite.token)
     .run();
 
+  if (invite.guest_id) {
+    try {
+      const { patchWeddingGuestInviteStatus } = await import("../_push.js");
+      await patchWeddingGuestInviteStatus(d1, event.code, invite.guest_id, "Claimed");
+    } catch {
+      /* non-fatal */
+    }
+  }
+
   if (firstClaim) {
     try {
       const { appendActivityToWedding, dispatchPush, newActivityItem } = await import("../_push.js");
       const name = String(invite.name || "Someone").trim() || "Someone";
       const item = newActivityItem({
         type: "invite.claimed",
-        title: `${name} joined`,
-        body: "Invite accepted",
+        title: `${name} is in`,
+        body: "Pass claimed",
         href: "/command-center?invites=1",
         audience: "host",
       });

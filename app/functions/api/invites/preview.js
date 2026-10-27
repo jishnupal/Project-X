@@ -65,8 +65,11 @@ export async function onRequestGet({ request, env }) {
     welcomeMessage: "",
     invitationNote: "",
     venueName: "",
+    passArtUrl: "",
+    letterPhotoUrl: "",
   };
   let nextDay = "";
+  let dateLine = "";
   try {
     const row = await d1.prepare("SELECT payload FROM weddings_v2 WHERE code = ?").bind(event.code).first();
     if (row?.payload) {
@@ -79,7 +82,9 @@ export async function onRequestGet({ request, env }) {
         nextDay = first.date
           ? `${first.name || "Next day"} · ${first.date}`
           : String(first.name || "");
+        dateLine = first.date || String(first.name || "");
       }
+      if (!dateLine && state.event?.startDate) dateLine = String(state.event.startDate);
     }
   } catch {
     /* ignore */
@@ -136,8 +141,11 @@ export async function onRequestGet({ request, env }) {
         buzz.welcomeMessage || "We are so glad you are here. Open your invitation below.",
       invitationNote: buzz.invitationNote || "Your presence is the greatest gift.",
       venueName: buzz.venueName || "",
+      passArtUrl: buzz.passArtUrl || "",
+      letterPhotoUrl: buzz.letterPhotoUrl || "",
     },
     nextDay,
+    dateLine,
     playEnabled: Boolean(play?.enabled ?? 1),
     teaser: {
       question: firstQ,

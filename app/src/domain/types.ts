@@ -38,7 +38,7 @@ export interface EventInfo {
   scheduleConfirmed?: boolean;
 }
 
-export type GuestInviteStatus = "Sent" | "Pending";
+export type GuestInviteStatus = "Sent" | "Pending" | "Claimed";
 
 export interface GuestRow {
   id: string;
@@ -97,6 +97,10 @@ export interface BuzzContent {
   venueName: string;
   venueAddress: string;
   venueMapUrl: string;
+  /** Optional host art for the boarding-pass background. */
+  passArtUrl?: string;
+  /** Optional photo on the handwritten postcard letter. */
+  letterPhotoUrl?: string;
 }
 
 export type RoomType = "standard" | "deluxe" | "suite" | "family";

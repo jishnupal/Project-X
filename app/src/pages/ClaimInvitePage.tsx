@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  GuestInviteLanding,
+  type GuestInviteAcceptResult,
+} from "../components/guest/GuestInviteLanding";
 import { getOrCreateDeviceId } from "../domain/access/deviceLocal";
 import { useAccess } from "../hooks/useAccess";
 import { useAuth } from "../hooks/useAuth";
@@ -12,20 +16,22 @@ type Preview = {
   role: "guest" | "buddy";
   eventName: string;
   eventCode: string;
+  dateLine?: string;
   buzz: {
     welcomeTitle: string;
     welcomeMessage: string;
     invitationNote: string;
     venueName: string;
+    passArtUrl?: string;
+    letterPhotoUrl?: string;
   };
   nextDay: string;
-  playEnabled: boolean;
-  teaser: {
-    question: { id: string; prompt: string; options: string[] } | null;
-    board: Array<{ name: string; points: number }>;
-    playing: number;
-  };
 };
+
+const INVITE_RESUME_KEY = "biyeflow.inviteResume";
+const INVITE_PATH_KEY = "biyeflow.invitePath";
+const INVITE_RSVP_KEY = "biyeflow.inviteRsvp";
+const VIEWER_NAME_KEY = "biyeflow.viewerName";
 
 function deviceLabel() {
   try {
@@ -38,19 +44,66 @@ function deviceLabel() {
   return "Phone";
 }
 
-/** Public invite door: letter free, play gated behind claim. */
+function hasRealProfile(user: { provisional?: boolean; email?: string } | null | undefined) {
+  if (!user) return false;
+  if (user.provisional) return false;
+  const email = String(user.email || "");
+  return !email.includes("@pending.biyeflow.local");
+}
+
+function readStored(key: string) {
+  try {
+    return sessionStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function writeStored(key: string, value: string) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearInviteResume() {
+  try {
+    sessionStorage.removeItem(INVITE_RESUME_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Public invite door: banner → scan → film?/note? → Buzz peek → RSVP
+ * → signup (if needed) → print + stamp → Buzz.
+ */
 export function ClaimInvitePage() {
   const { kind, token, code } = useParams<{ kind?: string; token?: string; code?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { joinWeddingLink, showToast } = useWeddingState();
   const { enterAsMember } = useAccess();
-  const { refreshAuth } = useAuth();
+  const { user, status, refreshAuth } = useAuth();
   const key = token || code || "";
 
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [claimed, setClaimed] = useState<{
+    code: string;
+    role?: string;
+    guestId?: string;
+  } | null>(null);
+  const [resumeScene, setResumeScene] = useState<"receipt" | null>(() =>
+    readStored(INVITE_RESUME_KEY) === "receipt" ? "receipt" : null,
+  );
+  const claimedRef = useRef<typeof claimed>(null);
+  const claimOnce = useRef(false);
+  const displayNameRef = useRef("");
+  const resumeStarted = useRef(false);
 
   useEffect(() => {
     if (!key) return;
@@ -63,54 +116,180 @@ export function ClaimInvitePage() {
           return;
         }
         setPreview(data);
+        const storedName = readStored(VIEWER_NAME_KEY);
+        displayNameRef.current =
+          storedName || user?.name?.trim() || data.name || "";
       } catch {
         setError("Could not open this invite");
       }
     })();
-  }, [key]);
+  }, [key, user?.name]);
 
-  const claim = (claimKey: string) => {
-    if (!claimKey.trim() || busy) return;
+  const invitePath = useMemo(() => {
+    const path = `${location.pathname}${location.search || ""}`;
+    return path.startsWith("/claim") || path.startsWith("/invite")
+      ? path.split("?")[0] || path
+      : key
+        ? `/claim/${encodeURIComponent(key)}`
+        : "/claim";
+  }, [location.pathname, location.search, key]);
+
+  const finishEnter = async (payload: {
+    code: string;
+    role?: string;
+    guestId?: string;
+  }) => {
+    const name = displayNameRef.current.trim() || preview?.name || "";
+    writeStored(VIEWER_NAME_KEY, name);
+    if (payload.guestId) writeStored("biyeflow.claimGuestId", payload.guestId);
+    clearInviteResume();
+    await refreshAuth();
+    await joinWeddingLink(payload.code);
+    await enterAsMember(payload.code);
+    const role = payload.role || preview?.role || kind || "guest";
+    navigate(role === "buddy" ? "/buddies" : "/buzz", { replace: true });
+  };
+
+  const acceptWithSession = async (inviteToken: string) => {
+    const res = await fetch("/api/invites/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ action: "accept", token: inviteToken }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      role?: string;
+      guestId?: string;
+      error?: string;
+    };
+    if (!res.ok || !data.code) throw new Error(data.error || "Could not claim invite");
+    return data;
+  };
+
+  const claimDeviceFallback = async (claimKey: string) => {
+    const deviceId = getOrCreateDeviceId();
+    const res = await fetch("/api/invites/claim", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        code: claimKey.trim(),
+        deviceId,
+        deviceLabel: deviceLabel(),
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      role?: string;
+      guestId?: string;
+      error?: string;
+    };
+    if (!res.ok || !data.code) throw new Error(data.error || "Could not claim invite");
+    return data;
+  };
+
+  const softClaim = async (preferSession: boolean) => {
+    if (claimedRef.current?.code) return claimedRef.current;
+    if (!preview || claimOnce.current) return claimedRef.current;
+    claimOnce.current = true;
+    try {
+      const data =
+        preferSession && hasRealProfile(user)
+          ? await acceptWithSession(preview.token)
+          : await claimDeviceFallback(preview.claimCode || preview.token);
+      if (!data.code) throw new Error("Could not claim invite");
+      const next = { code: data.code, role: data.role, guestId: data.guestId };
+      claimedRef.current = next;
+      setClaimed(next);
+      await refreshAuth();
+      return next;
+    } catch (err) {
+      claimOnce.current = false;
+      showToast(err instanceof Error ? err.message : "Could not save invite");
+      return null;
+    }
+  };
+
+  /** After Google signup, resume at print + stamp */
+  useEffect(() => {
+    if (!preview || status === "loading" || resumeStarted.current) return;
+    if (readStored(INVITE_RESUME_KEY) !== "receipt") return;
+    if (!hasRealProfile(user)) return;
+
+    resumeStarted.current = true;
+    const storedName = readStored(VIEWER_NAME_KEY);
+    displayNameRef.current =
+      storedName || user?.name?.trim() || preview.name || "Guest";
+    setResumeScene("receipt");
+    clearInviteResume();
+    void softClaim(true);
+  }, [preview, status, user]);
+
+  const onAccept = async (
+    rsvp: "yes" | "maybe",
+    displayName: string,
+  ): Promise<GuestInviteAcceptResult> => {
+    const name =
+      displayName.trim() ||
+      user?.name?.trim() ||
+      preview?.name ||
+      "Guest";
+    displayNameRef.current = name;
+    writeStored(INVITE_RSVP_KEY, rsvp);
+    writeStored(VIEWER_NAME_KEY, name);
+    writeStored(INVITE_PATH_KEY, invitePath);
+
+    if (hasRealProfile(user)) {
+      await softClaim(true);
+      return "continue";
+    }
+
+    writeStored(INVITE_RESUME_KEY, "receipt");
+    const params = new URLSearchParams({
+      intent: "invite",
+      signup: "1",
+      return: invitePath,
+    });
+    navigate(`/login?${params.toString()}`, { replace: false });
+    return "auth";
+  };
+
+  const onEnterEvent = (displayName: string) => {
+    if (busy) return;
+    displayNameRef.current =
+      displayName.trim() || user?.name?.trim() || preview?.name || "Guest";
+    writeStored(VIEWER_NAME_KEY, displayNameRef.current);
     setBusy(true);
     void (async () => {
       try {
-        const deviceId = getOrCreateDeviceId();
-        const res = await fetch("/api/invites/claim", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: claimKey.trim(),
-            deviceId,
-            deviceLabel: deviceLabel(),
-          }),
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          code?: string;
-          role?: string;
-          guestId?: string;
-          error?: string;
-          already?: string;
-        };
-        if (!res.ok || !data.code) throw new Error(data.error || "Could not claim invite");
-        try {
-          if (data.guestId) sessionStorage.setItem("biyeflow.claimGuestId", data.guestId);
-          if (preview?.name) sessionStorage.setItem("biyeflow.viewerName", preview.name);
-        } catch {
-          /* ignore */
-        }
-        await refreshAuth();
-        await joinWeddingLink(data.code);
-        await enterAsMember(data.code);
-        const role = data.role || preview?.role || kind || "guest";
-        navigate(role === "buddy" ? "/buddies" : "/buzz", { replace: true });
-        showToast("You're in");
+        const payload = await softClaim(hasRealProfile(user));
+        if (!payload?.code) throw new Error("Could not open event");
+        await finishEnter(payload);
       } catch (err) {
-        showToast(err instanceof Error ? err.message : "Could not claim");
+        showToast(err instanceof Error ? err.message : "Could not open event");
       } finally {
         setBusy(false);
       }
     })();
   };
+
+  const onStoreTap = (store: "apple" | "google") => {
+    showToast(
+      store === "apple"
+        ? "App Store listing coming soon — keep this tab for your pass"
+        : "Google Play listing coming soon — keep this tab for your pass",
+    );
+  };
+
+  const letterNote = useMemo(() => {
+    if (!preview) return "";
+    return (
+      preview.buzz.invitationNote?.trim() ||
+      preview.buzz.welcomeMessage?.trim() ||
+      "You're invited — we'd love to have you with us."
+    );
+  }, [preview]);
 
   if (error) {
     return (
@@ -128,10 +307,13 @@ export function ClaimInvitePage() {
           <button
             type="button"
             disabled={busy || !manualCode.trim()}
-            onClick={() => claim(manualCode)}
+            onClick={() => {
+              setError("");
+              navigate(`/claim/${manualCode.trim()}`, { replace: true });
+            }}
             className="h-11 w-full rounded-full bg-[#1a100c] text-white text-[13px] font-extrabold disabled:opacity-40"
           >
-            Continue in BiyeFlow
+            Open pass
           </button>
         </div>
       </div>
@@ -141,108 +323,68 @@ export function ClaimInvitePage() {
   if (!preview) {
     return (
       <div className="flex min-h-[50dvh] items-center justify-center px-6">
-        <p className="font-headline-md text-[22px] text-primary">Opening invite…</p>
+        <p className="font-headline-md text-[22px] text-primary">Opening your pass…</p>
       </div>
     );
   }
 
-  const q = preview.teaser.question;
+  const guestName =
+    displayNameRef.current.trim() ||
+    readStored(VIEWER_NAME_KEY) ||
+    user?.name?.trim() ||
+    preview.name;
+
+  const buzzPeek = {
+    eventName: preview.eventName,
+    guestName,
+    venueName: preview.buzz.venueName,
+    welcomeTitle: preview.buzz.welcomeTitle,
+    scheduleHeadline: preview.nextDay || preview.dateLine || preview.eventName,
+    scheduleDetail: preview.dateLine || "",
+    countdownTarget: preview.dateLine || "",
+    days: preview.nextDay
+      ? [
+          {
+            id: 1,
+            name: preview.nextDay,
+            day: "—",
+            month: "DAY",
+            weekday: "IN",
+            detail: preview.dateLine || preview.nextDay,
+          },
+        ]
+      : [],
+    playEnabled: true,
+  };
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-lg bg-[#fff8f5] px-4 pb-10 pt-8 text-[#1a100c]">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#9a5a38]">
-        {preview.eventName || "You're invited"}
-      </p>
-      <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-[-0.03em]">
-        {preview.buzz.welcomeTitle}
-      </h1>
-      <p className="mt-3 text-[15px] font-medium leading-relaxed text-[#584141]">
-        {preview.buzz.welcomeMessage}
-      </p>
-
-      <section className="mt-8 rounded-[24px] bg-white/80 p-5 shadow-[0_8px_30px_rgba(26,16,12,0.06)]">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9a5a38]">
-          Invitation
-        </p>
-        <p className="mt-3 whitespace-pre-wrap text-[16px] font-medium leading-relaxed">
-          {preview.buzz.invitationNote}
-        </p>
-        {preview.buzz.venueName ? (
-          <p className="mt-4 text-[13px] font-semibold text-[#7a6f62]">At {preview.buzz.venueName}</p>
-        ) : null}
-        {preview.nextDay ? (
-          <p className="mt-2 text-[13px] font-semibold text-[#7a6f62]">Next: {preview.nextDay}</p>
-        ) : null}
-      </section>
-
-      {preview.role === "buddy" ? (
-        <p className="mt-5 text-[14px] font-semibold text-[#584141]">
-          Your helper tasks unlock in BiyeFlow — along with the event Buzz.
-        </p>
-      ) : null}
-
-      <section className="mt-8">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9a5a38]">
-          The room is open
-        </p>
-        <p className="mt-2 text-[15px] font-medium text-[#584141]">
-          Welcome & your invitation are yours. Trivia, games & the live board live in BiyeFlow —
-          where this event&apos;s Buzz is happening.
-        </p>
-
-        {q ? (
-          <div className="relative mt-4 overflow-hidden rounded-[20px] bg-[#1a100c] p-4 text-white">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-white/55">Q1</p>
-            <p className="mt-1 text-[16px] font-semibold">{q.prompt}</p>
-            <div className="mt-3 space-y-2 blur-sm select-none pointer-events-none opacity-70">
-              {(q.options || []).slice(0, 4).map((opt) => (
-                <div key={opt} className="rounded-full bg-white/10 px-3 py-2 text-[13px]">
-                  {opt}
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[12px] font-bold text-[#f3d58a]">Unlock in BiyeFlow to climb the board</p>
-          </div>
-        ) : null}
-
-        {preview.teaser.board.length ? (
-          <div className="mt-4 rounded-[16px] border border-black/8 bg-white/70 px-4 py-3">
-            <p className="text-[12px] font-extrabold text-[#7a6f62]">
-              {preview.teaser.playing} playing · Top of the board
-            </p>
-            <ul className="mt-2 space-y-1">
-              {preview.teaser.board.slice(0, 3).map((row, i) => (
-                <li key={`${row.name}-${i}`} className="flex justify-between text-[14px] font-semibold">
-                  <span>
-                    {i + 1}. {row.name}
-                  </span>
-                  <span className="text-[#9a5a38]">{row.points}</span>
-                </li>
-              ))}
-              <li className="flex justify-between text-[14px] font-semibold text-[#7a6f62]">
-                <span>You</span>
-                <span>—</span>
-              </li>
-            </ul>
-          </div>
-        ) : (
-          <p className="mt-4 text-[13px] font-semibold text-[#7a6f62]">Be first on the board.</p>
-        )}
-
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => claim(preview.claimCode || preview.token)}
-          className="mt-6 h-12 w-full rounded-full bg-[#e11d3a] text-[14px] font-extrabold text-white disabled:opacity-50"
-        >
-          {busy ? "Opening…" : "Continue in BiyeFlow"}
-        </button>
-        {preview.claimCode ? (
-          <p className="mt-3 text-center text-[12px] font-bold tracking-[0.12em] text-[#7a6f62]">
-            Code {preview.claimCode}
-          </p>
-        ) : null}
-      </section>
-    </div>
+    <GuestInviteLanding
+      mode="live"
+      busy={busy}
+      initialScene={resumeScene || undefined}
+      buzzPeek={buzzPeek}
+      pass={{
+        eventName: preview.eventName,
+        guestName,
+        dateLine: preview.dateLine || preview.nextDay,
+        venueName: preview.buzz.venueName,
+        claimCode: preview.claimCode,
+        backgroundUrl: preview.buzz.passArtUrl || null,
+      }}
+      letter={{
+        templateId: "classic",
+        eventName: preview.eventName,
+        guestName,
+        welcomeTitle: preview.buzz.welcomeTitle,
+        welcomeMessage: letterNote,
+        note: "",
+        venueName: preview.buzz.venueName,
+        photoUrl: preview.buzz.letterPhotoUrl || null,
+      }}
+      onAccept={onAccept}
+      onEnterEvent={onEnterEvent}
+      onContinueBrowser={onEnterEvent}
+      onStoreTap={onStoreTap}
+    />
   );
 }

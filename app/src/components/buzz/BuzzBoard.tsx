@@ -1,4 +1,5 @@
 import { useMemo, useState, type InputHTMLAttributes } from "react";
+import { BoardingPass } from "../guest/BoardingPass";
 import { useAccess } from "../../hooks/useAccess";
 import { useWeddingState } from "../../hooks/useWeddingState";
 import { DEFAULT_BUZZ } from "../../domain/defaults";
@@ -7,6 +8,7 @@ import { BuzzPlayBoard } from "./BuzzPlayBoard";
 import { appendActivity, createActivityItem } from "../../domain/activity";
 import { dispatchPushNotify } from "../../domain/pushClient";
 import { useAuth } from "../../hooks/useAuth";
+import { useNavigateInsideEvent } from "../../navigation/eventHistory";
 
 function BuzzField({
   id,
@@ -82,8 +84,9 @@ function withLiveBuzz(buzz: BuzzContent): BuzzContent {
 }
 
 export function BuzzBoard() {
+  const go = useNavigateInsideEvent();
   const { state, saveState, showToast, syncCode } = useWeddingState();
-  const { canAccessModule } = useAccess();
+  const { canAccessModule, isGuest } = useAccess();
   const { memberships } = useAuth();
   const canEdit = canAccessModule("buzz", "edit");
   const [editing, setEditing] = useState(false);
@@ -138,17 +141,14 @@ export function BuzzBoard() {
   };
 
   const content = editing ? draft : buzz;
+  const dateLine = state.event?.startDate || "";
+  const passGuest = viewerName || (isGuest ? "Guest" : "Riya");
 
-  return (
-    <div className={editing ? "buzz-page is-editing" : "buzz-page"}>
-      <div className="buzz-page__scroll">
-        <div className="buzz-stage">
-          <div className="buzz-stage__bg" aria-hidden>
-            <img src="/moodboards/assets/buzz-crowd.jpg" alt="" />
-          </div>
-          <div className="buzz-stage__scrim" aria-hidden />
-
-          {editing ? (
+  if (editing && canEdit) {
+    return (
+      <div className="buzz-page is-editing">
+        <div className="buzz-page__scroll">
+          <div className="buzz-stage">
             <form
               className="buzz-editor"
               onSubmit={(e) => {
@@ -156,8 +156,7 @@ export function BuzzBoard() {
                 void onPublish();
               }}
             >
-              <p className="buzz-kicker">Edit invite</p>
-
+              <p className="buzz-kicker">Edit invite copy</p>
               <BuzzField
                 id="buzz-title"
                 label="Headline"
@@ -175,7 +174,6 @@ export function BuzzBoard() {
                 multiline
                 placeholder="A line for the people walking in"
               />
-
               <div className="buzz-set">
                 <p className="buzz-set__name">The invite</p>
                 <BuzzField
@@ -187,7 +185,6 @@ export function BuzzBoard() {
                   placeholder="Your presence is the gift"
                 />
               </div>
-
               <div className="buzz-set">
                 <p className="buzz-set__name">The place</p>
                 <BuzzField
@@ -217,17 +214,11 @@ export function BuzzBoard() {
                   placeholder="Paste a maps link"
                 />
               </div>
-
               <div className="buzz-editor__bar">
                 <button type="submit" className="buzz-cta" disabled={publishing}>
                   {publishing ? "Sending…" : "Send update"}
                 </button>
-                <button
-                  type="button"
-                  onClick={onSaveDraft}
-                  disabled={publishing}
-                  className="buzz-cta ghost"
-                >
+                <button type="button" onClick={onSaveDraft} disabled={publishing} className="buzz-cta ghost">
                   Save only
                 </button>
                 <button
@@ -243,23 +234,48 @@ export function BuzzBoard() {
                 </button>
               </div>
             </form>
-          ) : (
-            <>
-              <section className="buzz-hero">
-                <p className="buzz-kicker">{viewerName || "You're invited"}</p>
-                <h1 className="buzz-display">{content.welcomeTitle}</h1>
-                <p className="buzz-lede">{content.welcomeMessage}</p>
-              </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-              <section className="buzz-details">
-                <BuzzPlayBoard />
+  return (
+    <div className="buzz-page buzz-page--vibe">
+      <div className="buzz-page__scroll">
+        <div className="buzz-vibe" style={{ ["--boarding-stage" as string]: "#07040c" }}>
+          <div className="buzz-vibe__glow" aria-hidden />
+          <p className="buzz-vibe__label">{isGuest ? "Your pass" : "The room"}</p>
+          <BoardingPass
+            size="hero"
+            phase={isGuest ? "stamped" : "open"}
+            content={{
+              eventName: state.event?.name || "Your event",
+              guestName: passGuest,
+              dateLine,
+              venueName: content.venueName,
+              claimCode: isGuest ? "YOURS" : null,
+              backgroundUrl: content.passArtUrl || null,
+            }}
+          />
 
-                <div className="buzz-block">
-                  <p className="buzz-lab">Invitation</p>
-                  <p className="buzz-copy">{content.invitationNote}</p>
-                </div>
+          {canEdit ? (
+            <div className="buzz-vibe__actions">
+              <button type="button" className="buzz-vibe__ghost" onClick={() => go("/people/letter")}>
+                Guest preview
+              </button>
+              <button type="button" className="buzz-vibe__ghost" onClick={() => setEditing(true)}>
+                Edit copy
+              </button>
+            </div>
+          ) : null}
 
-                <div className="buzz-block">
+          {isGuest ? (
+            <div className="buzz-vibe__guest">
+              <p className="buzz-vibe__whisper">{content.welcomeTitle}</p>
+              <BuzzPlayBoard />
+              {content.venueName ? (
+                <div className="buzz-vibe__venue">
                   <p className="buzz-lab">Venue</p>
                   <p className="buzz-venue">{content.venueName}</p>
                   {content.venueAddress ? <p className="buzz-addr">{content.venueAddress}</p> : null}
@@ -274,16 +290,12 @@ export function BuzzBoard() {
                     </a>
                   ) : null}
                 </div>
-
-                {canEdit ? (
-                  <div className="buzz-actions">
-                    <button type="button" onClick={() => setEditing(true)} className="buzz-cta">
-                      Edit invite
-                    </button>
-                  </div>
-                ) : null}
-              </section>
-            </>
+              ) : null}
+            </div>
+          ) : (
+            <p className="buzz-vibe__hint">
+              Blank on purpose — the pass is the vibe. Guests land here after they claim.
+            </p>
           )}
         </div>
       </div>

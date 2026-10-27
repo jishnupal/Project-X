@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+import { cn } from "../../design-system/cn";
 import { useNavigateInsideEvent } from "../../navigation/eventHistory";
 
 type HomeModuleCardProps = {
@@ -8,6 +10,10 @@ type HomeModuleCardProps = {
   to?: string;
   onOpen?: () => void;
   liftArt?: boolean;
+  /** rail = flat strip (legacy); stack = coverflow slot; pin = fixed People grid */
+  layout?: "rail" | "stack" | "pin";
+  className?: string;
+  style?: CSSProperties;
 };
 
 function pendingLabel(count: number): string {
@@ -15,14 +21,25 @@ function pendingLabel(count: number): string {
   return String(count);
 }
 
-export function HomeLiveCard({ title, line, image, pending = 0, to, onOpen, liftArt = false }: HomeModuleCardProps) {
+export function HomeLiveCard({
+  title,
+  line,
+  image,
+  pending = 0,
+  to,
+  onOpen,
+  liftArt = false,
+  layout = "rail",
+  className,
+  style,
+}: HomeModuleCardProps) {
   const go = useNavigateInsideEvent();
   const waiting = pending > 0;
   const label = waiting ? `${title}, ${pending} pending` : title;
   const face = (
     <>
-      <span className="block">
-        <span className="block text-[18px] font-bold tracking-[-0.03em] text-black">{title}</span>
+      <span className="home-module__copy">
+        <span className="home-module__title">{title}</span>
         <span className="home-module__line">{line}</span>
       </span>
       <img src={image} alt="" className={liftArt ? "home-module__art home-module__art--lift" : "home-module__art"} />
@@ -35,7 +52,16 @@ export function HomeLiveCard({ title, line, image, pending = 0, to, onOpen, lift
   ) : null;
 
   return (
-    <span className="home-module-slot">
+    <span
+      className={cn(
+        "home-module-slot",
+        layout === "stack" && "home-module-slot--stack",
+        layout === "pin" && "home-module-slot--pin",
+        className,
+      )}
+      style={style}
+      data-home-stack-card={layout === "stack" ? "" : undefined}
+    >
       <button
         type="button"
         aria-label={label}

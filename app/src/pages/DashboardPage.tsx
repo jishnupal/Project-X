@@ -573,7 +573,13 @@ function EventCard({
           onClick={onOpen}
           className="absolute inset-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black disabled:opacity-70"
         />
-        <span className="pointer-events-none absolute bottom-6 left-5 text-[13px] font-semibold text-[#584141]">
+        <span
+          className={
+            membership.role === "guest"
+              ? "pointer-events-none absolute bottom-5 left-5 rounded-full bg-[rgba(255,252,248,0.88)] px-2.5 py-1 text-[11px] font-extrabold tracking-wide text-[#584141] shadow-[0_6px_16px_rgba(30,27,24,0.08)]"
+              : "pointer-events-none absolute bottom-6 left-5 text-[13px] font-semibold text-[#584141]"
+          }
+        >
           {placeLabel(membership)}
         </span>
       </motion.div>

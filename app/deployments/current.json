@@ -1,11 +1,11 @@
 {
-  "deploymentId": "679a6dc2-812b-4a76-b836-fb0072e3bc18",
-  "url": "https://679a6dc2.biyeflow.pages.dev",
+  "deploymentId": "c0566abd-e971-4852-9d1e-b1f84fc31485",
+  "url": "https://c0566abd.biyeflow.pages.dev",
   "productionUrl": "https://biyeflow.pages.dev",
-  "deployedAt": "2026-10-04T12:48:19.267Z",
-  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/679a6dc2-812b-4a76-b836-fb0072e3bc18",
-  "rollbackTarget": "19d772b5-8c36-4572-9352-ba34be441805",
+  "deployedAt": "2026-10-27T18:22:31.926Z",
+  "dashboardUrl": "https://dash.cloudflare.com/27857c28351b7beebf8a8fa95a7f0ebc/pages/view/biyeflow/c0566abd-e971-4852-9d1e-b1f84fc31485",
+  "rollbackTarget": "4007af63-3474-4f59-8af7-f50794f18cb5",
   "appVersion": "1.1.1",
-  "deployLabel": "v1.1.1-20261004",
-  "buildId": "muttglhc"
+  "deployLabel": "v1.1.1-20261027",
+  "buildId": "mvr0iwdk"
 }

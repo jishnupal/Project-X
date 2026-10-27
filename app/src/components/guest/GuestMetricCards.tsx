@@ -45,7 +45,7 @@ export function GuestMetricCards({
             {headTotal}
           </span>
           <span className="mt-2.5 block text-[15px] font-semibold leading-snug text-[#584141]">
-            {headTotal === 1 ? "1 person" : `${headTotal} people`}
+            {headTotal === 1 ? "person" : "people"}
             <span className="text-black/25"> · </span>
             {families === 1 ? "1 family" : `${families} families`}
           </span>

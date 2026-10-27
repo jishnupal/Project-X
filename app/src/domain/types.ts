@@ -99,8 +99,10 @@ export interface BuzzContent {
   venueMapUrl: string;
   /** Optional host art for the boarding-pass background. */
   passArtUrl?: string;
-  /** Optional photo on the handwritten postcard letter. */
+  /** Optional still on the handwritten postcard (HTTPS / R2 URL preferred). */
   letterPhotoUrl?: string;
+  /** Host film for the invite door — streamed URL (R2), never a fat data URL. */
+  letterVideoUrl?: string;
 }
 
 export type RoomType = "standard" | "deluxe" | "suite" | "family";

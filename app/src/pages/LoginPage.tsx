@@ -108,10 +108,17 @@ function safeReturnPath(raw: string | null, fallback = "/dashboard") {
   return path;
 }
 
+function isRealAuthUser(user: { provisional?: boolean; email?: string } | null | undefined) {
+  if (!user) return false;
+  if (user.provisional) return false;
+  const email = String(user.email || "");
+  return !email.includes("@pending.biyeflow.local");
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { loginWithGoogle, status, logout } = useAuth();
+  const { loginWithGoogle, status, logout, user } = useAuth();
   const [faces, setFaces] = useState<HostFace[]>(() => loadHostFaces());
   const [freshReady, setFreshReady] = useState(false);
   const picking = searchParams.get("pick") === "1";
@@ -121,6 +128,7 @@ export function LoginPage() {
     searchParams.get("signup") === "1" ||
     returnTo.startsWith("/claim") ||
     returnTo.startsWith("/invite");
+  const signedInForInvite = inviteIntent && status === "authenticated" && isRealAuthUser(user);
 
   useEffect(() => {
     const wantFresh = searchParams.get("fresh") === "1";
@@ -157,15 +165,18 @@ export function LoginPage() {
   useEffect(() => {
     if (!freshReady) return;
     if (searchParams.get("fresh") === "1" || searchParams.get("pick") === "1") return;
+    /** Invite check-in must show login/continue — never silent bounce */
+    if (inviteIntent) return;
     if (status === "authenticated") {
       navigate(returnTo, { replace: true });
     }
-  }, [status, navigate, freshReady, searchParams, returnTo]);
+  }, [status, navigate, freshReady, searchParams, returnTo, inviteIntent]);
 
   const waiting =
     !freshReady ||
     status === "loading" ||
-    (status === "authenticated" &&
+    (!inviteIntent &&
+      status === "authenticated" &&
       searchParams.get("fresh") !== "1" &&
       searchParams.get("pick") !== "1");
   const recent = recentHostFace(faces);
@@ -245,6 +256,18 @@ export function LoginPage() {
     );
   }
 
+  const continueInviteCheckIn = () => {
+    rememberSignupName();
+    if (user?.name?.trim()) {
+      try {
+        sessionStorage.setItem("biyeflow.viewerName", user.name.trim());
+      } catch {
+        /* ignore */
+      }
+    }
+    navigate(returnTo, { replace: true });
+  };
+
   return (
     <div className="relative min-h-dvh overflow-hidden bg-[#fff8f5] text-[#1e1b18]">
       <main className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
@@ -253,6 +276,11 @@ export function LoginPage() {
               type="button"
               onClick={() => {
                 if (inviteIntent) {
+                  try {
+                    sessionStorage.removeItem("biyeflow.inviteResume");
+                  } catch {
+                    /* ignore */
+                  }
                   navigate(returnTo, { replace: true });
                   return;
                 }
@@ -264,23 +292,46 @@ export function LoginPage() {
               <Icon name="arrow_back" className="text-[24px] text-[#1a1a1a]" />
             </button>
             <h1 className="mt-3 text-[32px] font-extrabold leading-tight tracking-[-0.03em] text-[#324e51]">
-              {screen === "login"
-                ? "Welcome back"
-                : inviteIntent
-                  ? "Join to check in"
-                  : "Create account"}
+              {signedInForInvite
+                ? "Finish check-in"
+                : screen === "login"
+                  ? "Welcome back"
+                  : inviteIntent
+                    ? "Join to check in"
+                    : "Create account"}
             </h1>
             <p className="mt-1.5 text-[15px] text-[#584141]">
-              {screen === "login"
-                ? recent
-                  ? "Tap to continue"
-                  : "Enter your credential to continue"
-                : inviteIntent
-                  ? "Create your BiyeFlow profile to save your pass and enter the event."
-                  : "Use a different email. This adds another person."}
+              {signedInForInvite
+                ? `Continue as ${user?.name?.trim() || user?.email || "you"} to print your pass.`
+                : screen === "login"
+                  ? recent
+                    ? "Tap to continue"
+                    : "Enter your credential to continue"
+                  : inviteIntent
+                    ? "Create your BiyeFlow profile to save your pass and enter the event."
+                    : "Use a different email. This adds another person."}
             </p>
 
-            {screen === "login" && recent ? (
+            {signedInForInvite ? (
+              <div className="mt-10 flex flex-col gap-3">
+                <Pill tone="yellow" disabled={busy} onClick={continueInviteCheckIn}>
+                  {busy ? "Opening" : "Continue to check in"}
+                </Pill>
+                <Pill
+                  tone="light"
+                  disabled={busy}
+                  onClick={() => {
+                    rememberSignupName();
+                    loginWithGoogle(returnTo, undefined, false, true);
+                  }}
+                >
+                  <GoogleIcon />
+                  Use a different Google account
+                </Pill>
+              </div>
+            ) : null}
+
+            {!signedInForInvite && screen === "login" && recent ? (
               <div className="mt-10 flex flex-col items-center text-center">
                 <button
                   type="button"
@@ -314,7 +365,7 @@ export function LoginPage() {
               </div>
             ) : null}
 
-            {screen === "login" && recent ? null : (
+            {!signedInForInvite && !(screen === "login" && recent) ? (
             <>
             <form
               className="mt-7 flex flex-col gap-3.5"
@@ -383,18 +434,20 @@ export function LoginPage() {
               </Pill>
             </div>
             </>
-            )}
+            ) : null}
 
-            <p className="mt-auto pt-8 text-center text-[14px] text-[#584141]">
-              {screen === "login" ? "Don't have account? " : "Already member? "}
-              <button
-                type="button"
-                onClick={screen === "login" ? openSignup : openLogin}
-                className="font-semibold text-[#1a1a1a]"
-              >
-                {screen === "login" ? "Sign up" : "Log In"}
-              </button>
-            </p>
+            {!signedInForInvite ? (
+              <p className="mt-auto pt-8 text-center text-[14px] text-[#584141]">
+                {screen === "login" ? "Don't have account? " : "Already member? "}
+                <button
+                  type="button"
+                  onClick={screen === "login" ? openSignup : openLogin}
+                  className="font-semibold text-[#1a1a1a]"
+                >
+                  {screen === "login" ? "Sign up" : "Log In"}
+                </button>
+              </p>
+            ) : null}
           </div>
       </main>
     </div>

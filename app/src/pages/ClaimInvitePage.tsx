@@ -24,6 +24,7 @@ type Preview = {
     venueName: string;
     passArtUrl?: string;
     letterPhotoUrl?: string;
+    letterVideoUrl?: string;
   };
   nextDay: string;
 };
@@ -97,9 +98,8 @@ export function ClaimInvitePage() {
     role?: string;
     guestId?: string;
   } | null>(null);
-  const [resumeScene, setResumeScene] = useState<"receipt" | null>(() =>
-    readStored(INVITE_RESUME_KEY) === "receipt" ? "receipt" : null,
-  );
+  /** Only set after auth is confirmed — never boot receipt while anon */
+  const [resumeScene, setResumeScene] = useState<"receipt" | null>(null);
   const claimedRef = useRef<typeof claimed>(null);
   const claimOnce = useRef(false);
   const displayNameRef = useRef("");
@@ -239,12 +239,7 @@ export function ClaimInvitePage() {
     writeStored(INVITE_RSVP_KEY, rsvp);
     writeStored(VIEWER_NAME_KEY, name);
     writeStored(INVITE_PATH_KEY, invitePath);
-
-    if (hasRealProfile(user)) {
-      await softClaim(true);
-      return "continue";
-    }
-
+    /** Always open login/signup so live guests explicitly check in (hosts included). */
     writeStored(INVITE_RESUME_KEY, "receipt");
     const params = new URLSearchParams({
       intent: "invite",
@@ -359,6 +354,7 @@ export function ClaimInvitePage() {
 
   return (
     <GuestInviteLanding
+      key={resumeScene === "receipt" ? "resume-receipt" : "invite-door"}
       mode="live"
       busy={busy}
       initialScene={resumeScene || undefined}
@@ -380,6 +376,7 @@ export function ClaimInvitePage() {
         note: "",
         venueName: preview.buzz.venueName,
         photoUrl: preview.buzz.letterPhotoUrl || null,
+        videoUrl: preview.buzz.letterVideoUrl || null,
       }}
       onAccept={onAccept}
       onEnterEvent={onEnterEvent}

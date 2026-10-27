@@ -16,7 +16,6 @@ import {
 } from "./InviteBuzzPeek";
 import { InviteScanRitual, SCAN_READOUT_MS } from "./InviteScanRitual";
 import {
-  CLOTH_EASE,
   InviteBannerCloth,
   InviteVibeStage,
   VIBE_SWIPE_READY_MS,
@@ -40,14 +39,15 @@ type Scene =
 /** Cloth banner → roll up → pass settle → scan (no reverse) */
 type PassFx = "vibe" | "roll" | "spin" | "scanning" | "blasting";
 
-/** Slow cloth roll duration */
-const BANNER_MS = 1180;
-const BANNER_EXIT_Y = -620;
-/** Pass starts fading in once banner is this open (0–1) */
-const PASS_REVEAL_AT = 0.7;
-/** Banner swipe up → roll away to reveal pass */
-const SWIPE_UP_PX = 88;
-const SWIPE_UP_VELOCITY = -560;
+/** Commit spring distance — banner leaves the stage */
+const BANNER_EXIT_Y = -720;
+/** Pass peels in early so finger + pass share one motion */
+const PASS_REVEAL_AT = 0.28;
+/** Banner swipe up → commit */
+const SWIPE_UP_PX = 64;
+const SWIPE_UP_VELOCITY = -420;
+const SWIPE_SNAP = { type: "spring" as const, stiffness: 420, damping: 34, mass: 0.75 };
+const SWIPE_COMMIT = { type: "spring" as const, stiffness: 260, damping: 30, mass: 0.9 };
 
 export type GuestInviteAcceptResult = "continue" | "auth";
 
@@ -154,16 +154,27 @@ export function GuestInviteLanding({
   className,
 }: GuestInviteLandingProps) {
   const reduce = useReducedMotion() ?? false;
-  const media = (letter.photoUrl || "").trim();
-  const hasVideo = Boolean(media && isVideoUrl(media));
-  const hasPhoto = Boolean(media && !hasVideo);
-  /** Invitation film page — always in preview; live when media exists */
+  const videoUrl = (letter.videoUrl || "").trim();
+  const photoUrl = (letter.photoUrl || "").trim();
+  /** Prefer dedicated video URL; legacy letterPhotoUrl may still hold a video data/path. */
+  const mediaVideo =
+    videoUrl || (photoUrl && isVideoUrl(photoUrl) ? photoUrl : "");
+  const mediaPhoto =
+    photoUrl && !isVideoUrl(photoUrl) ? photoUrl : "";
+  const hasVideo = Boolean(mediaVideo);
+  const hasPhoto = Boolean(mediaPhoto);
+  /**
+   * Film/host media page: always in preview; live when media synced to the invite.
+   * Video/photo URLs come from R2 via /api/invites/preview (not JSON blobs).
+   */
   const hasFilm = mode === "preview" || hasVideo || hasPhoto;
+  const filmSrc = mediaVideo || mediaPhoto;
   const noteRaw = letter.welcomeMessage.trim();
   const noteTitleRaw = letter.welcomeTitle.trim();
   /** Preview always shows the note beat; live skips empty / placeholder copy */
   const hasNote =
     mode === "preview" ||
+    hasPhoto ||
     Boolean(noteTitleRaw || (noteRaw && !GENERIC_NOTES.has(noteRaw)));
 
   const bootScene: Scene =
@@ -265,7 +276,7 @@ export function GuestInviteLanding({
   };
 
   const openFilm = () => {
-    if (!(hasVideo || hasPhoto)) return;
+    if (!filmSrc) return;
     setFilmOpen(true);
   };
 
@@ -352,12 +363,12 @@ export function GuestInviteLanding({
     };
   }, [scene, passFx, reduce]);
 
-  // Banner roll → pass → scan → film? → note? → Buzz peek
+  // Banner commit → pass settle (spin); scan → film?/note?/Buzz
   useEffect(() => {
     if (scene !== "pass") return;
-    if (passFx === "roll") {
+    if (passFx === "roll" && reduce) {
       clearTimers();
-      later(() => setPassFx("spin"), reduce ? 0 : BANNER_MS);
+      later(() => setPassFx("spin"), 0);
       return clearTimers;
     }
     if (passFx === "scanning") {
@@ -458,12 +469,9 @@ export function GuestInviteLanding({
 
   const enterAfterStamp = () => {
     const name = displayName.trim() || pass.guestName.trim() || "Guest";
-    if (onEnterEvent) {
+    /** Live claim: leave the door and enter Buzz. Preview: show You're in. */
+    if (onEnterEvent && !isPreview) {
       onEnterEvent(name);
-      return;
-    }
-    if (onContinueBrowser) {
-      onContinueBrowser(name);
       return;
     }
     setScene("in");
@@ -491,7 +499,12 @@ export function GuestInviteLanding({
     guestName: displayName.trim() || letter.guestName,
     welcomeTitle: noteTitle,
     welcomeMessage: noteBody,
-    photoUrl: null,
+    /**
+     * Letter keeps still photos. Video stays on the film page only
+     * (avoid playing twice / empty video tile on paper).
+     */
+    photoUrl: hasPhoto ? mediaPhoto : null,
+    videoUrl: hasVideo ? mediaVideo : null,
   };
 
   const passContent = {
@@ -580,16 +593,37 @@ export function GuestInviteLanding({
                   )}
                   initial={false}
                   animate={{
-                    opacity: passFx === "spin" || passFx === "scanning" || passFx === "blasting"
-                      ? 1
-                      : passReveal,
-                    y: passReveal > 0 || passFx !== "vibe" ? 0 : 36,
-                    scale: 0.94 + Math.max(passReveal, passFx === "spin" ? 1 : 0) * 0.06,
+                    opacity:
+                      passFx === "spin" ||
+                      passFx === "scanning" ||
+                      passFx === "blasting"
+                        ? 1
+                        : passReveal,
+                    y:
+                      passFx === "spin" ||
+                      passFx === "scanning" ||
+                      passFx === "blasting"
+                        ? 0
+                        : 28 * (1 - passReveal),
+                    scale:
+                      passFx === "spin" ||
+                      passFx === "scanning" ||
+                      passFx === "blasting"
+                        ? 1
+                        : 0.9 + passReveal * 0.1,
+                    filter:
+                      passFx === "spin" ||
+                      passFx === "scanning" ||
+                      passFx === "blasting"
+                        ? "blur(0px)"
+                        : `blur(${(1 - passReveal) * 6}px)`,
                   }}
                   transition={
                     reduce
                       ? { duration: 0 }
-                      : { duration: 0.35, ease: CLOTH_EASE }
+                      : passFx === "vibe"
+                        ? { duration: 0 }
+                        : SWIPE_COMMIT
                   }
                 >
                   <BoardingPass
@@ -612,13 +646,13 @@ export function GuestInviteLanding({
                   dragConstraints={
                     passFx === "vibe" ? { top: BANNER_EXIT_Y, bottom: 24 } : undefined
                   }
-                  dragElastic={passFx === "vibe" ? { top: 0.05, bottom: 0.35 } : 0}
+                  dragElastic={passFx === "vibe" ? { top: 0.04, bottom: 0.28 } : 0}
                   dragMomentum={false}
                   onDrag={(_e, info) => {
                     if (passFx === "vibe") syncBannerProgress(info.offset.y);
                   }}
                   onDragEnd={onLandingSwipeEnd}
-                  whileDrag={passFx === "vibe" ? { scale: 0.992 } : undefined}
+                  whileDrag={passFx === "vibe" ? { scale: 0.995 } : undefined}
                   initial={
                     reduce
                       ? false
@@ -628,28 +662,32 @@ export function GuestInviteLanding({
                     bannerRolled
                       ? {
                           y: BANNER_EXIT_Y,
-                          opacity: 1,
-                          rotateX: 0,
-                          scale: 1,
+                          opacity: 0.15,
+                          rotateX: -6,
+                          scale: 0.96,
+                          filter: "blur(10px)",
                         }
                       : {
                           y: 0,
-                          opacity: 1,
+                          opacity: 1 - bannerProgress * 0.35,
                           rotateX: 0,
                           scale: 1,
+                          filter: `blur(${bannerProgress * 4}px)`,
                         }
                   }
                   onUpdate={(latest) => {
                     if (passFx === "vibe") return;
                     if (typeof latest.y === "number") syncBannerProgress(latest.y);
                   }}
+                  onAnimationComplete={() => {
+                    if (passFx === "roll" && !reduce) setPassFx("spin");
+                  }}
                   transition={
                     reduce
                       ? { duration: 0 }
-                      : {
-                          duration: passFx === "vibe" ? 1.35 : 1.15,
-                          ease: CLOTH_EASE,
-                        }
+                      : passFx === "vibe"
+                        ? SWIPE_SNAP
+                        : SWIPE_COMMIT
                   }
                   style={{ transformPerspective: 900 }}
                 >
@@ -753,7 +791,11 @@ export function GuestInviteLanding({
                 disabled={busy}
                 onClick={enterAfterStamp}
               >
-                {busy ? "Opening…" : onEnterEvent ? "Enter the event" : "Continue"}
+                {busy
+                  ? "Opening…"
+                  : onEnterEvent && !isPreview
+                    ? "Enter the event"
+                    : "Continue"}
               </button>
             </motion.div>
           ) : null}
@@ -769,10 +811,10 @@ export function GuestInviteLanding({
                 type="button"
                 className={cn(
                   "guest-invite-media-box guest-invite-media-box--film",
-                  !(hasVideo || hasPhoto) && "is-empty",
+                  !filmSrc && "is-empty",
                 )}
-                onClick={hasVideo || hasPhoto ? openFilm : undefined}
-                disabled={!(hasVideo || hasPhoto)}
+                onClick={filmSrc ? openFilm : undefined}
+                disabled={!filmSrc}
                 aria-label={
                   hasVideo
                     ? "Play invitation video fullscreen"
@@ -785,7 +827,8 @@ export function GuestInviteLanding({
                   <video
                     ref={videoRef}
                     className="guest-invite-media-box__media"
-                    src={media}
+                    src={mediaVideo}
+                    poster={mediaPhoto || undefined}
                     playsInline
                     muted
                     preload="metadata"
@@ -794,15 +837,15 @@ export function GuestInviteLanding({
                 ) : hasPhoto ? (
                   <img
                     className="guest-invite-media-box__media"
-                    src={media}
+                    src={mediaPhoto}
                     alt=""
                   />
                 ) : (
                   <span className="guest-invite-media-box__placeholder">
-                    Add a film in Letter · guests open it fullscreen here
+                    Add a film in Invitations · Film · guests open it fullscreen here
                   </span>
                 )}
-                {hasVideo || hasPhoto ? (
+                {filmSrc ? (
                   <span className="guest-invite-media-box__play" aria-hidden>
                     <span className="guest-invite-media-box__play-icon" />
                     {hasVideo ? "Tap for fullscreen" : "Tap to open"}
@@ -828,7 +871,7 @@ export function GuestInviteLanding({
               <InviteLetterPreview
                 content={letterContent}
                 size="immersive"
-                hideMedia
+                hideMedia={hasVideo || !hasPhoto}
                 className="guest-invite-note__letter"
               />
               <button
@@ -990,15 +1033,17 @@ export function GuestInviteLanding({
                 <video
                   ref={fullscreenVideoRef}
                   className="guest-invite-media-fs__media"
-                  src={media}
+                  src={mediaVideo}
+                  poster={mediaPhoto || undefined}
                   playsInline
                   controls
                   autoPlay
+                  preload="auto"
                 />
               ) : (
                 <img
                   className="guest-invite-media-fs__media"
-                  src={media}
+                  src={mediaPhoto}
                   alt="From the hosts"
                 />
               )}

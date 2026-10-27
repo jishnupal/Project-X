@@ -260,6 +260,20 @@ export async function pullWedding(
   };
 }
 
+/** Keep fat data: URLs out of D1 sync — media lives in R2/KV via /api/media. */
+function scrubMediaForSync(state: WeddingState): WeddingState {
+  const buzz = { ...(state.buzz || {}) };
+  let changed = false;
+  for (const key of ["letterPhotoUrl", "letterVideoUrl", "passArtUrl"] as const) {
+    const value = buzz[key];
+    if (typeof value === "string" && value.startsWith("data:")) {
+      buzz[key] = "";
+      changed = true;
+    }
+  }
+  return changed ? { ...state, buzz } : state;
+}
+
 export async function pushWedding(
   code: string,
   state: WeddingState,
@@ -269,7 +283,7 @@ export async function pushWedding(
     return { status: "ok", version: baseVersion || 1 };
   }
 
-  const body = { state, baseVersion };
+  const body = { state: scrubMediaForSync(state), baseVersion };
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const access = loadAccessSession();
   if (

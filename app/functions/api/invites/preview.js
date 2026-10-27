@@ -67,6 +67,7 @@ export async function onRequestGet({ request, env }) {
     venueName: "",
     passArtUrl: "",
     letterPhotoUrl: "",
+    letterVideoUrl: "",
   };
   let nextDay = "";
   let dateLine = "";
@@ -143,6 +144,7 @@ export async function onRequestGet({ request, env }) {
       venueName: buzz.venueName || "",
       passArtUrl: buzz.passArtUrl || "",
       letterPhotoUrl: buzz.letterPhotoUrl || "",
+      letterVideoUrl: buzz.letterVideoUrl || "",
     },
     nextDay,
     dateLine,

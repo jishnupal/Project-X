@@ -12,6 +12,7 @@ import { ProfilePage } from "./components/access/ProfilePage";
 import { EventSettingsPage } from "./pages/EventSettingsPage";
 import { CohostAcceptPage } from "./pages/CohostAcceptPage";
 import { ContactsPage } from "./pages/ContactsPage";
+import { FilmPage } from "./pages/FilmPage";
 import { InvitationsPage } from "./pages/InvitationsPage";
 import { LetterPage } from "./pages/LetterPage";
 import { InvitePreviewPage } from "./pages/InvitePreviewPage";
@@ -103,6 +104,7 @@ export default function App() {
                   <Route path="contacts" element={<ContactsPage />} />
                   <Route path="invites" element={<InvitationsPage />} />
                   <Route path="preview" element={<InvitePreviewPage />} />
+                  <Route path="film" element={<FilmPage />} />
                   <Route path="letter" element={<LetterPage />} />
                   <Route path="pass" element={<PassPage />} />
                   <Route path="rooms" element={<RoomsPage />} />

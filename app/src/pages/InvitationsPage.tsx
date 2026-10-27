@@ -110,7 +110,7 @@ export function InvitationsPage() {
   return (
     <div className="invites-desk font-[Manrope,sans-serif] mx-auto flex min-h-0 w-full max-w-lg flex-1 flex-col bg-[#fff8f5] text-black">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-1">
-        <header className="scene-keeper scene-keeper--invites scene-keeper--invites-compact">
+        <header className="scene-keeper scene-keeper--invites">
           {needsContactsSetup ? (
             <button
               type="button"
@@ -132,19 +132,19 @@ export function InvitationsPage() {
               aria-label={`Invites, ${sentCount} of ${total} sent, ${pct}% done`}
             >
               <span className="flex items-center justify-between gap-2">
-                <span className="text-[12px] font-semibold text-[#584141]">Invites</span>
-                <span className="text-[12px] font-bold tabular-nums text-[#584141]">{pct}%</span>
+                <span className="invites-tracker__label">Invites</span>
+                <span className="invites-tracker__label tabular-nums">{pct}%</span>
               </span>
-              <span className="mt-1.5 block text-[36px] font-extrabold leading-none tracking-[-0.045em] text-black tabular-nums">
+              <span className="invites-tracker__count">
                 {sentCount}
-                <span className="text-[20px] font-bold text-black/35">/{total}</span>
+                <span className="invites-tracker__count-total">/{total}</span>
               </span>
-              <span className="mt-1.5 block text-[13px] font-semibold leading-snug text-[#584141]">
+              <span className="invites-tracker__meta">
                 {sentCount === 1 ? "1 invited" : `${sentCount} invited`}
                 <span className="text-black/25"> · </span>
                 {claimedCount === 1 ? "1 claimed" : `${claimedCount} claimed`}
               </span>
-              <div className="mt-2">
+              <div className="invites-tracker__bar">
                 <InviteFluidBar value={sentCount} max={total} live />
               </div>
             </div>
@@ -179,6 +179,35 @@ export function InvitationsPage() {
             <Icon name="arrow_forward" className="text-[16px]" />
           </span>
         </button>
+
+        <div className="invite-craft-modules mt-2.5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => canEdit && go("/people/film")}
+            disabled={!canEdit}
+            className="invite-craft-module invite-craft-module--film disabled:opacity-50"
+            aria-label="Set host film"
+          >
+            <span className="invite-craft-module__kicker">Craft</span>
+            <span className="invite-craft-module__title">Film</span>
+            <span className="invite-craft-module__meta">
+              Host video · streams for every guest
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => canEdit && go("/people/letter")}
+            disabled={!canEdit}
+            className="invite-craft-module invite-craft-module--note disabled:opacity-50"
+            aria-label="Set host note"
+          >
+            <span className="invite-craft-module__kicker">Craft</span>
+            <span className="invite-craft-module__title">Note</span>
+            <span className="invite-craft-module__meta">
+              Postcard title &amp; message
+            </span>
+          </button>
+        </div>
 
         {needsContactsSetup ? (
           <div className="mt-3">

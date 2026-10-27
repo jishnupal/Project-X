@@ -11,8 +11,10 @@ export type InviteLetterContent = {
   welcomeMessage: string;
   note: string;
   venueName?: string;
-  /** Host photo or video on the postcard. */
+  /** Still photo on the postcard (not video). */
   photoUrl?: string | null;
+  /** Host film URL (streamed); shown on the Film scene, not the postcard. */
+  videoUrl?: string | null;
 };
 
 type InviteLetterPreviewProps = {

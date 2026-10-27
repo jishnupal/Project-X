@@ -1832,6 +1832,135 @@ body {
   color: #584141;
 }
 
+.invite-craft-modules {
+  /* Film + Note craft entry on Invitations */
+}
+
+@keyframes invite-craft-module-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.invite-craft-module {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  min-height: 6.5rem;
+  padding: 0.9rem 1rem 1rem;
+  border-radius: 1.15rem;
+  border: none;
+  cursor: pointer;
+  /* Slower press + settle — 0.15s felt snappy/harsh on mobile */
+  transition:
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: invite-craft-module-in 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.invite-craft-module:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.invite-craft-module:active {
+  transform: scale(0.978);
+  transition-duration: 0.22s;
+}
+
+@media (max-width: 640px) {
+  .invite-craft-module {
+    animation-duration: 0.78s;
+    transition-duration: 0.48s;
+  }
+
+  .invite-craft-module:nth-child(2) {
+    animation-delay: 0.16s;
+  }
+
+  .invite-craft-module:active {
+    transition-duration: 0.28s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-craft-module {
+    animation: none;
+    transition: none;
+  }
+
+  .invite-craft-module:active {
+    transform: none;
+  }
+}
+
+/* Film + Note — same Note surface; shared gold fill line as the only accent */
+.invite-craft-module--film,
+.invite-craft-module--note {
+  position: relative;
+  background: #fffdf8;
+  color: #1e1b18;
+  box-shadow:
+    0 8px 20px rgba(30, 27, 24, 0.06),
+    inset 0 0 0 1px rgba(99, 94, 83, 0.12);
+  overflow: hidden;
+}
+
+.invite-craft-module--film::before,
+.invite-craft-module--note::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #cca730 0%, #e9c349 100%);
+  pointer-events: none;
+}
+
+.invite-craft-module__kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.invite-craft-module--film .invite-craft-module__kicker,
+.invite-craft-module--note .invite-craft-module__kicker {
+  color: #735c00;
+  opacity: 1;
+}
+
+.invite-craft-module__title {
+  margin-top: 0.35rem;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.28rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.invite-craft-module__meta {
+  margin-top: 0.35rem;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  opacity: 0.78;
+}
+
+.invite-craft-module--film .invite-craft-module__meta,
+.invite-craft-module--note .invite-craft-module__meta {
+  color: #584141;
+  opacity: 1;
+}
+
 .invite-guest-door__go {
   display: inline-flex;
   align-items: center;
@@ -5374,24 +5503,59 @@ button.clay-link-card {
   isolation: isolate;
 }
 
+/* Invitations uses the same Scene keeper frame (665×1138 art @ 148px) */
 .scene-keeper--invites {
   min-height: 0;
 }
 
-.scene-keeper--invites-compact {
-  grid-template-columns: minmax(0, 1fr) 112px;
-  align-items: center;
-}
-
-.scene-keeper--invites-compact .scene-keeper__card {
-  margin-bottom: 0;
-  padding: 12px 14px 12px;
-  border-radius: 22px;
-}
-
-.scene-keeper--invites-compact .scene-keeper__figure {
-  width: 112px;
+.scene-keeper--invites .scene-keeper__figure {
+  width: 148px;
+  max-width: 148px;
+  max-height: 220px;
+  aspect-ratio: 665 / 1138;
   margin-right: 0;
+  margin-bottom: -8px;
+}
+
+.scene-keeper--invites .scene-keeper__card {
+  align-self: center;
+  margin-bottom: 18px;
+}
+
+.scene-keeper--invites .invites-tracker__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #584141;
+}
+
+.scene-keeper--invites .invites-tracker__count {
+  margin-top: 0.55rem;
+  display: block;
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: #1e1b18;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-keeper--invites .invites-tracker__count-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(30, 27, 24, 0.35);
+}
+
+.scene-keeper--invites .invites-tracker__meta {
+  margin-top: 0.55rem;
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #584141;
+}
+
+.scene-keeper--invites .invites-tracker__bar {
+  margin-top: 0.55rem;
 }
 
 .scene-keeper__card {
@@ -5435,13 +5599,6 @@ button.clay-link-card {
   max-height: 220px;
   animation: contacts-keeper-arrive 0.7s ease both;
   pointer-events: none;
-}
-
-/* Invitations: same Scene figure size; slight edge ease only */
-.scene-keeper--invites .scene-keeper__figure {
-  max-width: 132px;
-  max-height: 200px;
-  margin-right: 0;
 }
 
 /* Was -36px and collided with the ~300px-tall keeper; keep a mild tuck only */
@@ -6607,11 +6764,17 @@ button.clay-link-card {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  max-width: 32rem;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
   color: var(--gi-vibe-cream);
   overflow: hidden;
   background: var(--gi-stage);
+}
+
+.guest-invite-landing[data-mode="live"] {
+  min-height: 100dvh;
+  height: 100dvh;
 }
 
 /* Nested under AppLayout (host Preview) — fill shell, don't fight 100dvh + nav */
@@ -6663,15 +6826,19 @@ button.clay-link-card {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 1.25rem 1.35rem calc(2rem + env(safe-area-inset-bottom));
+  padding: 0.65rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+}
+
+.guest-invite-landing[data-mode="live"] .guest-invite-landing__scroll {
+  padding: 0.5rem 0 calc(0.75rem + env(safe-area-inset-bottom));
 }
 
 .guest-invite-landing[data-mode="preview"] .guest-invite-landing__scroll {
-  padding-top: 0.75rem;
-  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  padding-top: 0.5rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
 .guest-invite-progress {
@@ -6679,7 +6846,7 @@ button.clay-link-card {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin: 0 0 1.1rem;
+  margin: 0.35rem 0 0.65rem;
   min-height: 10px;
 }
 
@@ -6700,11 +6867,17 @@ button.clay-link-card {
 /* Same-page stage: vibe landing → zip → pass settles */
 .guest-invite-stage {
   position: relative;
-  width: min(100%, 340px);
-  min-height: min(68dvh, 560px);
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: calc(100dvh - 3.5rem);
   justify-content: flex-start;
-  padding-top: 0.5rem;
+  padding-top: 0;
   overflow: hidden;
+  align-self: stretch;
+}
+
+.guest-invite-landing[data-mode="preview"] .guest-invite-stage {
+  min-height: calc(100% - 3rem);
 }
 
 /* After banner: keep stage height so the pass does not jump while scanning */
@@ -6712,8 +6885,9 @@ button.clay-link-card {
 .guest-invite-stage[data-pass-fx="scanning"],
 .guest-invite-stage[data-pass-fx="blasting"] {
   overflow: visible;
-  min-height: min(68dvh, 560px);
+  min-height: calc(100dvh - 3.5rem);
   padding-bottom: 1.25rem;
+  align-items: center;
 }
 
 /* —— Invite vibe: YOU / ARE / INVITED on grain neon —— */
@@ -6721,13 +6895,14 @@ button.clay-link-card {
   position: relative;
   z-index: 2;
   width: 100%;
-  min-height: min(54dvh, 420px);
+  flex: 1 1 auto;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 2rem 0.5rem 1rem;
+  gap: clamp(0.85rem, 2.5vh, 1.5rem);
+  padding: clamp(2.5rem, 8vh, 4.5rem) 1rem clamp(5.5rem, 14vh, 7rem);
   text-align: center;
   will-change: transform, opacity;
 }
@@ -6743,9 +6918,9 @@ button.clay-link-card {
   z-index: 4;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.65rem 0.4rem 1.4rem;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -7144,11 +7319,11 @@ button.clay-link-card {
 
 .invite-vibe__for {
   margin: 0;
-  font-size: 12px;
+  font-size: clamp(13px, 3.4vw, 16px);
   font-weight: 650;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: rgba(247, 242, 255, 0.55);
+  color: rgba(247, 242, 255, 0.62);
 }
 
 .invite-vibe__announce {
@@ -7158,11 +7333,11 @@ button.clay-link-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.12em;
-  font-size: clamp(42px, 13vw, 64px);
+  gap: 0.08em;
+  font-size: clamp(58px, 17.5vw, 96px);
   font-weight: 900;
-  letter-spacing: -0.06em;
-  line-height: 0.92;
+  letter-spacing: -0.065em;
+  line-height: 0.9;
   text-transform: uppercase;
 }
 
@@ -7190,12 +7365,12 @@ button.clay-link-card {
 .invite-vibe__event {
   position: relative;
   z-index: 2;
-  margin: 0.35rem 0 0;
-  max-width: 16rem;
-  font-size: 13px;
+  margin: 0.55rem 0 0;
+  max-width: 18rem;
+  font-size: clamp(14px, 3.8vw, 17px);
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: rgba(247, 242, 255, 0.62);
+  color: rgba(247, 242, 255, 0.68);
   text-wrap: balance;
 }
 
@@ -7271,8 +7446,8 @@ button.clay-link-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  margin: 0.85rem 0 0;
+  gap: 0.25rem;
+  margin: 0;
   padding: 0.35rem 0.75rem;
   border: 0;
   background: transparent;
@@ -7280,6 +7455,14 @@ button.clay-link-card {
   font: inherit;
   cursor: default;
   pointer-events: none;
+}
+
+.guest-invite-swipe--on-vibe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(1.35rem, env(safe-area-inset-bottom));
+  z-index: 5;
 }
 
 .guest-invite-swipe--on-vibe .guest-invite-swipe__chev {
@@ -7430,7 +7613,7 @@ button.clay-link-card {
 }
 
 .guest-invite-scene {
-  width: min(100%, 340px);
+  width: min(100%, 360px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -7438,7 +7621,10 @@ button.clay-link-card {
 }
 
 .guest-invite-scene--pass {
-  width: min(100%, 340px);
+  width: 100%;
+  max-width: none;
+  flex: 1 1 auto;
+  min-height: inherit;
 }
 
 .guest-invite-note {

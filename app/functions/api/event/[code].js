@@ -2,7 +2,8 @@ import { json as authJson, resolveEventAccess } from "../_auth.js";
 import { authorizeHelperSession } from "./[code]/access.js";
 
 const CODE_PATTERN = /^[A-Z0-9]{8}$/;
-const MAX_BYTES = 900000;
+/** Allow compressed invite media (letter photo/video) inside the event payload */
+const MAX_BYTES = 1_800_000;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {

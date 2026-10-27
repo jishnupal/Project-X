@@ -9,6 +9,7 @@ import {
   functionDateParts,
   resolveDayName,
 } from "../domain/functions";
+import { resolveInviteMedia } from "../domain/inviteMedia";
 import { useWeddingState } from "../hooks/useWeddingState";
 import { useNavigateInsideEvent } from "../navigation/eventHistory";
 
@@ -68,7 +69,7 @@ export function InvitePreviewPage() {
     (state.buzz?.welcomeMessage || "").trim() ||
     (state.buzz?.invitationNote || "").trim();
   const welcomeTitle = (state.buzz?.welcomeTitle || "").trim();
-  const media = (state.buzz?.letterPhotoUrl || "").trim() || null;
+  const { videoUrl, photoUrl } = resolveInviteMedia(state.buzz);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -92,18 +93,19 @@ export function InvitePreviewPage() {
           welcomeMessage: message,
           note: "",
           venueName: "",
-          photoUrl: media,
+          photoUrl,
+          videoUrl,
         }}
         onAccept={async () => {
           showToast("Preview · guests would join here");
         }}
-        onContinueBrowser={(name) =>
+        onContinueBrowser={(name) => {
           showToast(
             name
               ? `Preview · ${name} would open BiyeFlow in browser`
               : "Preview · guests would continue in browser",
-          )
-        }
+          );
+        }}
         onStoreTap={(store) =>
           showToast(
             store === "apple"

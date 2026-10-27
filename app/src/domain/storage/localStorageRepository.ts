@@ -62,6 +62,7 @@ function emptyLocalState(): WeddingState {
       venueMapUrl: "",
       passArtUrl: "",
       letterPhotoUrl: "",
+      letterVideoUrl: "",
     },
     modules: { stay: false, menu: false, asked: false },
     activity: [],

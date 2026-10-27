@@ -12,3 +12,7 @@ preview_id = "73485bfd41e2408882a9f4f0aa5f3379"
 binding = "BIYEFLOW_DB"
 database_name = "biyeflow-sync"
 database_id = "b4b829d2-17bf-4fc8-9cef-68ded2ef87da"
+
+[[r2_buckets]]
+binding = "BIYEFLOW_MEDIA"
+bucket_name = "biyeflow-media"

@@ -7,23 +7,30 @@ import {
   createContactInvite,
   openWhatsAppInvite,
 } from "../domain/contactInvite";
+import { resolveInviteMedia } from "../domain/inviteMedia";
+import {
+  compressImageForUpload,
+  uploadInviteMedia,
+} from "../domain/mediaUpload";
 import { useWeddingState } from "../hooks/useWeddingState";
 import { useNavigateInsideEvent } from "../navigation/eventHistory";
 
-const MAX_MEDIA_BYTES = 2_500_000;
 const FALLBACK_MESSAGE = "You're invited — we'd love to have you with us.";
 
 /**
- * Customize invite (message + media). Opened from Send pass.
- * Optional ?send=guestId continues into WhatsApp.
+ * Invitations · Note — message + postcard photo.
+ * Film (video) is global for all guests on /people/film.
+ * Postcard photo can be changed anytime when sending to new contacts.
  */
 export function LetterPage() {
   const go = useNavigateInsideEvent();
   const [searchParams] = useSearchParams();
   const sendGuestId = (searchParams.get("send") || "").trim();
   const { state, setState, showToast, syncCode } = useWeddingState();
-  const mediaRef = useRef<HTMLInputElement>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [draftPhoto, setDraftPhoto] = useState<string | null>(null);
 
   const guest = useMemo(
     () => (sendGuestId ? state.guests.find((row) => row.id === sendGuestId) : null),
@@ -31,20 +38,22 @@ export function LetterPage() {
   );
 
   const message = state.buzz?.welcomeMessage ?? "";
-  const savedMedia = (state.buzz?.letterPhotoUrl || "").trim();
+  const title = state.buzz?.welcomeTitle ?? "";
+  const { photoUrl: savedPhoto, videoUrl } = resolveInviteMedia(state.buzz);
+  const photoUrl = (draftPhoto || savedPhoto || "").trim() || null;
 
   const content = useMemo(
     () => ({
       templateId: "classic" as const,
       eventName: state.event?.name || "Your event",
       guestName: guest?.name?.trim() || "Guest",
-      welcomeTitle: "",
+      welcomeTitle: title.trim(),
       welcomeMessage: message.trim() || FALLBACK_MESSAGE,
       note: "",
       venueName: "",
-      photoUrl: savedMedia || null,
+      photoUrl,
     }),
-    [state.event?.name, guest?.name, message, savedMedia],
+    [state.event?.name, guest?.name, message, title, photoUrl],
   );
 
   const setMessage = (welcomeMessage: string) => {
@@ -54,29 +63,67 @@ export function LetterPage() {
     }));
   };
 
-  const onPickMedia = (file: File | null) => {
-    if (!file) return;
-    if (file.size > MAX_MEDIA_BYTES) {
-      showToast("Keep media under ~2.5MB for now");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setState((prev) => ({
-        ...prev,
-        buzz: { ...prev.buzz, letterPhotoUrl: String(reader.result || "") },
-      }));
-      showToast(file.type.startsWith("video/") ? "Video added" : "Photo added");
-    };
-    reader.readAsDataURL(file);
+  const setTitle = (welcomeTitle: string) => {
+    setState((prev) => ({
+      ...prev,
+      buzz: { ...prev.buzz, welcomeTitle },
+    }));
   };
 
-  const clearMedia = () => {
+  const onPickPhoto = (file: File | null) => {
+    if (!file || photoBusy) return;
+    if (!syncCode) {
+      showToast("Open an event first");
+      return;
+    }
+    if (file.type.startsWith("video/")) {
+      showToast("Videos go in Film — one clip for every guest");
+      go("/people/film");
+      return;
+    }
+    setPhotoBusy(true);
+    const objectUrl = URL.createObjectURL(file);
+    setDraftPhoto(objectUrl);
+    void (async () => {
+      try {
+        const blob = await compressImageForUpload(file);
+        const asFile = new File(
+          [blob],
+          (file.name || "photo").replace(/\.\w+$/, ".jpg"),
+          { type: "image/jpeg" },
+        );
+        const result = await uploadInviteMedia({
+          code: syncCode,
+          file: asFile,
+          kind: "photo",
+        });
+        setDraftPhoto(result.url);
+        setState((prev) => ({
+          ...prev,
+          buzz: {
+            ...prev.buzz,
+            letterPhotoUrl: result.url,
+            // Never clear the shared film when changing postcard still
+          },
+        }));
+        showToast(photoUrl ? "Postcard photo updated" : "Postcard photo added");
+      } catch (error) {
+        setDraftPhoto(null);
+        showToast(error instanceof Error ? error.message : "Could not upload photo");
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+        setPhotoBusy(false);
+      }
+    })();
+  };
+
+  const clearPhoto = () => {
+    setDraftPhoto(null);
     setState((prev) => ({
       ...prev,
       buzz: { ...prev.buzz, letterPhotoUrl: "" },
     }));
-    showToast("Media cleared");
+    showToast("Postcard photo removed");
   };
 
   const sendOnWhatsApp = async () => {
@@ -125,18 +172,37 @@ export function LetterPage() {
         </button>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#9a5a38]">
-            Customize invite
+            Note
           </p>
           <p className="truncate text-[13px] font-semibold text-[#7a6f62]">
             {guest?.name?.trim()
               ? `Sending to ${guest.name.trim()}`
-              : "Your message and media"}
+              : "Postcard message for guests"}
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => go("/people/film")}
+          className="rounded-full bg-[#ece7e2] px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#584141]"
+        >
+          Film
+        </button>
       </header>
 
       <section className="invite-craft__edit shrink-0 px-3 pb-3">
         <label className="block rounded-[20px] bg-[#fffdf8] px-3.5 py-3 shadow-[0_8px_20px_rgba(60,30,12,0.08)] ring-1 ring-black/5">
+          <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#9a5a38]">
+            Title
+          </span>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="A note from the hosts"
+            className="mt-1.5 w-full rounded-[14px] bg-white px-3 py-2.5 text-[15px] font-semibold text-[#1a100c] outline-none ring-1 ring-black/5 placeholder:text-[#b5a9a4]"
+          />
+        </label>
+
+        <label className="mt-2 block rounded-[20px] bg-[#fffdf8] px-3.5 py-3 shadow-[0_8px_20px_rgba(60,30,12,0.08)] ring-1 ring-black/5">
           <span className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#9a5a38]">
             Message
           </span>
@@ -152,35 +218,50 @@ export function LetterPage() {
         <div className="mt-2 flex gap-2">
           <button
             type="button"
-            onClick={() => mediaRef.current?.click()}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#1a100c] px-4 text-[13px] font-extrabold text-[#fff8f5]"
+            disabled={photoBusy}
+            onClick={() => photoRef.current?.click()}
+            className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-[#1a100c] px-4 text-[13px] font-extrabold text-[#fff8f5] disabled:opacity-50"
           >
             <Icon name="add_a_photo" className="text-[18px]" />
-            {savedMedia ? "Change media" : "Add image / video"}
+            {photoBusy
+              ? "Uploading…"
+              : photoUrl
+                ? "Change photo"
+                : "Add postcard photo"}
           </button>
-          {savedMedia ? (
+          {photoUrl ? (
             <button
               type="button"
-              onClick={clearMedia}
-              className="inline-flex h-11 items-center rounded-full bg-[#ece7e2] px-3.5 text-[12px] font-bold text-[#584141]"
+              onClick={clearPhoto}
+              disabled={photoBusy}
+              className="inline-flex h-11 items-center rounded-full bg-[#ece7e2] px-3.5 text-[12px] font-bold text-[#584141] disabled:opacity-50"
             >
               Remove
             </button>
           ) : null}
           <input
-            ref={mediaRef}
+            ref={photoRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*"
             className="hidden"
-            onChange={(event) => onPickMedia(event.target.files?.[0] || null)}
+            onChange={(event) => {
+              onPickPhoto(event.target.files?.[0] || null);
+              event.target.value = "";
+            }}
           />
         </div>
+
+        <p className="mt-2 px-1 text-[12px] font-semibold text-[#7a6f62]">
+          {videoUrl
+            ? "Shared film stays on for every guest · change the postcard photo anytime."
+            : "Optional still for the postcard. Shared film lives in Film."}
+        </p>
 
         {guest ? (
           <button
             type="button"
             data-testid="contact-send-whatsapp"
-            disabled={sending || !guest.name.trim()}
+            disabled={sending || photoBusy || !guest.name.trim()}
             onClick={() => void sendOnWhatsApp()}
             className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#25D366] text-[15px] font-extrabold text-white disabled:opacity-50"
           >

@@ -17,6 +17,7 @@
     "deploy": "node scripts/pages-deploy.mjs",
     "deploy:rollback": "node scripts/pages-rollback.mjs",
     "deploy:direct": "npm run icons && npm run build && npx wrangler pages deploy dist --project-name=biyeflow",
+    "media:r2": "node scripts/ensure-r2-media.mjs",
     "compare:chrome": "node scripts/compare-chrome-toolbar.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
